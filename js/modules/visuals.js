@@ -49,9 +49,25 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
        Χρησιμοποιείται width (layout) και ΟΧΙ transform: scale — το transform
        δεν επεκτείνει την περιοχή κύλισης, οπότε η ζουμαρισμένη εικόνα δεν θα
        μπορούσε να διαβαστεί ολόκληρη. (07/09/2026) */
-    visualsMod.showImage = function(url, name) {
+    function renderImageInLayer(url, name) {
         zoomStep = 0;
         visualsMod.openLayer(`<img id="stageSheetImage" src="${url}" style="width:100%; max-width:100%; height:auto; display:block; border-radius:4px; box-shadow:0 0 30px rgba(0,0,0,0.5);" alt="${name}">`);
+    }
+
+    visualsMod.showImage = function(url, name) {
+        if (typeof window.resolveAttachmentUrl === 'function') {
+            Promise.resolve(window.resolveAttachmentUrl(url, name)).then(resolved => {
+                if (!resolved) return;
+                renderImageInLayer(resolved.url, name);
+                setupStageImageZoom();
+            });
+            return;
+        }
+        renderImageInLayer(url, name);
+        setupStageImageZoom();
+    };
+
+    function setupStageImageZoom() {
 
         const img = document.getElementById('stageSheetImage');
         if (!img) return;
@@ -109,6 +125,9 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
     };
 
     visualsMod.showScore = function(url, name) {
+        if (typeof window.beforeOpenAttachmentUrl === 'function' && !window.beforeOpenAttachmentUrl(url, name)) {
+            return;
+        }
         const isABC = (url.toLowerCase().includes('.abc?') || url.toLowerCase().endsWith('.abc'));
         
         if (isABC) {
@@ -136,16 +155,7 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
     visualsMod.currentPdfObj = null;
     visualsMod.currentPdfPage = 1;
 
-    visualsMod.showPdf = function(url, name) {
-        if (typeof pdfjsLib === 'undefined') {
-            if (typeof showToast !== 'undefined') showToast(t('msg_pdfjs_not_loaded', 'Η βιβλιοθήκη PDF.js δεν φορτώθηκε.'), 'error');
-            return;
-        }
-
-        /* Τοπικός worker. Με το CDN, κανένα PDF δεν άνοιγε χωρίς δίκτυο —
-           ούτε όταν το cdnjs ήταν απρόσιτο από το δίκτυο του χώρου.
-           Η έκδοση ΠΡΕΠΕΙ να ταιριάζει με το libs/pdf.min.js (3.11.174):
-           αναντιστοιχία ρίχνει το pdf.js με ασαφές σφάλμα. (07/09/2026) */
+    function renderPdfInLayer(url, name) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdf.worker.min.js';
 
         visualsMod.openLayer(`
@@ -166,6 +176,21 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
             console.error(reason);
             if (typeof showToast !== 'undefined') showToast(t('msg_err_pdf_load', 'Σφάλμα φόρτωσης PDF'), 'error');
         });
+    }
+
+    visualsMod.showPdf = function(url, name) {
+        if (typeof pdfjsLib === 'undefined') {
+            if (typeof showToast !== 'undefined') showToast(t('msg_pdfjs_not_loaded', 'Η βιβλιοθήκη PDF.js δεν φορτώθηκε.'), 'error');
+            return;
+        }
+        if (typeof window.resolveAttachmentUrl === 'function') {
+            Promise.resolve(window.resolveAttachmentUrl(url, name)).then(resolved => {
+                if (!resolved) return;
+                renderPdfInLayer(resolved.url, name);
+            });
+            return;
+        }
+        renderPdfInLayer(url, name);
     };
 
     visualsMod.renderPdfPage = function() {

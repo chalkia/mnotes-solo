@@ -49,6 +49,17 @@ const FloatingTools = {
     },
 
     loadContent: function(url, type, customTitle = null) {
+        if (typeof window.beforeOpenAttachmentUrl === 'function' && !window.beforeOpenAttachmentUrl(url, customTitle || type)) {
+            return;
+        }
+        if (typeof window.resolveAttachmentUrl === 'function' && typeof url === 'string' && url.startsWith('local://')) {
+            Promise.resolve(window.resolveAttachmentUrl(url, customTitle || type)).then(resolved => {
+                if (!resolved) return;
+                this.loadContent(resolved.url, resolved.mime || type, customTitle);
+            });
+            return;
+        }
+
         const viewerId = this.getIdFromUrl(url);
         
         // Αν υπάρχει ήδη, απλά φέρτο μπροστά

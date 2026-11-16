@@ -3126,6 +3126,8 @@ async function deleteCurrentSong() {
             ? new Set([currentSongId]) // Οι clones μεταφέρθηκαν, δεν διαγράφονται
             : new Set([currentSongId, ...personalVersions.map(v => v.id)]);
 
+        const removedSongsForCleanup = (window.library || []).filter(x => allToRemove.has(x.id));
+
         // 🚀 [V2.1.7] In-place ενημέρωση της βιβλιοθήκης για να συγχρονιστούν όλες οι αναφορές (Badges, Counts κλπ)
         const updatedLibrary = window.library.filter(x => !allToRemove.has(x.id));
         if (typeof window.setLibrary === 'function') {
@@ -3139,6 +3141,9 @@ async function deleteCurrentSong() {
         window.persistContextLibrary(window.library);
         if (typeof window.recordSongTombstones === 'function') {
             window.recordSongTombstones(Array.from(allToRemove));
+        }
+        if (typeof window.soloCleanupSongAssets === 'function') {
+            window.soloCleanupSongAssets(removedSongsForCleanup, window.library);
         }
 
         // --- Καθαρισμός Setlists από "φαντάσματα" ---
@@ -3379,11 +3384,15 @@ async function emptyTrashSetlist() {
             });
         }
 
+        const removedTrashSongs = (window.library || []).filter(s => trashList.includes(s.id));
         window.library = window.library.filter(s => !trashList.includes(s.id));
         library = window.library;
         window.persistContextLibrary(window.library);
         if (typeof window.recordSongTombstones === 'function') {
             window.recordSongTombstones(trashList);
+        }
+        if (typeof window.soloCleanupSongAssets === 'function') {
+            window.soloCleanupSongAssets(removedTrashSongs, window.library);
         }
 
         allSetlists[trashKey].songs = [];

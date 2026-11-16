@@ -25,6 +25,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     // --- Core Functions ---
 
     assets.openManager = function(type) {
+        if (typeof window.soloOpenAssetManager === 'function') {
+            return window.soloOpenAssetManager(type);
+        }
         if (!currentUser) {
             const authModal = document.getElementById('authModal');
             if (authModal) authModal.style.display = 'flex';
@@ -59,6 +62,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     };
 
     assets.loadUserAssets = async function(type) {
+        if (typeof window.soloLoadUserAssets === 'function') {
+            return window.soloLoadUserAssets(type);
+        }
         const listContainer = document.getElementById('assetManagerList');
         if (!listContainer) return;
         listContainer.innerHTML = `<div class="empty-state">Φόρτωση αρχείων... / Loading...</div>`;
@@ -178,6 +184,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     };
 
     assets.handleUpload = async function(inputElement) {
+        if (typeof window.soloHandleUpload === 'function') {
+            return window.soloHandleUpload(inputElement);
+        }
         if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
             if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Αρχείων / Save Files');
             inputElement.value = ""; 
@@ -342,6 +351,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     };
 
     assets.deleteFromLibrary = async function(assetId, fileUrl, assetName) {
+        if (typeof window.soloDeleteFromLibrary === 'function') {
+            return window.soloDeleteFromLibrary(assetId, fileUrl, assetName);
+        }
         if (!(await window.mConfirm(`Διαγραφή του "${assetName}" (Μεταφορά στον κάδο);`, true))) return;
 
         try {
@@ -364,6 +376,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     };
 
     assets.downloadLocal = async function(fileUrl, fileName) {
+        if (typeof window.soloDownloadAsset === 'function') {
+            return window.soloDownloadAsset(fileUrl, fileName);
+        }
         if (!fileUrl) return;
         showToast(t('msg_download_started', "Η λήψη ξεκίνησε... / Downloading..."), "info");
 
@@ -413,11 +428,15 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             if (typeof list === 'string') list = JSON.parse(list); // just in case
             
             if (Array.isArray(list) && list.length > index) {
-                list.splice(index, 1);
+                const removedItem = list.splice(index, 1)[0];
                 song[listType] = list; // MUST be an array, not a string
                 
                 if (typeof window.saveSong === 'function') {
                     window.saveSong(song);
+                }
+
+                if (listType === 'attachments' && typeof window.soloOnDetachAttachment === 'function') {
+                    window.soloOnDetachAttachment(removedItem, window.library);
                 }
                 
                 if (listType === 'recordings') assets.renderRecordings(list);

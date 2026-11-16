@@ -95,6 +95,9 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
                     lock = (await navigator.storage.persisted()) ? ' 🔒' : '';
                 }
                 el.innerHTML = '✅ Offline: <span style="color:var(--accent);">έτοιμο</span>' + mb + lock;
+                if (typeof window.soloUpdateSettingsAssetsStatus === 'function') {
+                    window.soloUpdateSettingsAssetsStatus(el);
+                }
             } catch (err) {
                 console.warn('[SETTINGS] Έλεγχος offline απέτυχε:', err);
                 el.innerText = 'Offline: άγνωστο';
