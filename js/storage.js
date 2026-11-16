@@ -679,11 +679,12 @@ async function importJSON(input) {
     reader.onload = async function(e) {
         try {
             const rawContent = e.target.result;
+            let imported = null;
             let importedSongs = [];
             let isChordPro = false;
 
             try {
-                const imported = JSON.parse(rawContent);
+                imported = JSON.parse(rawContent);
                 if (imported && (imported.app_version || imported.songs || Array.isArray(imported))) {
                     if (imported.app_version && imported.songs) {
                         importedSongs = imported.songs;
@@ -721,7 +722,7 @@ async function importJSON(input) {
             }
 
             if (typeof window.soloImportSongs === 'function') {
-                const res = window.soloImportSongs(importedSongs, { tombstones: data && data.tombstones });
+                const res = window.soloImportSongs(importedSongs, { tombstones: imported && imported.tombstones });
                 if (res && res.ok) {
                     if (typeof updateSetlistDropdown === 'function') updateSetlistDropdown();
                     if (typeof applyFilters === 'function') applyFilters();
