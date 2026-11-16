@@ -74,11 +74,14 @@ const FloatingTools = {
         viewer.dataset.url = url;
         
         // Initial generic styles
-        viewer.style.cssText = 'position:fixed; top:15%; left:10%; width:450px; height:550px; background:var(--bg-panel); border:1px solid var(--accent); border-radius:8px; z-index:501; display:flex; flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.5); overflow:hidden; resize:both; min-width:250px; min-height:200px;';
+        const isMob = typeof isMobileView === 'function' && isMobileView();
+        const leftPos = isMob ? '10px' : '10%';
+        viewer.style.cssText = `position:fixed; top:15%; left:${leftPos}; width:450px; height:550px; max-width:calc(100vw - 20px); max-height:calc(100dvh - 40px); background:var(--bg-panel); border:1px solid var(--accent); border-radius:8px; z-index:501; display:flex; flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.5); overflow:hidden; resize:both; min-width:250px; min-height:200px;`;
         
         // ✨ ΝΕΟ: Έλεγχος Stage Visibility για κινητά
-        if (typeof isMobileView === 'function' && isMobileView()) {
-            const isStageActive = document.querySelector('.tab-btn-mob[onclick*="stage"]')?.classList.contains('active');
+        if (isMob) {
+            const mainZone = document.getElementById('mainZone');
+            const isStageActive = mainZone ? mainZone.classList.contains('mobile-view-active') : true;
             if (!isStageActive) viewer.style.display = 'none';
         }
         
@@ -355,6 +358,7 @@ async function autoLoadAttachmentsForSong(song) {
     }
     
     if (!song.attachments || !song.attachments.length) return;
+    if (typeof isMobileView === 'function' && isMobileView()) return;
     
     // Ανοίγει όλα τα attachments του συγκεκριμένου τραγουδιού
     song.attachments.forEach((doc, idx) => {

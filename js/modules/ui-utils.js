@@ -374,133 +374,370 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     // --- AutoScroll & Bluetooth ---
     utilsMod.scrollTimer = null;
     utilsMod.scrollBtnTimeout = null;
-    utilsMod.scrollStartTimeout = null; 
+    utilsMod.scrollStartTimeout = null;
+    utilsMod.scrollCountdownTimer = null;
+    utilsMod.scrollPaused = false;
+    utilsMod.scrollAccumulator = 0;
+    utilsMod.scrollLastFrame = 0;
+
+    function getCurrentSongObj() {
+        if (typeof currentSongId === 'undefined' || !currentSongId || typeof library === 'undefined') return null;
+        return library.find(x => x.id === currentSongId) || null;
+    }
+
+    function updateCountdownBadge(secRemaining) {
+        let badge = document.getElementById('scrollCountdownBadge');
+        const inPlay = document.body.classList.contains('play-mode') || window.isPlayModeActive;
+        if (secRemaining === null || secRemaining <= 0 || inPlay) {
+            if (badge) badge.remove();
+            return;
+        }
+        if (!badge) {
+            const titleEl = document.getElementById('mainAppTitle');
+            if (!titleEl) return;
+            badge = document.createElement('span');
+            badge.id = 'scrollCountdownBadge';
+            badge.className = 'scroll-countdown-badge';
+            titleEl.appendChild(badge);
+        }
+        badge.textContent = `⏳ ${Math.ceil(secRemaining)}s`;
+    }
+
+    utilsMod.computeSmartStartDelaySec = function(song, fixedEl, scrollEl) {
+        const hasIntro = !!(song && song.intro && String(song.intro).trim());
+        const baseDelay = (typeof userSettings !== 'undefined' && typeof userSettings.scrollDelay !== 'undefined')
+            ? parseInt(userSettings.scrollDelay, 10)
+            : 10;
+        const introSec = hasIntro ? (isNaN(baseDelay) ? 5 : baseDelay) : 0;
+
+        const fixedLines = fixedEl ? fixedEl.querySelectorAll('.line-row').length : 0;
+        const scrollLines = scrollEl ? scrollEl.querySelectorAll('.line-row').length : 0;
+        const totalLines = fixedLines + scrollLines;
+        if (fixedLines === 0 || scrollLines === 0 || totalLines === 0) {
+            return introSec;
+        }
+
+        let durationSec = 0;
+        if (song && Number(song.duration) > 0) {
+            durationSec = Number(song.duration);
+        } else if (song && Number(song.bpm) > 0 && (Number(song.measures) > 0 || Number(song.bars) > 0)) {
+            const bars = Number(song.measures || song.bars);
+            durationSec = (bars * 4 * 60) / Number(song.bpm);
+        } else {
+            durationSec = totalLines * 3.5;
+        }
+
+        return Math.round(introSec + (fixedLines / totalLines) * durationSec);
+    };
+
+    function getActiveScrollTargets() {
+        const fixedEl = document.getElementById('fixed-container');
+        const scrollEl = document.getElementById('scroll-container');
+        const mainZone = document.getElementById('mainZone');
+        const viewPlayer = document.getElementById('view-player');
+        const stageHeight = viewPlayer ? viewPlayer.clientHeight : (window.innerHeight || 740);
+
+        const targets = [];
+        if (fixedEl && fixedEl.innerText.trim() && fixedEl.scrollHeight > stageHeight * 0.60 && fixedEl.scrollHeight > fixedEl.clientHeight + 2) {
+            targets.push(fixedEl);
+        }
+        if (scrollEl && scrollEl.scrollHeight > scrollEl.clientHeight + 2) {
+            targets.push(scrollEl);
+        } else if (mainZone && mainZone.scrollHeight > mainZone.clientHeight + 2) {
+            targets.push(mainZone);
+        } else if (scrollEl) {
+            targets.push(scrollEl);
+        }
+        return targets;
+    }
+
+    function updateSpeedPillUI(show) {
+        const pill = document.getElementById('scrollSpeedPill');
+        const valEl = document.getElementById('scrollSpeedValue');
+        const song = getCurrentSongObj();
+        const mult = (song && Number(song.scroll_speed) > 0) ? Number(song.scroll_speed) : 1.0;
+        if (valEl) valEl.textContent = `${mult.toFixed(1)}×`;
+        if (pill) pill.style.display = show ? 'inline-flex' : 'none';
+    }
+
+    utilsMod.adjustAutoScrollSpeed = function(delta) {
+        const song = getCurrentSongObj();
+        const cur = (song && Number(song.scroll_speed) > 0) ? Number(song.scroll_speed) : 1.0;
+        const next = Math.min(2.5, Math.max(0.5, Math.round((cur + delta) * 10) / 10));
+        if (song) {
+            song.scroll_speed = next;
+            if (typeof window.persistContextLibrary === 'function' && typeof window.library !== 'undefined') {
+                window.persistContextLibrary(window.library);
+            }
+        }
+        updateSpeedPillUI(true);
+    };
+
+    utilsMod.stopAutoScroll = function() {
+        if (utilsMod.scrollTimer) {
+            cancelAnimationFrame(utilsMod.scrollTimer);
+            utilsMod.scrollTimer = null;
+        }
+        if (utilsMod.scrollStartTimeout) {
+            clearTimeout(utilsMod.scrollStartTimeout);
+            utilsMod.scrollStartTimeout = null;
+        }
+        if (utilsMod.scrollCountdownTimer) {
+            clearInterval(utilsMod.scrollCountdownTimer);
+            utilsMod.scrollCountdownTimer = null;
+        }
+        utilsMod.scrollPaused = false;
+        utilsMod.scrollAccumulator = 0;
+        utilsMod.scrollLastFrame = 0;
+        updateCountdownBadge(null);
+        updateSpeedPillUI(false);
+
+        const btn = document.getElementById('floatingScrollBtn');
+        const btnIcon = document.getElementById('scrollBtnIcon');
+        if (btn) {
+            btn.classList.remove('hidden');
+            btn.style.opacity = '1';
+        }
+        if (btnIcon) btnIcon.className = 'fas fa-arrows-alt-v';
+    };
+
+    function beginScrollLoop(targets) {
+        const btn = document.getElementById('floatingScrollBtn');
+        const btnIcon = document.getElementById('scrollBtnIcon');
+        if (btn) {
+            if (btnIcon) btnIcon.className = 'fas fa-pause';
+            btn.style.opacity = '0.6';
+        }
+        updateSpeedPillUI(true);
+
+        let targetIdx = 0;
+        utilsMod.scrollPaused = false;
+        utilsMod.scrollAccumulator = 0;
+        utilsMod.scrollLastFrame = performance.now();
+
+        function step(now) {
+            if (!utilsMod.scrollTimer) return;
+            const dt = Math.min(0.1, Math.max(0, (now - utilsMod.scrollLastFrame) / 1000));
+            utilsMod.scrollLastFrame = now;
+
+            if (!utilsMod.scrollPaused && targets[targetIdx]) {
+                const container = targets[targetIdx];
+                const baseSpeed = (typeof userSettings !== 'undefined' && userSettings.scrollSpeed) ? parseInt(userSettings.scrollSpeed, 10) : 50;
+                const song = getCurrentSongObj();
+                const mult = (song && Number(song.scroll_speed) > 0) ? Number(song.scroll_speed) : 1.0;
+                const pxPerSec = Math.max(4, (baseSpeed * 0.45) * mult);
+
+                utilsMod.scrollAccumulator += pxPerSec * dt;
+                if (utilsMod.scrollAccumulator >= 1) {
+                    const delta = Math.floor(utilsMod.scrollAccumulator);
+                    utilsMod.scrollAccumulator -= delta;
+                    container.scrollTop += delta;
+                }
+
+                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
+                    if (targetIdx < targets.length - 1) {
+                        targetIdx++;
+                        utilsMod.scrollAccumulator = 0;
+                    } else {
+                        utilsMod.stopAutoScroll();
+                        return;
+                    }
+                }
+            }
+            utilsMod.scrollTimer = requestAnimationFrame(step);
+        }
+
+        utilsMod.scrollTimer = requestAnimationFrame(step);
+    }
+
+    utilsMod.startScrollNow = function() {
+        if (!utilsMod.scrollStartTimeout) return false;
+        clearTimeout(utilsMod.scrollStartTimeout);
+        utilsMod.scrollStartTimeout = null;
+        if (utilsMod.scrollCountdownTimer) {
+            clearInterval(utilsMod.scrollCountdownTimer);
+            utilsMod.scrollCountdownTimer = null;
+        }
+        updateCountdownBadge(null);
+        const targets = getActiveScrollTargets();
+        if (targets.length > 0) beginScrollLoop(targets);
+        return true;
+    };
+
+    utilsMod.toggleAutoScrollPause = function() {
+        if (!utilsMod.scrollTimer) return;
+        utilsMod.scrollPaused = !utilsMod.scrollPaused;
+        const btnIcon = document.getElementById('scrollBtnIcon');
+        if (btnIcon) btnIcon.className = utilsMod.scrollPaused ? 'fas fa-play' : 'fas fa-pause';
+    };
 
     utilsMod.toggleAutoScroll = function(e) {
-        if (e) e.stopPropagation(); 
+        if (e) e.stopPropagation();
 
-        var container = document.getElementById('scroll-container');
-        if (!container || container.scrollHeight <= container.clientHeight) {
-            container = document.getElementById('mainZone');
+        if (utilsMod.scrollTimer) {
+            utilsMod.stopAutoScroll();
+            return;
         }
-        if (!container) return;
-
-        var btn = document.getElementById('floatingScrollBtn');
-        var btnIcon = document.getElementById('scrollBtnIcon');
-        var header = document.querySelector('.player-header-container');
-        var mainHeaderContent = document.querySelector('.header-main-content');
-        var metaInfoBox = document.querySelector('.meta-info-box');
-
-        if (utilsMod.scrollTimer || utilsMod.scrollStartTimeout) {
-            if (utilsMod.scrollTimer) clearInterval(utilsMod.scrollTimer);
-            if (utilsMod.scrollStartTimeout) clearTimeout(utilsMod.scrollStartTimeout);
-            utilsMod.scrollTimer = null;
-            utilsMod.scrollStartTimeout = null;
-            
-            if (header) header.style.display = 'block'; 
-            if (mainHeaderContent) mainHeaderContent.style.display = 'block';
-            if (metaInfoBox) {
-                metaInfoBox.style.display = 'block';
-                metaInfoBox.style.borderTop = '';
-                metaInfoBox.style.marginTop = '';
-            }
-            if (btn) {
-                btn.classList.remove('hidden');
-                btn.style.opacity = '1';
-                if (btnIcon) btnIcon.className = "fas fa-play";
-            }
+        if (utilsMod.scrollStartTimeout) {
+            utilsMod.stopAutoScroll();
             return;
         }
 
-        var speedSetting = (typeof userSettings !== 'undefined' && userSettings.scrollSpeed) ? parseInt(userSettings.scrollSpeed) : 50;
-        var intervalTime = 220 - speedSetting; 
-        if (intervalTime < 10) intervalTime = 10;
-        var delaySec = (typeof userSettings !== 'undefined' && typeof userSettings.scrollDelay !== 'undefined') ? parseInt(userSettings.scrollDelay) : 10;
+        const targets = getActiveScrollTargets();
+        if (targets.length === 0) return;
 
-        if (header) {
-            if (metaInfoBox) {
-                if (mainHeaderContent) mainHeaderContent.style.display = 'none';
-                metaInfoBox.style.borderTop = 'none';
-                metaInfoBox.style.marginTop = '0';
-            } else {
-                header.style.display = 'none';
-            }
+        const song = getCurrentSongObj();
+        const fixedEl = document.getElementById('fixed-container');
+        const scrollEl = document.getElementById('scroll-container');
+        const delaySec = utilsMod.computeSmartStartDelaySec(song, fixedEl, scrollEl);
+
+        if (delaySec <= 0) {
+            beginScrollLoop(targets);
+            return;
         }
-        if (btn && btnIcon) btnIcon.className = "fas fa-hourglass-half";
+
+        const btn = document.getElementById('floatingScrollBtn');
+        const btnIcon = document.getElementById('scrollBtnIcon');
+        if (btn && btnIcon) btnIcon.className = 'fas fa-hourglass-half';
+        updateSpeedPillUI(true);
+
+        let remaining = delaySec;
+        updateCountdownBadge(remaining);
+        utilsMod.scrollCountdownTimer = setInterval(() => {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(utilsMod.scrollCountdownTimer);
+                utilsMod.scrollCountdownTimer = null;
+                updateCountdownBadge(null);
+            } else {
+                updateCountdownBadge(remaining);
+            }
+        }, 1000);
+
+        // Εκτός Play: πάτημα στην κάτω περιοχή (#scroll-container) = «ξεκίνα τώρα»
+        if (scrollEl && !scrollEl._smartStartBound) {
+            scrollEl._smartStartBound = true;
+            scrollEl.addEventListener('click', function() {
+                if (document.body.classList.contains('play-mode') || window.isPlayModeActive) return;
+                if (utilsMod.scrollStartTimeout) utilsMod.startScrollNow();
+            });
+        }
 
         utilsMod.scrollStartTimeout = setTimeout(function() {
             utilsMod.scrollStartTimeout = null;
-            if (btn) {
-                if (btnIcon) btnIcon.className = "fas fa-pause";
-                btn.style.opacity = '0.3';
+            if (utilsMod.scrollCountdownTimer) {
+                clearInterval(utilsMod.scrollCountdownTimer);
+                utilsMod.scrollCountdownTimer = null;
             }
-            utilsMod.scrollTimer = setInterval(function() {
-                container.scrollTop += 1; 
-                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
-                    clearInterval(utilsMod.scrollTimer);
-                    utilsMod.scrollTimer = null;
-                    if (btn) btn.style.opacity = '1';
-                    if (header) header.style.display = 'block';
-                    if (mainHeaderContent) mainHeaderContent.style.display = 'block';
-                    if (metaInfoBox) {
-                        metaInfoBox.style.display = 'block';
-                        metaInfoBox.style.borderTop = '';
-                        metaInfoBox.style.marginTop = '';
-                    }
-                    if (btn) {
-                        btn.classList.remove('hidden');
-                        if (btnIcon) btnIcon.className = "fas fa-play";
-                    }
-                }
-            }, intervalTime);
-        }, delaySec * 1000); 
+            updateCountdownBadge(null);
+            beginScrollLoop(targets);
+        }, delaySec * 1000);
     };
 
     utilsMod.setupBluetoothPedals = function() {
-        document.addEventListener('keydown', function(e) {
-            var editorView = document.getElementById('view-editor');
-            if(editorView && editorView.classList.contains('active-view')) return;
+        const LEFT_KEYS = new Set(['PageUp', 'ArrowUp', 'ArrowLeft']);
+        const RIGHT_KEYS = new Set(['PageDown', 'ArrowDown', 'ArrowRight', ' ', 'Enter']);
 
-            // Check if user is typing in an input or textarea
+        let holdTimer = null;
+        let holdFired = false;
+        let activeKey = null;
+
+        function runPedalAction(action, dir) {
+            if (action === 'song') {
+                if (typeof navVisiblePlaylist === 'function') navVisiblePlaylist(dir);
+                return;
+            }
+            if (action === 'autoscroll') {
+                if (utilsMod.scrollStartTimeout) {
+                    utilsMod.startScrollNow();
+                } else if (utilsMod.scrollTimer) {
+                    utilsMod.toggleAutoScrollPause();
+                } else {
+                    utilsMod.toggleAutoScroll();
+                }
+                return;
+            }
+            // Default: 'scroll' (80% screen)
+            utilsMod.scrollStagePage(dir);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            // Settings modal pedal tester
+            const settingsModal = document.getElementById('settingsModal');
+            if (settingsModal && settingsModal.style.display === 'flex') {
+                const out = document.getElementById('pedalTestOutput');
+                if (out && (LEFT_KEYS.has(e.key) || RIGHT_KEYS.has(e.key))) {
+                    e.preventDefault();
+                    out.textContent = `Έφτασε: ${e.key === ' ' ? 'Space' : e.key} (${e.code || e.key})`;
+                }
+                return;
+            }
+
+            var editorView = document.getElementById('view-editor');
+            if (editorView && editorView.classList.contains('active-view')) return;
+
             const isTyping = ['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable;
             if (isTyping) return;
 
-            // PDF Stage override
-            if (window.isVisualLayerOpen && document.getElementById('stage-pdf-canvas')) {
-                if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    if (typeof window.nextPdfPage === 'function') window.nextPdfPage();
-                    return;
+            const isLeft = LEFT_KEYS.has(e.key);
+            const isRight = RIGHT_KEYS.has(e.key);
+            if (!isLeft && !isRight) return;
+
+            e.preventDefault();
+            const dir = isLeft ? -1 : 1;
+
+            // Visual layer (PDF or Image) override
+            if (window.isVisualLayerOpen) {
+                if (document.getElementById('stage-pdf-canvas')) {
+                    if (dir > 0 && typeof window.nextPdfPage === 'function') window.nextPdfPage();
+                    else if (dir < 0 && typeof window.prevPdfPage === 'function') window.prevPdfPage();
+                } else {
+                    const vc = document.getElementById('visualLayerContent');
+                    if (vc) vc.scrollBy({ top: vc.clientHeight * 0.80 * dir, behavior: 'smooth' });
                 }
-                if (e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    if (typeof window.prevPdfPage === 'function') window.prevPdfPage();
-                    return;
-                }
+                return;
             }
 
-            // Normal stage Page scrolling override when auto-scroll is not running
-            if (!window.scrollInterval) {
-                if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ') {
-                    e.preventDefault();
-                    utilsMod.scrollStagePage(1);
-                    return;
-                }
-                if (e.key === 'PageUp' || e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    utilsMod.scrollStagePage(-1);
-                    return;
-                }
-            } else {
-                if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ') {
-                    e.preventDefault();
-                    utilsMod.toggleAutoScroll();
-                    return;
-                }
+            const holdEnabled = (typeof userSettings !== 'undefined' && !!userSettings.pedalHoldForSong);
+            const action = isLeft
+                ? ((typeof userSettings !== 'undefined' && userSettings.pedalLeftAction) || 'scroll')
+                : ((typeof userSettings !== 'undefined' && userSettings.pedalRightAction) || 'scroll');
+
+            if (!holdEnabled) {
+                if (e.repeat) return;
+                runPedalAction(action, dir);
+                return;
             }
 
-            if (e.key === 'ArrowRight' && typeof navVisiblePlaylist === 'function') navVisiblePlaylist(1);
-            if (e.key === 'ArrowLeft' && typeof navVisiblePlaylist === 'function') navVisiblePlaylist(-1);
+            if (e.repeat || activeKey) return;
+            activeKey = e.key;
+            holdFired = false;
+            const holdMs = (typeof window.__PEDAL_HOLD_MS === 'number') ? window.__PEDAL_HOLD_MS : 600;
+            holdTimer = setTimeout(() => {
+                holdTimer = null;
+                holdFired = true;
+                if (typeof navVisiblePlaylist === 'function') navVisiblePlaylist(dir);
+            }, holdMs);
+        });
+
+        document.addEventListener('keyup', function(e) {
+            if (!activeKey || e.key !== activeKey) return;
+            const isLeft = LEFT_KEYS.has(e.key);
+            const dir = isLeft ? -1 : 1;
+            const action = isLeft
+                ? ((typeof userSettings !== 'undefined' && userSettings.pedalLeftAction) || 'scroll')
+                : ((typeof userSettings !== 'undefined' && userSettings.pedalRightAction) || 'scroll');
+
+            if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+            }
+            const didHold = holdFired;
+            activeKey = null;
+            holdFired = false;
+            if (!didHold) {
+                runPedalAction(action, dir);
+            }
         });
     };
 
@@ -509,7 +746,7 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         if (!container || container.scrollHeight <= container.clientHeight + 5) container = document.getElementById('mainZone');
         if (!container) return;
 
-        var amount = container.clientHeight * 0.85 * direction;
+        var amount = container.clientHeight * 0.80 * direction;
         container.scrollBy({ top: amount, behavior: 'smooth' });
     };
 
@@ -522,8 +759,9 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             var target = e.target;
             if (target.tagName === 'BUTTON' || target.closest('button') || target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'A') return;
             
-            // Ignore if auto-scroll is active
-            if (window.scrollInterval) return;
+            // Ignore if Play mode or auto-scroll is active
+            if (document.body.classList.contains('play-mode') || window.isPlayModeActive) return;
+            if (utilsMod.scrollTimer || utilsMod.scrollStartTimeout) return;
             
             // Ignore if we are in PDF view (it has its own tap zones)
             if (window.isVisualLayerOpen && document.getElementById('stage-pdf-canvas')) return;
@@ -531,10 +769,11 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             var rect = viewPlayer.getBoundingClientRect();
             var x = e.clientX - rect.left;
             var width = rect.width;
+            var edgeRatio = (typeof isMobileView === 'function' && isMobileView()) ? 0.12 : 0.3;
             
-            if (x < width * 0.3) {
+            if (x < width * edgeRatio) {
                 utilsMod.scrollStagePage(-1);
-            } else if (x > width * 0.7) {
+            } else if (x > width * (1 - edgeRatio)) {
                 utilsMod.scrollStagePage(1);
             }
         });
@@ -751,7 +990,95 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     window.toggleRightDrawer = utilsMod.toggleRightDrawer;
     window.applyDrawerHandlePos = utilsMod.applyDrawerHandlePos;
     window.switchDrawerTab = utilsMod.switchDrawerTab;
+    utilsMod.toggleCompactStageBar = function(e) {
+        if (e) e.stopPropagation();
+        document.body.classList.toggle('stage-tools-open');
+    };
+
+    let playFadeTimer = null;
+    let playArmTimer = null;
+
+    function clearPlayTimers() {
+        if (playFadeTimer) { clearTimeout(playFadeTimer); playFadeTimer = null; }
+        if (playArmTimer) { clearTimeout(playArmTimer); playArmTimer = null; }
+    }
+
+    function schedulePlayFade() {
+        clearPlayTimers();
+        const fadeMs = (typeof window.__PLAY_FADE_MS === 'number') ? window.__PLAY_FADE_MS : 10000;
+        playFadeTimer = setTimeout(() => {
+            playFadeTimer = null;
+            if (!document.body.classList.contains('play-mode')) return;
+            document.body.classList.remove('play-armed');
+            document.body.classList.add('play-dimmed');
+        }, fadeMs);
+    }
+
+    utilsMod.enterPlayMode = function() {
+        if (document.body.classList.contains('play-mode')) return;
+        document.body.classList.add('play-mode');
+        document.body.classList.remove('play-dimmed', 'play-armed', 'stage-tools-open');
+        window.isPlayModeActive = true;
+
+        const drawer = document.getElementById('rightDrawer');
+        if (drawer) drawer.classList.remove('open');
+
+        const playIcon = document.getElementById('stagePlayIcon');
+        if (playIcon) playIcon.className = 'fas fa-stop';
+
+        if (typeof utilsMod.requestWakeLock === 'function') utilsMod.requestWakeLock();
+
+        const smartScroll = (typeof userSettings === 'undefined' || userSettings.smartScrollOnPlay !== false);
+        if (smartScroll && !utilsMod.scrollTimer && !utilsMod.scrollStartTimeout) {
+            utilsMod.toggleAutoScroll();
+        }
+
+        schedulePlayFade();
+    };
+
+    utilsMod.exitPlayMode = function() {
+        clearPlayTimers();
+        document.body.classList.remove('play-mode', 'play-dimmed', 'play-armed');
+        window.isPlayModeActive = false;
+
+        const playIcon = document.getElementById('stagePlayIcon');
+        if (playIcon) playIcon.className = 'fas fa-play';
+
+        utilsMod.stopAutoScroll();
+    };
+
+    utilsMod.handleStagePlayBtn = function(e) {
+        if (e) e.stopPropagation();
+        if (!document.body.classList.contains('play-mode')) {
+            utilsMod.enterPlayMode();
+            return;
+        }
+        // Σε Play: 1ο πάτημα -> φωτίζεται πλήρως (play-armed), 2ο πάτημα εντός 3s -> STOP
+        if (document.body.classList.contains('play-armed')) {
+            utilsMod.exitPlayMode();
+            return;
+        }
+        clearPlayTimers();
+        document.body.classList.remove('play-dimmed');
+        document.body.classList.add('play-armed');
+        const armMs = (typeof window.__PLAY_ARM_MS === 'number') ? window.__PLAY_ARM_MS : 3000;
+        playArmTimer = setTimeout(() => {
+            playArmTimer = null;
+            if (!document.body.classList.contains('play-mode')) return;
+            document.body.classList.remove('play-armed');
+            document.body.classList.add('play-dimmed');
+        }, armMs);
+    };
+
     window.toggleAutoScroll = utilsMod.toggleAutoScroll;
+    window.stopAutoScroll = utilsMod.stopAutoScroll;
+    window.startScrollNow = utilsMod.startScrollNow;
+    window.adjustAutoScrollSpeed = utilsMod.adjustAutoScrollSpeed;
+    window.computeSmartStartDelaySec = utilsMod.computeSmartStartDelaySec;
+    window.toggleCompactStageBar = utilsMod.toggleCompactStageBar;
+    window.enterPlayMode = utilsMod.enterPlayMode;
+    window.exitPlayMode = utilsMod.exitPlayMode;
+    window.handleStagePlayBtn = utilsMod.handleStagePlayBtn;
     window.applyScrollBtnVisibility = utilsMod.applyScrollBtnVisibility;
     window.setupBluetoothPedals = utilsMod.setupBluetoothPedals;
     window.scrollStagePage = utilsMod.scrollStagePage;

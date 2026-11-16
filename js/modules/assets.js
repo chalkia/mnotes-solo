@@ -543,7 +543,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             let clickAction = "";
             if (isABC) clickAction = `showScoreInLayer('${doc.url}', '${doc.name}')`;
             else if (isImage) clickAction = `showImageInLayer('${doc.url}', '${doc.name}')`;
-            else clickAction = `FloatingTools.loadContent('${doc.url}', 'pdf')`;
+            else clickAction = `showPdfInLayer('${doc.url}', '${doc.name}')`;
 
             el.innerHTML = `
                 <div onclick="${clickAction}" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">

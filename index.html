@@ -164,6 +164,15 @@
         <div class="resizer" id="dragMeLeft"></div>
         <main class="col-stage" id="mainZone">
             <div id="view-player" class="view-section active-view">
+                <header id="compactStageBar" class="compact-stage-bar">
+                    <button type="button" class="bar-back-btn" onclick="switchMobileTab('library')" title="Πίσω στη λίστα"><i class="fas fa-chevron-left"></i></button>
+                    <div class="bar-song-summary" onclick="toggleCompactStageBar(event)">
+                        <span id="compactBarTitle" class="bar-title">—</span>
+                        <span id="compactBarKey" class="bar-meta-pill key-pill" style="display:none;"></span>
+                        <span id="compactBarBpm" class="bar-meta-pill" style="display:none;"></span>
+                    </div>
+                    <button type="button" class="bar-expand-btn" onclick="toggleCompactStageBar(event)" title="Εργαλεία"><i class="fas fa-chevron-down"></i></button>
+                </header>
                 <div class="player-header-container">
                     <h2 id="mainAppTitle" style="margin:0; font-size:1rem; opacity:0.8;"></h2>
                 </div>
@@ -182,14 +191,22 @@
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
                 <div id="scroll-container" class="scroll-lyrics"></div>
-                <button id="floatingScrollBtn" class="floating-scroll-btn" onclick="toggleAutoScroll(event)">
-                    <i class="fas fa-play" id="scrollBtnIcon"></i>
+                <button id="floatingScrollBtn" class="floating-scroll-btn stage-round-ctl" onclick="toggleAutoScroll(event)" title="Αυτόματη Κύλιση">
+                    <i class="fas fa-arrows-alt-v" id="scrollBtnIcon"></i>
                 </button>
+                <button id="stagePlayBtn" class="stage-round-ctl" onclick="handleStagePlayBtn(event)" title="Play / Stop">
+                    <i class="fas fa-play" id="stagePlayIcon"></i>
+                </button>
+                <div id="scrollSpeedPill" class="scroll-speed-pill" style="display:none;">
+                    <button type="button" onclick="adjustAutoScrollSpeed(-0.1)" title="Πιο αργά">-</button>
+                    <span id="scrollSpeedValue">1.0×</span>
+                    <button type="button" onclick="adjustAutoScrollSpeed(0.1)" title="Πιο γρήγορα">+</button>
+                </div>
 
                 <!-- Stage Visual Layer (Over the Stage content) -->
-                <div id="stageVisualLayer" style="display:none; position:absolute; top:40px; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:100; align-items:center; justify-content:center; flex-direction:column; padding:15px; border-top:1px solid var(--border-color); box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);">
+                <div id="stageVisualLayer" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:1500; align-items:center; justify-content:center; flex-direction:column; padding:15px; border-top:1px solid var(--border-color); box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);">
                     <div style="position:absolute; top:10px; right:15px; display:flex; gap:10px; z-index:110;">
-                        <button onclick="closeVisualLayer()" class="icon-btn ghost" style="color:#fff; font-size:1.5rem;" title="Κλείσιμο" data-i18n-title="idx_auto_126"><i class="fas fa-times-circle"></i></button>
+                        <button onclick="closeVisualLayer()" class="icon-btn ghost" style="width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,0.65); color:#fff; font-size:1.5rem; display:inline-flex; align-items:center; justify-content:center;" title="Κλείσιμο" data-i18n-title="idx_auto_126"><i class="fas fa-times-circle"></i></button>
                     </div>
                     <div id="visualLayerContent" style="width:100%; height:100%; display:flex; align-items:flex-start; justify-content:flex-start; overflow:auto;">
                         <!-- Image or ABC content here -->
@@ -835,6 +852,11 @@
                         </label>
 
                         <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                            <input type="checkbox" id="setAutoFitLyrics">
+                            <span>Αυτόματη προσαρμογή μεγέθους (Auto-Fit, ελάχ. 13 px)</span>
+                        </label>
+
+                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
                             <input type="checkbox" id="setForceMobile" onchange="applyMobileForce()">
                             <span data-i18n="lbl_force_mobile">Μία οθόνη τη φορά</span>
                         </label>
@@ -904,6 +926,11 @@
                             <span data-i18n="opt_show_scroll">Εμφάνιση κουμπιού Scroll</span>
                         </label>
 
+                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                            <input type="checkbox" id="setSmartScrollOnPlay" checked>
+                            <span>Έξυπνη κύλιση στο Play</span>
+                        </label>
+
                         <div style="margin-bottom: 15px;">
                             <span data-i18n="lbl_scroll_speed" style="display: block; margin-bottom: 5px;">Ταχύτητα (Speed):</span>
                             <input type="range" id="setScrollSpeed" min="10" max="200" style="width: 100%;">
@@ -923,6 +950,38 @@
                                 <input type="number" id="setPlayDelay" value="0" min="0" max="15" class="inp" style="width: 60px; text-align: center; padding: 4px;">
                                 <span style="font-size: 0.8rem; color: var(--text-muted);">sec</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group" style="margin-top: 20px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
+                        <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;">Πεντάλ Bluetooth</h4>
+
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">Αριστερό πεντάλ (PageUp / ↑ / ←):</label>
+                            <select id="setPedalLeft" class="modal-input" style="width:100%;">
+                                <option value="scroll">Κύλιση μιας οθόνης (80%) πάνω/κάτω</option>
+                                <option value="autoscroll">Παύση/συνέχεια Auto-Scroll (ή ξεκίνα τώρα)</option>
+                                <option value="song">Προηγούμενο / επόμενο τραγούδι</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">Δεξί πεντάλ (PageDown / ↓ / → / Space / Enter):</label>
+                            <select id="setPedalRight" class="modal-input" style="width:100%;">
+                                <option value="scroll">Κύλιση μιας οθόνης (80%) πάνω/κάτω</option>
+                                <option value="autoscroll">Παύση/συνέχεια Auto-Scroll (ή ξεκίνα τώρα)</option>
+                                <option value="song">Προηγούμενο / επόμενο τραγούδι</option>
+                            </select>
+                        </div>
+
+                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                            <input type="checkbox" id="setPedalHoldSong">
+                            <span>Κράτημα &gt;600 ms = αλλαγή τραγουδιού</span>
+                        </label>
+
+                        <div id="pedalTestBox" tabindex="0" style="padding:10px; border:1px dashed var(--border-color); border-radius:6px; font-size:0.85rem; text-align:center; color:var(--text-muted); cursor:pointer;">
+                            Δοκίμασε το πεντάλ — πάτησε ένα πλήκτρο...
+                            <div id="pedalTestOutput" style="margin-top:4px; font-weight:bold; color:var(--text-main);">—</div>
                         </div>
                     </div>
 
@@ -1130,7 +1189,7 @@
             </div>
         </div>
 
-        <div id="drawerHandle" onclick="toggleRightDrawer()"><i class="fas fa-bars"></i></div>
+        <div id="drawerHandle" class="stage-round-ctl" onclick="toggleRightDrawer()"><i class="fas fa-chevron-left"></i></div>
 
         <aside id="rightDrawer" class="right-drawer">
             <div class="drawer-header">
@@ -1153,7 +1212,7 @@
 
             <div id="drawer-player-controls" class="drawer-section" style="display:none;">
                 <label data-i18n="lbl_controls">CONTROLS</label>
-                <button class="drawer-btn" onclick="toggleLyricsMode()">
+                <button id="viewModeToggle" class="drawer-btn" onclick="toggleLyricsMode()">
                     <i class="fas fa-scroll"></i> <span data-i18n="btn_lyrics_mode">Lyrics Mode</span>
                 </button>
 
@@ -1700,55 +1759,55 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.6.23T.161126"></script>
-        <script src="js/config.js?v=2.6.23T.161126"></script>
+        <script src="js/edition.js?v=2.6.26T.171126"></script>
+        <script src="js/config.js?v=2.6.26T.171126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.6.23T.161126"></script>
-        <script src="js/translations.js?v=2.6.23T.161126"></script>
-        <script src="js/storage.js?v=2.6.23T.161126"></script>
+        <script src="js/data.js?v=2.6.26T.171126"></script>
+        <script src="js/translations.js?v=2.6.26T.171126"></script>
+        <script src="js/storage.js?v=2.6.26T.171126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.6.23T.161126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.6.23T.161126"></script>
-        <script src="js/custom-kits.js?v=2.6.23T.161126"></script>
-        <script src="js/drum-machine.js?v=2.6.23T.161126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.6.23T.161126"></script>
+        <script src="js/sample-kit-data.js?v=2.6.26T.171126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.6.26T.171126"></script>
+        <script src="js/custom-kits.js?v=2.6.26T.171126"></script>
+        <script src="js/drum-machine.js?v=2.6.26T.171126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.6.26T.171126"></script>
 
-        <script src="js/modules/utils.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/assets.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/played-set.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/player.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/editor.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/library.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/settings.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/ui-utils.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/rhythm.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/theory.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/visuals.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/band.js?v=2.6.23T.161126"></script>
-        <script src="js/modules/export.js?v=2.6.23T.161126"></script>
+        <script src="js/modules/utils.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/assets.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/played-set.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/player.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/editor.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/library.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/settings.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/ui-utils.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/rhythm.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/theory.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/visuals.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/band.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/export.js?v=2.6.26T.171126"></script>
 
-        <script src="js/auth.js?v=2.6.23T.161126"></script>
-        <script src="js/basicmetronome.js?v=2.6.23T.161126"></script>
-        <script src="js/permissions.js?v=2.6.23T.161126"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.6.23T.161126-630a0d2"></script>
-        <script src="js/solo/local-assets.js?v=2.6.23T.161126-630a0d2"></script>
-        <script src="js/logic.js?v=2.6.23T.161126"></script>
-        <script src="js/floating-tools.js?v=2.6.23T.161126"></script>
-        <script src="js/tuner.js?v=2.6.23T.161126"></script>
-        <script src="js/ui.js?v=2.6.23T.161126"></script>
-        <script src="js/release-notes.js?v=2.6.23T.161126"></script>
-        <script src="js/chord-player.js?v=2.6.23T.161126"></script>
-        <script src="js/chords.js?v=2.6.23T.161126"></script>
+        <script src="js/auth.js?v=2.6.26T.171126"></script>
+        <script src="js/basicmetronome.js?v=2.6.26T.171126"></script>
+        <script src="js/permissions.js?v=2.6.26T.171126"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.6.26T.171126-70799e1"></script>
+        <script src="js/solo/local-assets.js?v=2.6.26T.171126-70799e1"></script>
+        <script src="js/logic.js?v=2.6.26T.171126"></script>
+        <script src="js/floating-tools.js?v=2.6.26T.171126"></script>
+        <script src="js/tuner.js?v=2.6.26T.171126"></script>
+        <script src="js/ui.js?v=2.6.26T.171126"></script>
+        <script src="js/release-notes.js?v=2.6.26T.171126"></script>
+        <script src="js/chord-player.js?v=2.6.26T.171126"></script>
+        <script src="js/chords.js?v=2.6.26T.171126"></script>
 
-        <script src="js/app.js?v=2.6.23T.161126"></script>
+        <script src="js/app.js?v=2.6.26T.171126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.6.23T.161126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.6.26T.171126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

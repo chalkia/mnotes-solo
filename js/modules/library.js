@@ -232,7 +232,7 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
             li.className = itemClass;
             li.setAttribute('data-id', s.id);
 
-            // 🖍️ Long-press (500ms) για άμεση επισήμανση / μαρκάρισμα χωρίς άνοιγμα του τραγουδιού
+            // 🖍️ Long-press (500ms) ΜΟΝΟ στον τίτλο (.song-title) για άμεσο μαρκάρισμα χωρίς άνοιγμα του τραγουδιού
             let pressTimer = null;
             let startX = 0, startY = 0;
 
@@ -256,11 +256,21 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
                             try { navigator.vibrate(40); } catch (_) {}
                         }
                     }
-                }, 750);
+                }, 500);
             };
 
+            const isTitleTarget = (target) => {
+                if (!target || typeof target.closest !== 'function') return false;
+                if (target.closest('.song-handle, .song-action, .song-key-badge, button')) return false;
+                return !!target.closest('.song-title');
+            };
+
+            li.addEventListener('contextmenu', (e) => {
+                if (isTitleTarget(e.target)) e.preventDefault();
+            });
+
             li.addEventListener('touchstart', (e) => {
-                if (e.target.classList.contains('song-action') || e.target.classList.contains('song-key-badge')) return;
+                if (!isTitleTarget(e.target)) return;
                 if (e.touches && e.touches.length === 1) {
                     startLongPress(e.touches[0].clientX, e.touches[0].clientY);
                 }
@@ -281,7 +291,7 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
 
             li.addEventListener('mousedown', (e) => {
                 if (e.button === 0) {
-                    if (e.target.classList.contains('song-action') || e.target.classList.contains('song-key-badge')) return;
+                    if (!isTitleTarget(e.target)) return;
                     startLongPress(e.clientX, e.clientY);
                 }
             });
@@ -597,7 +607,7 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
             if (stanzas[i].includes('[') || stanzas[i].includes('!')) splitIndex = i;
         }
 
-        if (splitIndex === -1) return { fixed: "", scroll: body };
+        if (splitIndex === -1 || splitIndex === stanzas.length - 1) return { fixed: "", scroll: body };
 
         // Ensure that if splitIndex falls inside an unclosed section, extend it to the closing tag
         let openChorus = false;

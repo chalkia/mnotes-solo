@@ -172,8 +172,7 @@ window.mNotes.ui.export = window.mNotes.ui.export || {};
             } else if (typeof formatStrumming === 'function') {
                 bodyRaw = formatStrumming(bodyRaw);
             }
-            bodyRaw = bodyRaw.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
-            bodyRaw = bodyRaw.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
+            // No pre-injection of spaces before lyrics-only stripping
 
             var lines = bodyRaw.split('\n');
             var htmlBody = "";
@@ -189,19 +188,25 @@ window.mNotes.ui.export = window.mNotes.ui.export || {};
                     htmlBody += `<div class="print-row cue-row">${trimmed}</div>`;
                     return;
                 }
-                let rawLyrics = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '');
+                let rawLyrics = line
+                    .replace(new RegExp(`\\[${chordRx}\\]`, 'g'), '')
+                    .replace(new RegExp(`!${chordRx}!?`, 'g'), '');
                 let hasText = /[\p{L}]/u.test(rawLyrics); 
                 let isChordsOnly = !hasText;
                 let rowClass = isChordsOnly ? 'print-row chords-only-row' : 'print-row';
                 if (line.includes('|') && isChordsOnly) rowClass += ' chords-grid-row';
                 var rowHtml = `<div class="${rowClass}">`;
 
-                if (line.indexOf('!') === -1 || ((typeof isLyricsMode !== 'undefined' && isLyricsMode) || printLyricsOnly)) { 
+                if ((line.indexOf('!') === -1 && line.indexOf('[') === -1) || ((typeof isLyricsMode !== 'undefined' && isLyricsMode) || printLyricsOnly)) { 
                     let pureText = line;
-                    if ((typeof isLyricsMode !== 'undefined' && isLyricsMode) || printLyricsOnly) pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim(); 
+                    if ((typeof isLyricsMode !== 'undefined' && isLyricsMode) || printLyricsOnly) {
+                        pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim();
+                    }
                     let safeText = pureText.replace(/ /g, '&nbsp;'); 
                     rowHtml += `<div class="token"><div class="lyric-only">${(safeText && safeText.length > 0) ? safeText : "&nbsp;"}</div></div>`; 
                 } else { 
+                    line = line.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
+                    line = line.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
                     var parts = line.split('!'); 
                     let rawTokens = [];
                     if (parts[0]) {

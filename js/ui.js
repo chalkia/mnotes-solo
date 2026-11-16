@@ -743,6 +743,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateCursor = () => { window.chordAssistantCursor = inp.selectionStart; };
         inp.addEventListener('keyup', updateCursor);
         inp.addEventListener('mouseup', updateCursor);
+        inp.addEventListener('touchend', updateCursor, { passive: true });
+        inp.addEventListener('click', updateCursor);
         inp.addEventListener('input', updateCursor);
+    }
+    const tagInp = document.getElementById('tagInput');
+    if (tagInp) {
+        tagInp.addEventListener('focus', () => {
+            if (typeof isMobileView === 'function' && isMobileView()) {
+                setTimeout(() => { try { tagInp.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {} }, 150);
+            }
+        });
     }
 });

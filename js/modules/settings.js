@@ -43,6 +43,9 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
             'setDisableSplit': userSettings.disableSplit,
             'setPrintLyricsOnly': userSettings.printLyricsOnly,
             'setShowScrollBtn': (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true,
+            'setAutoFitLyrics': userSettings.autoFitLyrics || false,
+            'setSmartScrollOnPlay': (typeof userSettings.smartScrollOnPlay !== 'undefined') ? userSettings.smartScrollOnPlay : true,
+            'setPedalHoldSong': userSettings.pedalHoldForSong || false,
             /* removed setOnlySharps */
             'setForceMobile': userSettings.forceMobile || false,
             'setHideIntroInter': userSettings.hideIntroInter || false,
@@ -67,7 +70,9 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
             'setPlayDelay': (typeof userSettings.playDelay !== 'undefined') ? userSettings.playDelay : 0,
             'setRefFreq': userSettings.refFreq || 440,
             'setMaxCapo': userSettings.maxCapo || 12,
-            'setAccidentalMode': userSettings.accidentalMode || 'scale'
+            'setAccidentalMode': userSettings.accidentalMode || 'scale',
+            'setPedalLeft': userSettings.pedalLeftAction || 'scroll',
+            'setPedalRight': userSettings.pedalRightAction || 'scroll'
         };
 
         for (let id in values) {
@@ -173,6 +178,16 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         
         const btnChk = document.getElementById('setShowScrollBtn');
         if (btnChk) userSettings.showScrollBtn = btnChk.checked;
+        const autoFitChk = document.getElementById('setAutoFitLyrics');
+        if (autoFitChk) userSettings.autoFitLyrics = autoFitChk.checked;
+        const smartPlayChk = document.getElementById('setSmartScrollOnPlay');
+        if (smartPlayChk) userSettings.smartScrollOnPlay = smartPlayChk.checked;
+        const pedalHoldChk = document.getElementById('setPedalHoldSong');
+        if (pedalHoldChk) userSettings.pedalHoldForSong = pedalHoldChk.checked;
+        const pedalLeftSel = document.getElementById('setPedalLeft');
+        if (pedalLeftSel) userSettings.pedalLeftAction = pedalLeftSel.value;
+        const pedalRightSel = document.getElementById('setPedalRight');
+        if (pedalRightSel) userSettings.pedalRightAction = pedalRightSel.value;
 
         if (typeof requestWakeLock === 'function') requestWakeLock();
 

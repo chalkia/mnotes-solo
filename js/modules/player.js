@@ -182,18 +182,20 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             <div class="player-header" style="position: relative;">
                 <div id="stagePlayedBookmark" class="stage-played-bookmark ${isPlayed ? 'active' : ''}" title="${typeof t === 'function' ? t('lbl_song_highlight', 'Επισήμανση τραγουδιού (Μαρκάρισμα)') : 'Επισήμανση τραγουδιού (Μαρκάρισμα)'}" onclick="if(window.PlayedSet && typeof currentSongId !== 'undefined') { window.PlayedSet.toggle(currentSongId); if(navigator.vibrate) navigator.vibrate(40); }"></div>
                 <div class="header-main-content">
-                    <div class="stage-nav-buttons" style="position: absolute; top: 0; right: 42px; display: flex; gap: 8px; align-items: center; z-index: 10;">
-                        <span id="stagePendingBadge" class="stage-pending-badge" title="Αλλαγές που δεν έχουν σταλεί" style="display:none;"></span>
-                        <span id="stagePlayedBadge" style="display:none;"></span>
-                        <button id="btnToggleSplit" onclick="toggleSongSplit()" class="round-btn" title="${splitTitle}" style="width: 42px; height: 42px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer; color: ${splitColor}; border: ${splitBorder};"><i class="fas ${splitIcon}"></i></button>
-                        <button id="btnEditSong" onclick="switchToEditor()" class="round-btn btn-edit-stage" title="${t('btn_edit', 'Επεξεργασία')}" style="width: 42px; height: 42px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-pen"></i></button>
-                        <button onclick="navSetlist(-1)" class="round-btn" title="Προηγούμενο" style="width: 42px; height: 42px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-backward"></i></button>
-                        <button onclick="navSetlist(1)" class="round-btn" title="Επόμενο" style="width: 42px; height: 42px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-forward"></i></button>
+                    <div class="stage-header-top-row" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 5px;">
+                        <h2 id="mainAppTitle" class="${isPlayed ? 'title-marked' : ''}" style="margin:0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; flex:1; min-width:0;">
+                             <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}${versionBadgeHtml}</span>
+                             ${noteBtnHtml}
+                        </h2>
+                        <div class="stage-nav-buttons" style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; z-index: 10;">
+                            <span id="stagePendingBadge" class="stage-pending-badge" title="Αλλαγές που δεν έχουν σταλεί" style="display:none;"></span>
+                            <span id="stagePlayedBadge" style="display:none;"></span>
+                            <button id="btnToggleSplit" onclick="toggleSongSplit()" class="round-btn" title="${splitTitle}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas ${splitIcon}"></i></button>
+                            <button id="btnEditSong" onclick="switchToEditor()" class="round-btn btn-edit-stage" title="${t('btn_edit', 'Επεξεργασία')}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-pen"></i></button>
+                            <button onclick="navSetlist(-1)" class="round-btn" title="Προηγούμενο" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-backward"></i></button>
+                            <button onclick="navSetlist(1)" class="round-btn" title="Επόμενο" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-forward"></i></button>
+                        </div>
                     </div>
-                    <h2 id="mainAppTitle" class="${isPlayed ? 'title-marked' : ''}" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; padding-right:200px;">
-                         <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}${versionBadgeHtml}</span>
-                         ${noteBtnHtml}
-                    </h2>
                      <div style="margin-bottom: 8px;">${tagsHtml}</div>
                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
                          <div style="display:flex; align-items:center; gap: 10px;">
@@ -204,6 +206,24 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                     </div>
                 </div>
             </div>`;
+
+            const compactTitle = document.getElementById('compactBarTitle');
+            if (compactTitle) compactTitle.textContent = s.title || '';
+            const compactKey = document.getElementById('compactBarKey');
+            if (compactKey) {
+                const keyTxt = (typeof getNote === 'function' && s.key) ? getNote(s.key, state.t, { baseKey: s.key, keyTranspose: state.t }) : (s.key || '');
+                compactKey.textContent = keyTxt;
+                compactKey.style.display = keyTxt ? 'inline-block' : 'none';
+            }
+            const compactBpm = document.getElementById('compactBarBpm');
+            if (compactBpm) {
+                const bpmParts = [];
+                if (s.meter || s.time_signature) bpmParts.push(s.meter || s.time_signature);
+                if (s.bpm) bpmParts.push(s.bpm);
+                const bpmTxt = bpmParts.join(' · ');
+                compactBpm.textContent = bpmTxt;
+                compactBpm.style.display = bpmTxt ? 'inline-block' : 'none';
+            }
         }
 
         const vidBox = document.getElementById('video-sidebar-container');
@@ -261,6 +281,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             window.PlayedSet.paintCounters();
         }
         if (typeof updateOfflineState === 'function') updateOfflineState();
+        if (typeof player.applyAutoFit === 'function') {
+            player.applyAutoFit();
+        }
     };
 
     player.getMediaEmbedHtml = function(url) {
@@ -407,8 +430,6 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         if (!text) return;
         text = player.formatMarkup(text, song);
         const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
-        text = text.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
-        text = text.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
 
         var lines = text.split('\n'); 
         let currentSection = null;
@@ -433,14 +454,17 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                 return;
             }
 
-            let rawLyrics = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '');
+            let rawLyrics = line
+                .replace(new RegExp(`\\[${chordRx}\\]`, 'g'), '')
+                .replace(new RegExp(`!${chordRx}!?`, 'g'), '');
             let hasText = /[\p{L}]/u.test(rawLyrics); 
             let isChordsOnly = !hasText;
             let rowClass = isChordsOnly ? 'line-row chords-only-row' : 'line-row';
             if (line.includes('|') && isChordsOnly) rowClass += ' chords-grid-row';
             row.className = rowClass;
 
-            if (line.indexOf('!') === -1 || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
+            if ((line.indexOf('!') === -1 && line.indexOf('[') === -1) || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
+                if (window.stageViewMode === 'cues') return;
                 let pureText = line;
                 if (typeof isLyricsMode !== 'undefined' && isLyricsMode) {
                     pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim(); 
@@ -448,6 +472,8 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                 let safeText = pureText;
                 row.innerHTML = `<span class="lyric">${(safeText && safeText.length > 0) ? safeText : " "}</span>`; 
             } else { 
+                line = line.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
+                line = line.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
                 var parts = line.split('!'); 
                 let rawTokens = [];
                 if (parts[0]) {
@@ -510,8 +536,20 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                     groups.push(currentGroup);
                 }
 
-                // Append groups to the row
-                groups.forEach(g => {
+                // Append groups to the row (with optional Cue-Words filtering: Ε3)
+                const isCuesMode = (window.stageViewMode === 'cues' && !isChordsOnly);
+                const renderGroups = isCuesMode
+                    ? groups.filter(g => g.some(tok => tok.chord && tok.chord.trim() !== ''))
+                    : groups;
+                if (isCuesMode && renderGroups.length === 0) return;
+
+                renderGroups.forEach((g, gIdx) => {
+                    if (isCuesMode && gIdx > 0) {
+                        const sep = document.createElement('span');
+                        sep.className = 'cue-ellipsis';
+                        sep.textContent = ' … ';
+                        row.appendChild(sep);
+                    }
                     if (g.length === 1) {
                         row.appendChild(player.createToken(g[0].chord, g[0].lyric, isChordsOnly));
                     } else {
@@ -607,20 +645,67 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         return d; 
     };
 
+    player.applyAutoFit = function() {
+        const enabled = (typeof userSettings !== 'undefined' && !!userSettings.autoFitLyrics);
+        if (!enabled) {
+            if (document.documentElement.dataset.autoFitApplied === '1') {
+                document.documentElement.style.removeProperty('--lyric-size');
+                delete document.documentElement.dataset.autoFitApplied;
+            }
+            return;
+        }
+        const containers = ['scroll-container', 'fixed-container']
+            .map(id => document.getElementById(id))
+            .filter(el => el && el.clientWidth > 0);
+        if (containers.length === 0) return;
+
+        let px = 20.8;
+        const minPx = 13;
+        document.documentElement.dataset.autoFitApplied = '1';
+
+        function anyRowWraps() {
+            for (const c of containers) {
+                const rows = c.querySelectorAll('.line-row');
+                for (const row of rows) {
+                    const tokens = row.querySelectorAll('.token, .token-group');
+                    if (tokens.length < 2) continue;
+                    const firstTop = tokens[0].getBoundingClientRect().top;
+                    const lastTop = tokens[tokens.length - 1].getBoundingClientRect().top;
+                    if (lastTop - firstTop > 6) return true;
+                }
+            }
+            return false;
+        }
+
+        document.documentElement.style.setProperty('--lyric-size', px + 'px');
+        while (px > minPx && anyRowWraps()) {
+            px = Math.max(minPx, px - 0.5);
+            document.documentElement.style.setProperty('--lyric-size', px + 'px');
+        }
+    };
+
+    window.stageViewMode = window.stageViewMode || 'full';
+
     player.toggleLyricsMode = function() {
-        isLyricsMode = !isLyricsMode;
-        if (isLyricsMode) {
-            document.body.classList.add('lyrics-only');
-            showToast(t('msg_lyrics_on'));
-        } else {
-            document.body.classList.remove('lyrics-only');
-            showToast(t('msg_lyrics_off'));
+        const order = ['full', 'lyrics', 'cues'];
+        const curIdx = order.indexOf(window.stageViewMode || 'full');
+        const nextMode = order[(curIdx + 1) % order.length];
+        window.stageViewMode = nextMode;
+        isLyricsMode = (nextMode === 'lyrics');
+
+        document.body.classList.toggle('lyrics-only', nextMode === 'lyrics');
+        document.body.classList.toggle('cues-only', nextMode === 'cues');
+
+        if (typeof showToast === 'function') {
+            if (nextMode === 'lyrics') showToast(t('msg_lyrics_on', 'Μόνο στίχοι'));
+            else if (nextMode === 'cues') showToast('Λέξεις-οδηγοί');
+            else showToast(t('msg_lyrics_off', 'Πλήρες'));
         }
-        var btn = document.getElementById('btnLyrics');
-        if (btn) {
-            if (isLyricsMode) btn.classList.add('active-btn'); 
-            else btn.classList.remove('active-btn');
-        }
+        ['btnLyrics', 'viewModeToggle'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.classList.toggle('active-btn', nextMode !== 'full');
+        });
         if (currentSongId && typeof library !== 'undefined') {
             const s = library.find(x => x.id === currentSongId);
             if (s) player.render(s);
@@ -748,9 +833,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 (function () {
     'use strict';
 
-    const HOLD_MS = 750;
+    const HOLD_MS = 500;
     const MOVE_TOLERANCE_PX = 10;
-    const BODY_SELECTOR = '#fixed-container, #scroll-container, #mainAppTitle';
+    const TITLE_SELECTOR = '#mainAppTitle';
 
     let timer = null;
     let startX = 0;
@@ -761,8 +846,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     }
 
     document.addEventListener('pointerdown', function (e) {
-        const body = e.target.closest(BODY_SELECTOR);
-        if (!body) return;
+        if (document.body.classList.contains('play-mode') || window.isPlayModeActive) return;
+        const titleEl = e.target.closest(TITLE_SELECTOR);
+        if (!titleEl) return;
         // Αν το πάτημα έγινε σε κουμπί/πινέζα/σύνδεσμο, δεν ξεκινάμε long-press μαρκαρίσματος
         if (e.target.closest('button, a, input, textarea, select')) return;
 
@@ -772,9 +858,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         cancel();
         timer = setTimeout(function () {
             timer = null;
+            if (document.body.classList.contains('play-mode') || window.isPlayModeActive) return;
             if (window.PlayedSet && typeof currentSongId !== 'undefined' && currentSongId) {
                 window.PlayedSet.toggle(currentSongId);
-                // Η μόνη επιβεβαίωση στη σκηνή: toast θα σκέπαζε τους στίχους.
                 if (navigator.vibrate) navigator.vibrate(40);
             }
         }, HOLD_MS);
@@ -793,9 +879,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     document.addEventListener('pointercancel', cancel);
     document.addEventListener('pointerleave', cancel);
 
-    // Το μενού αντιγραφής του κινητού διακόπτει το κράτημα.
+    // Το μενού αντιγραφής του κινητού διακόπτει το κράτημα στον τίτλο.
     document.addEventListener('contextmenu', function (e) {
-        if (e.target.closest(BODY_SELECTOR)) e.preventDefault();
+        if (e.target.closest(TITLE_SELECTOR)) e.preventDefault();
     });
 })();
 

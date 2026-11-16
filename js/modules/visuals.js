@@ -13,7 +13,9 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
     let lastTouchTs = 0;
 
     visualsMod.openLayer = function(contentHtml) {
-        if (typeof window.switchView === 'function') {
+        if (typeof isMobileView === 'function' && isMobileView() && typeof window.switchMobileTab === 'function') {
+            window.switchMobileTab('stage');
+        } else if (typeof window.switchView === 'function') {
             window.switchView('stage');
         }
         
@@ -23,8 +25,9 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
         
         content.innerHTML = contentHtml;
 
-        if (isMobileView()) {
-            const isStageActive = document.querySelector('.tab-btn-mob[onclick*="stage"]')?.classList.contains('active');
+        if (typeof isMobileView === 'function' && isMobileView()) {
+            const mainZone = document.getElementById('mainZone');
+            const isStageActive = mainZone ? mainZone.classList.contains('mobile-view-active') : true;
             layer.style.display = isStageActive ? 'flex' : 'none';
         } else {
             layer.style.display = 'flex';
@@ -49,6 +52,39 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
        Χρησιμοποιείται width (layout) και ΟΧΙ transform: scale — το transform
        δεν επεκτείνει την περιοχή κύλισης, οπότε η ζουμαρισμένη εικόνα δεν θα
        μπορούσε να διαβαστεί ολόκληρη. (07/09/2026) */
+    function attachScorePinchZoom(el) {
+        if (!el || el._pinchBound) return;
+        el._pinchBound = true;
+        let pStartDist = 0;
+        let pStartPct = 100;
+        el.addEventListener('touchstart', function (e) {
+            if (e.touches && e.touches.length === 2) {
+                e.stopPropagation();
+                pStartDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                pStartPct = parseFloat(el.style.width) || 100;
+            }
+        }, { passive: true });
+        el.addEventListener('touchmove', function (e) {
+            if (e.touches && e.touches.length === 2 && pStartDist > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                const dist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const nextPct = Math.min(250, Math.max(100, Math.round(pStartPct * (dist / pStartDist))));
+                el.style.maxWidth = (nextPct === 100) ? '100%' : 'none';
+                el.style.width = nextPct + '%';
+            }
+        }, { passive: false });
+        el.addEventListener('touchend', function (e) {
+            if (!e.touches || e.touches.length < 2) pStartDist = 0;
+        }, { passive: true });
+    }
+
     function renderImageInLayer(url, name) {
         zoomStep = 0;
         visualsMod.openLayer(`<img id="stageSheetImage" src="${url}" style="width:100%; max-width:100%; height:auto; display:block; border-radius:4px; box-shadow:0 0 30px rgba(0,0,0,0.5);" alt="${name}">`);
@@ -71,6 +107,8 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
 
         const img = document.getElementById('stageSheetImage');
         if (!img) return;
+        attachScorePinchZoom(img);
+        attachScorePinchZoom(img);
 
         function cycleZoom() {
             zoomStep = (zoomStep + 1) % ZOOM_STEPS.length;
@@ -158,14 +196,54 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
     function renderPdfInLayer(url, name) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdf.worker.min.js';
 
+        zoomStep = 0;
         visualsMod.openLayer(`
-            <div id="stage-pdf-container" style="position:relative; width:100%; height:100%; display:flex; justify-content:center; align-items:center;">
-                <canvas id="stage-pdf-canvas" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:4px; box-shadow:0 0 30px rgba(0,0,0,0.5);"></canvas>
-                <div id="pdf-tap-left" style="position:absolute; left:0; top:0; width:30%; height:100%; cursor:pointer; z-index:115;" onclick="window.prevPdfPage()"></div>
-                <div id="pdf-tap-right" style="position:absolute; right:0; top:0; width:30%; height:100%; cursor:pointer; z-index:115;" onclick="window.nextPdfPage()"></div>
-                <div id="pdf-page-info" style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); color:#fff; padding:5px 15px; border-radius:15px; font-size:0.85rem; font-weight:bold; z-index:115; pointer-events:none;"></div>
+            <div id="stage-pdf-container" style="position:relative; width:100%; min-height:100%; display:flex; justify-content:center; align-items:flex-start;">
+                <canvas id="stage-pdf-canvas" style="width:100%; max-width:100%; height:auto; display:block; border-radius:4px; box-shadow:0 0 30px rgba(0,0,0,0.5);"></canvas>
+                <div id="pdf-tap-left" style="position:fixed; left:0; top:60px; width:20%; height:calc(100% - 100px); cursor:pointer; z-index:115;" onclick="window.prevPdfPage()"></div>
+                <div id="pdf-tap-right" style="position:fixed; right:0; top:60px; width:20%; height:calc(100% - 100px); cursor:pointer; z-index:115;" onclick="window.nextPdfPage()"></div>
+                <div id="pdf-page-info" style="position:fixed; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:5px 15px; border-radius:15px; font-size:0.85rem; font-weight:bold; z-index:115; pointer-events:none;"></div>
             </div>
         `);
+
+        const pdfCanvas = document.getElementById('stage-pdf-canvas');
+        if (pdfCanvas) {
+            attachScorePinchZoom(pdfCanvas);
+            function cyclePdfZoom() {
+                zoomStep = (zoomStep + 1) % ZOOM_STEPS.length;
+                const z = ZOOM_STEPS[zoomStep];
+                pdfCanvas.style.maxWidth = (z === 100) ? '100%' : 'none';
+                pdfCanvas.style.width = z + '%';
+            }
+            pdfCanvas.addEventListener('dblclick', function (e) {
+                if (Date.now() - lastTouchTs < 700) return;
+                e.preventDefault();
+                cyclePdfZoom();
+            });
+            let pLastTap = 0, pLastX = 0, pLastY = 0, pStartX = 0, pStartY = 0;
+            pdfCanvas.addEventListener('touchstart', function (e) {
+                if (e.touches.length !== 1) return;
+                pStartX = e.touches[0].clientX;
+                pStartY = e.touches[0].clientY;
+            }, { passive: true });
+            pdfCanvas.addEventListener('touchend', function (e) {
+                lastTouchTs = Date.now();
+                if (e.changedTouches.length !== 1) return;
+                const t = e.changedTouches[0];
+                if (Math.hypot(t.clientX - pStartX, t.clientY - pStartY) > 12) { pLastTap = 0; return; }
+                const dt = lastTouchTs - pLastTap;
+                const near = Math.hypot(t.clientX - pLastX, t.clientY - pLastY) < 40;
+                if (dt > 40 && dt < 320 && near) {
+                    e.preventDefault();
+                    cyclePdfZoom();
+                    pLastTap = 0;
+                } else {
+                    pLastTap = lastTouchTs;
+                    pLastX = t.clientX;
+                    pLastY = t.clientY;
+                }
+            });
+        }
 
         const loadingTask = pdfjsLib.getDocument(url);
         loadingTask.promise.then(function(pdf) {
@@ -197,9 +275,9 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
         if (!visualsMod.currentPdfObj) return;
 
         visualsMod.currentPdfObj.getPage(visualsMod.currentPdfPage).then(function(page) {
-            // Check if mobile for scaling. Usually sheet music needs higher resolution.
-            const scale = (typeof isMobileView === 'function' && isMobileView()) ? 1.0 : 1.5;
-            const viewport = page.getViewport({ scale: scale });
+            const dpr = Math.min((typeof window !== 'undefined' && window.devicePixelRatio) || 1, 2);
+            const baseScale = (typeof isMobileView === 'function' && isMobileView()) ? 1.5 : 1.8;
+            const viewport = page.getViewport({ scale: baseScale * dpr });
             const canvas = document.getElementById('stage-pdf-canvas');
             if (!canvas) return;
             const context = canvas.getContext('2d');
