@@ -1,0 +1,3202 @@
+@font-face { font-family: 'Roboto Condensed'; src: url('fonts/RobotoCondensed-Regular.ttf'); font-weight: normal; }
+@font-face { font-family: 'Roboto Condensed'; src: url('fonts/RobotoCondensed-Bold.ttf'); font-weight: bold; }
+@font-face { font-family: 'Roboto Condensed'; src: url('fonts/RobotoCondensed-Light.ttf'); font-weight: 300; }
+
+:root {
+    --bg-main: #121212; --bg-panel: #1e1e1e; --bg-sidebar: #050505;
+    --text-main: #e0e0e0; --text-muted: #888;
+    --accent: #bb86fc; --chord-color: #03dac6;
+    --input-bg: #222; --border-color: #333;
+    --danger: #cf6679;
+    --success: #4caf50; --info: #2196f3; --warning: #ffb74d;
+    --font-ui: 'Roboto Condensed', sans-serif;
+    --lyric-size: 1.3rem; --intro-size: 1.1rem;
+    --nav-width: 300px; --tools-width: 300px;
+    --rec-private: #ffb74d;  /* Πορτοκαλί για Dark Mode */
+    --rec-public: #4db6ac;   /* Τυρκουάζ για Dark Mode */
+}
+/* --- GLOBAL ICON SETTINGS --- */
+
+/* 1. Όλα τα εικονίδια κληρονομούν το χρώμα του κειμένου */
+i, .fas, .fab {
+    color: inherit; 
+    transition: color 0.2s ease; /* Ωραίο εφέ όταν αλλάζουν */
+}
+
+/* 2. Εξαίρεση: Εικονίδια που θέλουμε να έχουν πάντα το χρώμα του θέματος (Accent) */
+.icon-accent, .text-accent i {
+    color: var(--accent) !important;
+}
+
+/* 3. Εξαίρεση: Εικονίδια κινδύνου (Delete) */
+.icon-danger, .text-danger i {
+    color: var(--danger) !important;
+}
+
+/* 4. Διόρθωση για τα κουμπιά */
+button i {
+    pointer-events: none; /* Για να μην εμποδίζουν το κλικ */
+}
+body.theme-slate { --bg-main: #2c3d50; --bg-panel: #34495e; --bg-sidebar: #22313f; --text-main: #ecf0f1; --text-muted: #bdc3c7; --accent: #f1c40f; --chord-color: #f1c40f; --input-bg: #34495e; --border-color: #465f75; --highlight-chord: #d4ac0d; --highlight-strum: #52be80; }
+body.theme-light { --danger: #c62828; --success: #2e7d32; --info: #1565c0; --warning: #ef6c00; --bg-main: #f5f5f5; --bg-panel: #ffffff; --bg-sidebar: #e0e0e0; --text-main: #333333; --text-muted: #666; --accent: #2980b9; --chord-color: #d35400; --input-bg: #fff; --border-color: #ccc; --rec-private: #e65100; --rec-public: #00695c; --highlight-chord: #b35900; --highlight-strum: #2e7d32; }
+
+body { background: var(--bg-main); color: var(--text-main); font-family: var(--font-ui); margin: 0; height: 100vh; width: 100vw; overflow: hidden; transition: background 0.3s, color 0.3s; }
+
+.app-container { display: grid; grid-template-columns: var(--nav-width) 5px 1fr 5px var(--tools-width); grid-template-rows: 1fr; height: 100vh; width: 100%; }
+
+.resizer { background: var(--bg-sidebar); cursor: col-resize; width: 5px; height: 100%; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
+.resizer:hover { background: var(--accent); }
+
+/* SIDEBAR (ΔΙΟΡΘΩΜΕΝΟ LAYOUT) */
+.col-nav { 
+    background: var(--bg-sidebar); 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden; 
+    height: 100vh; /* Σημαντικό για να πιάνει όλο το ύψος */
+}
+.sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.logo-text { font-size: 1.3rem; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
+.sidebar-actions { display: flex; gap: 10px; }
+.sidebar-search { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.02); flex-shrink: 0; }
+.sidebar-search input, .sidebar-search select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: 4px; font-family: var(--font-ui); font-size: 0.95rem; width: 100%; box-sizing: border-box; }
+
+.song-list { 
+    list-style: none; padding: 0; margin: 0; 
+    flex: 1; /* Αυτό σπρώχνει το footer κάτω */
+    min-height: 0; /* Fix: χωρίς αυτό, το song-list υπερχειλίζει το flex container και κρύβει το footer */
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; 
+}
+.song-item { padding: 10px 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
+.song-item:hover { background: rgba(255,255,255,0.05); }
+.song-item.active { background: rgba(255, 255, 255, 0.08); border-left: 4px solid var(--accent); }
+.song-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.song-title { font-size: 1.15rem; color: var(--text-main); font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song-meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; margin-bottom: 2px }
+.song-item .song-artist { font-size: 0.75 rem !important; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; }
+.song-key-badge { font-size: 0.75rem; color: var(--accent); font-weight: bold; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 1px 5px; border-radius: 4px; cursor: pointer; }
+.song-action { font-size: 1rem; color: var(--text-muted); cursor: pointer; }
+
+.sidebar-tabs { display: flex; gap: 5px; margin-top: 5px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 6px; }
+.tab-btn { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; border-radius: 4px; transition: 0.3s; }
+.tab-btn.active { background: var(--accent); color: #000; }
+
+.sidebar-footer { 
+    padding: 10px; border-top: 1px solid var(--border-color); 
+    display: flex; gap: 8px; flex-shrink: 0;
+    background: var(--bg-panel); margin-top: auto;
+}
+.footer-btn { flex: 1; padding: 10px; background: var(--bg-panel); color: var(--text-muted); border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.footer-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(255,255,255,0.05); }
+.footer-btn.danger-v2:hover { background: #ff4444; color: #fff; border-color: #ff4444; }
+.btn-open-drums {
+    width: 100%;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-open-drums:hover {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+/* STAGE */
+.col-stage { background: var(--bg-main); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.view-section { display: none; height: 100%; flex-direction: column; }
+.view-section.active-view { display: flex; }
+.player-header { display: flex; flex-direction: column; background: var(--bg-panel); padding: 10px 15px; width: 100%; border-bottom: 1px solid var(--border-color); flex-shrink: 0; box-sizing: border-box; }
+
+/* TRASH MODE VISUALS */
+.trash-mode {
+    border-bottom: 2px solid #ff4444 !important;
+    background: rgba(255, 68, 68, 0.05) !important;
+}
+.trash-mode .small-label-v2 { color: #ff4444 !important; }
+.trash-mode .song-item { border-left-color: #ff4444 !important; }
+.trash-mode .song-item:hover { background: rgba(255, 68, 68, 0.1) !important; }
+.meta-label { font-size: 0.9rem; color: var(--text-muted); }
+.intro-inline {
+    background: var(--bg-main);
+    flex-shrink: 0;
+    padding: 10px 15px;
+    touch-action: pan-y;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-sizing: border-box;
+}
+.intro-inline .intro-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+    line-height: 1.2;
+}
+.intro-inline .intro-label {
+    font-size: calc(var(--lyric-size) * 0.7);
+    color: var(--text-muted);
+    font-weight: bold;
+    user-select: none;
+    flex-shrink: 0;
+}
+.intro-inline .intro-content {
+    font-size: calc(var(--lyric-size) * 0.85);
+    line-height: 1.2;
+}
+.intro-inline .chord {
+    font-size: calc((var(--lyric-size) * 0.85) * var(--chord-scale, 1)) !important;
+    color: var(--chord-color) !important;
+    font-weight: bold;
+}
+.fixed-lyrics { flex-shrink: 0; max-height: 60vh; overflow-y: auto; padding: 10px 15px; border-bottom: 2px dashed var(--border-color); background: rgba(0,0,0,0.05);touch-action: pan-y; /* ΝΕΟ: Επιτρέπει κάθετο σκρολ, απελευθερώνει το pinch-zoom */ }
+/* =========================================
+   SCROLLING ΤΜΗΜΑ: Βασική Δομή & Οριζόντιο Fix
+   ========================================= */
+.scroll-lyrics { 
+    /* Από τον παλιό σου κώδικα (Κάθετο Scroll & Διάταξη) */
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 10px 15px; 
+    padding-bottom: 100px; 
+    min-height: 0;
+    touch-action: pan-y; 
+    
+    /* ΝΕΟ: Εξαναγκασμός ορίων για να μην βγαίνει εκτός οθόνης δεξιά */
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden !important; 
+    box-sizing: border-box;
+}
+
+/* =========================================
+   ΑΝΑΔΙΠΛΩΣΗ & ΜΕΓΕΘΟΣ ΓΡΑΜΜΑΤΟΣΕΙΡΑΣ (LYRICS)
+   ========================================= */
+
+/* Κρατάμε τον εξαναγκασμό μεγέθους βάσει του Gesture (από τον παλιό σου κώδικα) */
+.fixed-lyrics .lyric, .scroll-lyrics .lyric {
+    font-size: var(--lyric-size) !important;
+}
+
+/* ΝΕΟ: Επιτρέπουμε στη γραμμή να σπάσει αν δεν χωράει (Row Level) */
+.scroll-lyrics .line-row {
+    display: flex;
+    flex-wrap: wrap !important; 
+    width: 100%;
+}
+
+/* ΝΕΟ: Εφαρμόζουμε την αναδίπλωση κειμένου αποκλειστικά στο scroll τμήμα (Word Level) */
+.scroll-lyrics .lyric {
+    white-space: pre-wrap !important; 
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100%;
+}
+
+.fixed-lyrics .chord, .scroll-lyrics .chord {
+    font-size: calc((var(--lyric-size) * 0.85) * var(--chord-scale, 1)) !important;
+}
+.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 5px; line-height: 1.1; }
+.token { display: flex; flex-direction: column; margin-right: 1px; align-items: flex-start; }
+.token-group { display: inline-flex; flex-wrap: nowrap; align-items: flex-end; }
+.chord {color: var(--chord-color); font-size: calc((var(--lyric-size) * 0.85) * var(--chord-scale, 1)); font-weight: bold; margin-bottom: calc(-2px + var(--chord-mb, 0px)); line-height: 1; min-height: 1em;}
+.lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre-wrap; word-wrap: break-word; line-height: 1; padding-top: 2px; }
+
+body.lyrics-mode .chord { display: none !important; }
+body.lyrics-mode .token { margin-right: 5px; }
+body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
+
+.player-footer { height: 70px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; flex-shrink: 0; }
+.ctl-group { display: flex; flex-direction: column; align-items: center; }
+.ctl-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 3px; text-transform: uppercase; font-weight:bold; }
+.stepper { display: flex; align-items: center; background: var(--input-bg); border-radius: 20px; padding: 2px; border: 1px solid var(--border-color); }
+.stepper button { background: none; border: none; color: var(--text-main); width: 35px; height: 30px; font-size: 16px; cursor: pointer; }
+.stepper span { min-width: 30px; text-align: center; font-weight: bold; font-size: 1rem; color: var(--accent); }
+.round-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px var(--border-color); background: var(--bg-panel); color: var(--text-main); cursor: pointer; font-size: 1.1rem; display:flex; align-items:center; justify-content:center; }
+.round-btn.accent-btn { border-color: var(--accent); color: var(--accent); }
+
+/* TOOLS & GRID */
+.col-tools { background: var(--bg-sidebar); display: flex; flex-direction: column; border-left: 1px solid var(--border-color); }
+.tools-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.badge-pro { background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+.recorder-box { background: var(--bg-panel); border-bottom: 1px solid var(--border-color); }
+
+/*.settings-full-btn { ... }*/
+
+/* EDITOR */
+.editor-toolbar { padding: 10px 15px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+.editor-body { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; height: 100%; overflow-y: auto;}
+.inp { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; font-family: var(--font-ui); font-size: 1rem; border-radius: 6px; }
+.title-inp { font-weight: bold; font-size: 1.2rem; border-bottom: 2px solid var(--accent); }
+.txt-area { flex: 1; resize: none; font-family: monospace; font-size: 1.1rem; line-height: 1.5; min-height: 200px; }
+.icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main); padding: 5px; }
+.icon-btn.danger { color: var(--danger); }
+.icon-btn.accent { color: var(--accent); font-size: 1.5rem; }
+
+.action-btn {
+    background: var(--accent);
+    color: #111;
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.action-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+    filter: brightness(1.1);
+}.capo-badge {
+    display: none; /* Κρυφό από προεπιλογή */
+    background-color: #f59e0b; /* Πορτοκαλί προειδοποίησης */
+    color: #000;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    margin-left: 10px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+/* Καθαρό και αλάνθαστο YouTube Container */
+.video-responsive { 
+    position: relative; 
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    height: 0; 
+    overflow: hidden; 
+    width: 100%; 
+    border-radius: 8px; 
+    border: 1px solid var(--border-color); 
+    margin-bottom: 15px; 
+    background: #000; /* Πρέπει να είναι μαύρο πίσω για να μην "φεγγίζει" στις άκρες */
+}
+
+.video-responsive iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px; 
+}
+
+/* --- PLAYER HEADER (Τίτλος & Καλλιτέχνης) --- */
+.player-header-container {
+    text-align: center;
+    padding: 10px 0 20px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 15px;
+    flex-shrink: 0;
+    /* Εξασφαλίζει ότι το περιεχόμενο δεν θα βγει έξω */
+    overflow: hidden; 
+}
+
+.song-h1 {
+    /* 1. Στοίχιση & Περιθώρια */
+    margin: 0;
+    margin-bottom: 5px;
+    margin-right: 15px; /* Απόσταση από το κουμπάκι Notes */
+    
+    /* 2. Εμφάνιση Κειμένου */
+    font-size: 1.4rem !important; /* Το μέγεθος που συμφωνήσαμε (Μικρότερο) */
+    font-weight: bold;
+    color: var(--accent);
+    line-height: 1.2;
+
+    /* 3. Αποκοπή μεγάλων τίτλων (...) */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.song-artist {
+    font-size: 1.2rem;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.song-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+/* Tag Suggestions Dropdown */
+.tag-suggestions {
+    position: absolute;
+    background: #333;
+    border: 1px solid #555;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    display: none; /* Κρυφό αρχικά */
+}
+
+.tag-suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tag-suggestion-item:hover {
+    background: var(--accent);
+    color: var(--accent);
+}
+
+/* =========================================
+   MODALS & NOTIFICATIONS (INVERTED COLORS)
+   ========================================= */
+.modal, .modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(15, 23, 42, 0.55); /* Πολύ απαλό, premium slate-tinted overlay */
+    display: flex; justify-content: center; align-items: center; 
+    backdrop-filter: blur(8px); /* Πιο απαλό και πλούσιο θόλωμα βάθους */
+    z-index: 5000;
+}
+
+#importChoiceModal .modal-box { display: flex; flex-direction: column; gap: 20px; padding: 30px; min-width: 320px; max-width: 450px; }
+
+/* 1. DEFAULT (DARK THEME) -> ΤΑ MODALS ΓΙΝΟΝΤΑΙ ΑΝΟΙΧΤΟΧΡΩΜΑ */
+.modal-content, .modal-box { 
+    background: #f8fafc; /* Πολύ απαλό off-white (slate-50) */
+    color: #475569;         /* Απαλό σκούρο γκρι (slate-600) για όλο το κείμενο */
+    padding: 28px; 
+    border-radius: 16px;    /* Πιο στρογγυλεμένες γωνίες για πιο premium/soft αίσθηση */
+    border: 1px solid #e2e8f0; /* Πολύ απαλό border (slate-200) */
+    width: 90%; max-width: 420px; 
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04); /* Premium soft organic σκιά */
+    display: flex; flex-direction: column; gap: 12px; 
+}
+
+/* Οι τίτλοι στα modals */
+.modal-content h3, .modal-box h3 {
+    color: #1e293b;         /* Πιο έντονο αλλά μαλακό slate-800 για τους τίτλους */
+    font-weight: 700;
+}
+
+/* Τα inputs μέσα στα modals */
+.modal-content input, .modal-box input,
+.modal-content select, .modal-box select, 
+.modal-content textarea, .modal-box textarea {
+    background: #ffffff;
+    color: #334155;         /* Απαλό σκούρο κείμενο */
+    border: 1px solid #cbd5e1; /* Πολύ απαλό border (slate-200) */
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03); /* Πολύ διακριτικό εσωτερικό shadow */
+}
+.modal-content input:focus, .modal-box input:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(187, 134, 252, 0.12); /* Απαλό glow */
+}
+
+/* 2. LIGHT THEME OVERRIDE -> ΤΑ MODALS ΓΙΝΟΝΤΑΙ ΣΚΟΥΡΑ */
+body.theme-light .modal-content, 
+body.theme-light .modal-box {
+    background: #1e293b; /* Απαλό σκούρο μπλε-γκρι (slate-800) */
+    color: #cbd5e1;      /* Απαλό off-white κείμενο (slate-300) */
+    border-color: #334155;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.15);
+}
+body.theme-light .modal-content h3, body.theme-light .modal-box h3 {
+    color: #f8fafc;      /* Φωτεινό off-white για τους τίτλους (slate-50) */
+}
+body.theme-light .modal-content input, body.theme-light .modal-box input,
+body.theme-light .modal-content select, body.theme-light .modal-box select {
+    background: #0f172a;
+    color: #f1f5f9;
+    border: 1px solid #334155;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ΚΟΥΜΠΙΑ MODALS (High Legibility & Softer Design) */
+.modal-btn { 
+    padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; 
+    font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; 
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Default: Dark Button on Light Modal */
+    background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1;
+}
+.modal-btn:hover { 
+    background: #cbd5e1; 
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+.modal-btn:active {
+    transform: translateY(1px);
+}
+
+body.theme-light .modal-btn {
+    /* Light Theme: Light Button on Dark Modal */
+    background: #334155; color: #f1f5f9; border: 1px solid #475569;
+}
+body.theme-light .modal-btn:hover { 
+    background: #475569; 
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+}
+
+/* Premium Accent Buttons (Προσαρμόζονται Δυναμικά στα Θέματα για Ύψιστη Legibility) */
+.modal-btn.accent { 
+    background: var(--accent); 
+    color: #ffffff; /* Default readable color */
+    font-weight: 600;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+}
+/* Στο Default/Dark Theme (Light Modals): accent color (purple ή yellow) χρειάζεται σκούρο κείμενο για τέλεια αντίθεση */
+.modal-content .modal-btn.accent, 
+.modal-box .modal-btn.accent {
+    color: #0f172a; /* Premium soft dark text (slate-900) αντί για σκληρό #000 */
+}
+/* Στο Light Theme (Dark Modals): accent color είναι μπλε (#2980b9) και χρειάζεται λευκό κείμενο */
+body.theme-light .modal-content .modal-btn.accent, 
+body.theme-light .modal-box .modal-btn.accent {
+    color: #ffffff; /* Bright white text */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.modal-btn.accent:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.modal-btn.danger { 
+    background: var(--danger); 
+    color: #ffffff; 
+    border: 1px solid rgba(0,0,0,0.05);
+}
+.modal-btn.danger:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.modal-btn.cancel { 
+    background: #f1f5f9; /* Slate-100 */
+    border: 1px solid #cbd5e1; /* Slate-300 */
+    color: #64748b; /* Slate-500 */
+}
+.modal-btn.cancel:hover {
+    background: #e2e8f0; /* Slate-200 */
+    color: #475569; /* Slate-600 */
+}
+body.theme-light .modal-btn.cancel {
+    background: #334155; /* Slate-700 */
+    border-color: #475569; /* Slate-600 */
+    color: #cbd5e1; /* Slate-300 */
+}
+body.theme-light .modal-btn.cancel:hover {
+    background: #475569; /* Slate-600 */
+    color: #f1f5f9; /* Slate-100 */
+}
+
+
+/* =========================================
+   DIFF MODAL — RESPONSIVE
+   ========================================= */
+
+/* Το wrapper της modal-content για diff */
+.diff-modal-content {
+    max-width: 900px;
+    width: 95%;
+    max-height: 92vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Τα δύο panels side-by-side (desktop) */
+.diff-panels {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+}
+
+.diff-panel {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(0,0,0,0.12);
+    display: flex;
+    flex-direction: column;
+}
+
+.diff-panel-new {
+    border-color: var(--accent);
+}
+
+.diff-panel-title {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.diff-body {
+    flex: 1;
+    min-height: 180px;
+    max-height: 38vh;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+/* Tab bar — κρυφό σε desktop */
+.diff-tab-bar {
+    display: none;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.diff-tab {
+    flex: 1;
+    padding: 8px;
+    background: var(--input-bg, #222);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85rem;
+    transition: 0.2s;
+}
+
+.diff-tab.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+/* Κουμπιά actions */
+.diff-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.diff-btn {
+    flex: 1;
+    min-width: 140px;
+}
+
+/* Κείμενα κουμπιών: μακρύ ορατό σε desktop */
+.diff-btn-short { display: none; }
+.diff-btn-long  { display: inline; }
+
+/* ---- MOBILE (<= 600px) ---- */
+@media (max-width: 600px) {
+    .diff-modal-content {
+        width: 100%;
+        max-height: 100dvh;
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    /* Εμφάνιση tab bar */
+    .diff-tab-bar {
+        display: flex;
+    }
+
+    /* Τα panels γίνονται κάθετα */
+    .diff-panels {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    /* Μόνο το active panel φαίνεται */
+    .diff-panel {
+        display: none;
+    }
+    .diff-panel.diff-panel-visible {
+        display: flex;
+    }
+
+    /* Μικρότερο body ύψος */
+    .diff-body {
+        min-height: 140px;
+        max-height: 35vh;
+    }
+
+    /* Σύντομα labels κουμπιών */
+    .diff-btn-long  { display: none; }
+    .diff-btn-short { display: inline; }
+
+    .diff-btn {
+        min-width: 0;
+        font-size: 0.85rem;
+        padding: 10px;
+    }
+}
+
+/* BADGE: Αποκλίνει από μπάντα */
+.badge-diverged {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    font-size: 0.72rem;
+    background: rgba(255, 180, 0, 0.18);
+    color: #ffb300;
+    border: 1px solid rgba(255, 180, 0, 0.4);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: bold;
+    cursor: help;
+    white-space: nowrap;
+    animation: pulse-diverged 3s ease-in-out infinite;
+}
+@keyframes pulse-diverged {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.6; }
+}
+
+/* TOAST & EXTRAS (Όπως ήταν) */
+
+#toast { visibility: hidden; min-width: 200px; background-color: rgba(30, 30, 30, 0.95); color: #fff; text-align: center; border-radius: 8px; padding: 15px; position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 1rem; border: 1px solid var(--accent); opacity: 0; transition: opacity 0.3s; }
+#toast.show { visibility: visible; opacity: 1; }
+.side-rec-item { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+.side-rec-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
+.side-rec-label { color: var(--accent); font-weight: bold; font-size: 0.85rem; }
+/* =========================================
+   DRAWER STYLES (Διορθωμένο Width & Theme)
+   ========================================= */
+.right-drawer {
+    position: fixed; top: 0; right: 0; 
+    width: 200px; /* Μίκρυνε από 260px */
+    height: 100%;
+    
+    /* Χρήση μεταβλητών για να αλλάζει χρώμα στο Light Theme */
+    background: var(--bg-panel); 
+    border-left: 1px solid var(--border-color);
+    color: var(--text-main);
+
+    transform: translateX(100%); transition: transform 0.3s ease-in-out;
+    display: flex; flex-direction: column; padding: 15px;
+    box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+}
+.right-drawer.open { transform: translateX(0); }
+
+/* Left Drawer Mirroring */
+body.drawer-left .right-drawer {
+    left: 0; right: auto;
+    border-left: none;
+    border-right: 1px solid var(--border-color);
+    transform: translateX(-100%);
+    box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+}
+body.drawer-left .right-drawer.open { transform: translateX(0); }
+
+#drawerHandle {
+    position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 60px; 
+    background: var(--bg-panel); 
+    border: 1px solid var(--border-color); border-right: none;
+    border-top-left-radius: 10px; border-bottom-left-radius: 10px;
+    display: none; /* Κρυφό εξ ορισμού */
+    align-items: center; justify-content: center;
+    color: var(--accent); cursor: pointer;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.2s, background 0.2s;
+}
+
+/* Left Drawer Handle Mirroring */
+body.drawer-left #drawerHandle {
+    left: 0; right: auto;
+    border-left: none;
+    border-right: 1px solid var(--border-color);
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
+    border-top-right-radius: 10px; border-bottom-right-radius: 10px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+}
+
+#drawerHandle.dragging {
+    transform: scale(1.15) !important;
+    background: var(--bg-panel);
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 16px var(--accent) !important;
+    transition: none !important;
+    z-index: 2100;
+}
+
+/* Στυλ Κουμπιών Συρταριού */
+.drawer-header { 
+    display: flex; justify-content: space-between; margin-bottom: 20px; 
+    border-bottom: 1px solid var(--border-color); padding-bottom: 10px; 
+}
+.drawer-close { 
+    background: none; border: none; font-size: 1.4rem; cursor: pointer; 
+    color: var(--text-muted) !important; transition: color 0.2s; padding: 5px; 
+}
+.drawer-close:hover { color: var(--text-main) !important; }
+
+.drawer-section { margin-bottom: 60px; display: flex; flex-direction: column; gap: 10px; }
+.drawer-section label { font-size: 0.75rem; color: var(--text-muted); font-weight: bold; }
+
+.drawer-btn { 
+    background: var(--input-bg); 
+    border: 1px solid var(--border-color); 
+    color: var(--text-main); 
+    padding: 10px; border-radius: 6px; text-align: left; 
+    cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9rem;
+}
+.drawer-btn.active { 
+    border-color: var(--accent); 
+    color: #000; /* Μαύρα γράμματα όταν είναι ενεργό για αντίθεση */
+    background: var(--accent); 
+    font-weight: bold;
+}
+
+.drawer-row { 
+    display: flex; justify-content: space-between; align-items: center; 
+    background: var(--input-bg); 
+    padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border-color); 
+    color: var(--text-main);
+}
+/* DESKTOP TOOLBAR BASE STYLE */
+.desktop-controls-area { display: flex; gap: 15px; padding: 10px; background: #222; border-top: 1px solid #444; justify-content: center; align-items: center; position: sticky; bottom: 0;  width: 100%; }
+.desktop-controls-area button { transition: color 0.2s; }
+.desktop-controls-area button:hover { color: var(--accent) !important; }
+
+/* =========================================
+   FINAL MEDIA QUERIES (NO DUPLICATES!)
+   ========================================= */
+
+/* A. DESKTOP (> 1024px) */
+@media (min-width: 1025px) {
+    body:not(.mobile-layout-active) #rightDrawer, 
+    body:not(.mobile-layout-active) #drawerHandle, 
+    body:not(.mobile-layout-active) .mobile-nav { display: none !important; }
+  
+    /* ΚΡΥΒΟΥΜΕ ΤΑ ΚΟΥΜΠΙΑ ΠΛΟΗΓΗΣΗΣ ΣΤΟ DESKTOP */
+    .mobile-nav-buttons { display: none !important; }
+
+    .col-nav { width: var(--nav-width); display: flex !important; flex-direction: column !important; height: 100vh; }
+    .col-tools { width: var(--tools-width); display: flex !important; flex-direction: column !important; height: 100vh !important;}
+    .col-stage { flex: 1; display: block !important; }
+    .desktop-controls-area { display: flex !important; }
+}
+
+@media (max-width: 1024px) {
+    .app-container { display: block; position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    .col-nav, #sidebar, .col-stage, #mainZone, .col-tools, #rhythmTools { display: none !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; border: none; background: var(--bg-main); }
+    #sidebar.mobile-view-active, #mainZone.mobile-view-active, #rhythmTools.mobile-view-active, .col-nav.mobile-view-active, .col-stage.mobile-view-active, .col-tools.mobile-view-active { display: flex !important; flex-direction: column; z-index: 20; }
+    .mobile-nav { display: flex !important; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: var(--bg-panel); border-top: 1px solid var(--border-color); justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -2px 10px rgba(0,0,0,0.3); }
+    .tab-btn-mob { background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; gap: 4px; flex: 1; height: 100%; cursor: pointer; transition: color 0.2s, background 0.2s; }
+    .tab-btn-mob i { font-size: 1.2rem; margin-bottom: 2px; }
+    .tab-btn-mob.active { color: var(--accent); background: rgba(255,255,255,0.05); border-top: 2px solid var(--accent); }
+    .col-nav { width: 100% !important; }
+    .col-tools { width: 100% !important; border-left: none; }
+    .resizer { display: none !important; }
+    .desktop-controls-area { display: none !important; }
+    #drawerHandle { display: flex !important; } 
+    .right-drawer { width: 280px; }
+}
+
+body.mobile-layout-active .app-container { display: block; position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+body.mobile-layout-active .col-nav, body.mobile-layout-active #sidebar, body.mobile-layout-active .col-stage, body.mobile-layout-active #mainZone, body.mobile-layout-active .col-tools, body.mobile-layout-active #rhythmTools { display: none !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; border: none; background: var(--bg-main); }
+body.mobile-layout-active #sidebar.mobile-view-active, body.mobile-layout-active #mainZone.mobile-view-active, body.mobile-layout-active #rhythmTools.mobile-view-active, body.mobile-layout-active .col-nav.mobile-view-active, body.mobile-layout-active .col-stage.mobile-view-active, body.mobile-layout-active .col-tools.mobile-view-active { display: flex !important; flex-direction: column; z-index: 20; }
+body.mobile-layout-active .mobile-nav { display: flex !important; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: var(--bg-panel); border-top: 1px solid var(--border-color); justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -2px 10px rgba(0,0,0,0.3); }
+body.mobile-layout-active .tab-btn-mob { background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; gap: 4px; flex: 1; height: 100%; cursor: pointer; transition: color 0.2s, background 0.2s; }
+body.mobile-layout-active .tab-btn-mob i { font-size: 1.2rem; margin-bottom: 2px; }
+body.mobile-layout-active .tab-btn-mob.active { color: var(--accent); background: rgba(255,255,255,0.05); border-top: 2px solid var(--accent); }
+body.mobile-layout-active .col-nav { width: 100% !important; }
+body.mobile-layout-active .col-tools { width: 100% !important; border-left: none; }
+body.mobile-layout-active .resizer { display: none !important; }
+body.mobile-layout-active .desktop-controls-area { display: none !important; }
+body.mobile-layout-active #drawerHandle { display: flex !important; } 
+body.mobile-layout-active .right-drawer { width: 280px; }
+body.mobile-layout-active .fixed-lyrics,
+body.mobile-layout-active .scroll-lyrics,
+body.mobile-layout-active .intro-inline {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ===========================================================
+   LYRICS MODE OVERRIDES
+   =========================================================== */
+body.lyrics-only .meta-info-box,
+body.lyrics-only .intro-inline,
+body.lyrics-mode .intro-inline {
+    display: none !important;
+}
+
+/* =========================================
+   STICKY NOTES & EXTRAS
+   ========================================= */
+
+/* 1. Header Title Row (Τίτλος + Κουμπί Notes) - ΝΕΟ */
+.title-row {
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+}
+
+.note-toggle-btn {
+    background: none; 
+    border: none; 
+    color: var(--text-muted); 
+    font-size: 1.2rem; 
+    cursor: pointer; 
+    padding: 5px 10px;
+    transition: color 0.2s;
+}
+.note-toggle-btn.has-notes {
+    color: var(--accent); /* Αν έχει σημειώσεις, ανάβει το χρώμα */
+    animation: pulse-note 2s infinite;
+}
+.note-toggle-btn:hover { color: #fff; }
+
+/* Ένδειξη στα Meta (μικρό εικονίδιο) - ΝΕΟ */
+.meta-note-badge {
+    background: #ffeb3b; 
+    color: #000; 
+    font-size: 0.7rem; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    margin-left: 10px; 
+    font-weight: bold;
+    display: inline-flex; align-items: center; gap: 4px;
+}
+
+@keyframes pulse-note {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* 2. Εμφάνιση "Χαρτάκι Post-it" (ΥΠΗΡΧΕ ΗΔΗ) */
+.sticky-note { 
+    background: #fff9c4; /* Ανοιχτό Κίτρινο Post-it */
+    color: #333 !important; /* Σκούρα γράμματα πάντα */
+    padding: 12px 15px; 
+    margin: 10px 0 15px 0;
+    width: 100%; 
+    box-sizing: border-box;
+    border-radius: 4px;
+    border-left: 5px solid #fbc02d; 
+    font-family: var(--font-ui); 
+    font-size: 1rem;
+    line-height: 1.4;
+    position: relative;
+}
+.sticky-note .note-pin { 
+    position: absolute; top: -8px; right: -5px; 
+    font-size: 1.2rem; color: #d32f2f; transform: rotate(15deg);
+    display: block; /* Ενεργοποίησέ το αν θες την πινέζα */
+}
+#personalNoteText {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed #999;
+    font-style: italic; font-size: 0.9rem; color: #555 !important;
+}
+/* 3. Side Recordings (ΥΠΗΡΧΕ ΗΔΗ) */
+.side-rec-item { 
+    background: var(--input-bg); 
+    border: 1px solid var(--border-color); 
+    border-radius: 6px; 
+    padding: 8px; 
+    display: flex; flex-direction: column; gap: 5px; 
+}
+.side-rec-meta { 
+    display: flex; justify-content: space-between; 
+    align-items: center; font-size: 0.75rem; color: var(--text-muted); 
+}
+.side-rec-label { 
+    color: var(--accent); font-weight: bold; font-size: 0.85rem; 
+}
+
+/* --- LYRICS ONLY MODE --- */
+body.lyrics-only .chord {display: none !important;}
+body.lyrics-only .line-row {line-height: 1.4; margin-bottom: 5px;}
+.active-btn { color: var(--accent) !important; border-color: var(--accent) !important; background: rgba(255, 255, 255, 0.1);}
+
+/* =========================================
+   UNIFIED FOOTERS (Αλφάδι και στις 3 στήλες)
+   ========================================= */
+
+/* 1. Κοινά χαρακτηριστικά για ΟΛΑ τα footers */
+.sidebar-footer, 
+.desktop-controls-area, 
+.tools-footer {
+    height: 70px;             /* ΣΤΑΘΕΡΟ ΥΨΟΣ ΓΙΑ ΕΥΘΥΓΡΑΜΜΙΣΗ */
+    margin-top: auto;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 15px;          /* Ίδιο padding παντού */
+    box-sizing: border-box;
+    flex-shrink: 0;           /* Να μην ζουλιούνται */
+}
+
+/* 2. Ειδικά για Αριστερή & Δεξιά στήλη (Κουμπιά Οριζόντια) */
+.sidebar-footer, .tools-footer {
+    justify-content: space-between;
+    gap: 10px;
+}
+.sidebar-footer .footer-btn, 
+.tools-footer .footer-btn {
+    flex: 1; /* Να πιάνουν όλο το χώρο μισό-μισό */
+    padding: 10px;
+    background: var(--input-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: 0.2s;
+}
+.footer-btn:hover { background: var(--bg-main); color: var(--text-main); border-color: var(--accent); }
+
+/* 3. Ειδικά για την Κεντρική στήλη (Player Controls) */
+.desktop-controls-area {
+    justify-content: center; /* Κέντραρισμα */
+    gap: 20px;               /* Απόσταση μεταξύ των groups */
+}
+
+/* Στυλ για τα groups (Key/Capo) */
+.control-cluster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.cluster-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* Stepper (Τα κουμπιά - 0 +) */
+.stepper {
+    display: flex;
+    align-items: center;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px; /* Στρογγυλεμένο χάπι */
+    padding: 2px;
+    height: 36px;
+}
+.stepper button {
+    background: none; border: none;
+    color: var(--text-muted);
+    width: 30px; height: 100%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+}
+.stepper button:hover { color: var(--text-main); }
+.stepper span {
+    min-width: 25px;
+    text-align: center;
+    font-weight: bold;
+    color: var(--accent);
+    font-size: 1rem;
+}
+
+/* Στρογγυλά κουμπιά (Lyrics, Edit, Smart) */
+.round-btn {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-main);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: 0.2s;
+}
+.round-btn:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.05); }
+
+/* Το Smart Capo κουμπί να ξεχωρίζει */
+.round-btn.accent-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+.round-btn.accent-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.1);
+}
+
+/* =========================================
+   FINAL RIGHT COLUMN (COMPACT + STICKY FOOTER)
+   ========================================= */
+
+/* 1. LAYOUT ΣΤΗΛΗΣ (Για να πατάει το Footer κάτω) */
+.col-tools {
+    height: 100vh !important;            /* Κλειδί: Πιάνει όλο το ύψος */
+    display: flex !important;
+    flex-direction: column !important;
+    background: var(--bg-sidebar);
+    border-left: 1px solid var(--border-color);
+    overflow: hidden !important;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.tool-panel {
+    flex: 1 1 auto ! important;                    /* Κλειδί: Πιάνει όλο τον κενό χώρο */
+    overflow-y: auto !important;           /* Scroll μόνο εδώ μέσα */
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 20px;
+}
+
+.tools-footer {
+    height: 70px;               /* Σταθερό ύψος */
+    min-height: 70px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;           /* Ασφάλεια: Σπρώχνει τέρμα κάτω */
+    flex-shrink: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+.tools-footer .footer-btn {
+    flex: 1; margin: 0 5px; justify-content: center;
+}
+
+/* 2. COMPACT STYLING (Recorder, Player, Lists) */
+.tool-section { padding: 15px; }
+.section-title { 
+    font-size: 0.85rem; font-weight: bold; color: var(--accent); 
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px; 
+}
+.sep { border: 0; border-top: 1px solid var(--border-color); margin: 0; }
+
+/* Recorder Box */
+.recorder-compact {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    background: var(--input-bg); padding: 5px 10px; 
+    border-radius: 20px; border: 1px solid var(--border-color);
+}
+.rec-timer { font-family: monospace; font-size: 1rem; color: var(--text-muted); flex: 1; }
+.rec-btn { 
+    border: none; background: none; color: var(--danger); font-size: 1.2rem; cursor: pointer;
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s;
+}
+.rec-btn:hover { transform: scale(1.1); }
+.save-rec-btn { border: none; background: none; color: var(--accent); font-size: 1.1rem; cursor: pointer; }
+
+/* Unified Player */
+.master-player { width: 100%; height: 30px; margin-bottom: 10px; outline: none; }
+
+/* Track List */
+.audio-list-container { margin-top: 5px; }
+.compact-list { display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow-y: auto; }
+.track-item {
+    font-size: 0.8rem; padding: 6px 8px; 
+    background: rgba(255,255,255,0.03); border-radius: 4px; 
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    border-left: 2px solid transparent; transition: 0.2s;
+}
+.track-item:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+.track-item.playing { 
+    border-left-color: var(--accent); 
+    background: rgba(var(--accent-rgb), 0.1); 
+    color: var(--accent); font-weight: bold;
+}
+.empty-state { font-style: italic; color: var(--text-muted); font-size: 0.8rem; padding: 5px; }
+
+
+/* 3. ACCORDION (Πτυσσόμενα) - Η ΟΜΟΡΦΙΑ */
+details.tool-group { 
+    padding: 0; 
+    transition: 0.3s; 
+    /* Βάζουμε και το flex εδώ για να είναι έτοιμο να τεντώσει */
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+details.tool-group summary {
+    padding: 12px 15px; cursor: pointer; font-size: 0.85rem; font-weight: bold; color: var(--text-muted);
+    list-style: none; display: flex; align-items: center; gap: 8px;
+    transition: color 0.2s; user-select: none;
+}
+details.tool-group summary:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+details.tool-group summary::-webkit-details-marker { display: none; }
+details.tool-group summary::after {
+    content: '\f078'; font-family: "Font Awesome 5 Free"; font-weight: 900;
+    margin-left: auto; font-size: 0.7rem; transition: transform 0.2s;
+}
+details[open] summary::after { transform: rotate(180deg); color: var(--accent); }
+
+.group-content { padding: 0 15px 15px 15px; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+
+/* =========================================
+   FLEX DRAWERS (Το νέο κομμάτι για το Ύψος & το Scroll)
+   ========================================= */
+details.tool-group[open] {
+    flex: none; /* Αφήνουμε το drawer να πάρει το φυσικό του ύψος */
+    min-height: 0; 
+}
+
+/* Το εσωτερικό div που έχει το περιεχόμενο */
+details.tool-group[open] > *:not(summary) {
+    overflow-y: visible; /* Όχι εσωτερικό scroll, κάνει scroll όλο το panel */
+    min-height: 0;
+}
+
+/* Όμορφη λεπτή μπάρα κύλισης για τη δεξιά στήλη */
+.tool-panel {
+    scrollbar-width: thin; /* Για Firefox */
+}
+
+.tool-panel::-webkit-scrollbar {
+    width: 4px;
+}
+
+.tool-panel::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+/* 4. METRONOME & EXTRAS */
+.bpm-row { display: flex; align-items: center; gap: 15px; margin-bottom: 5px; }
+.play-mini-btn {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer;
+    color: #000; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: transform 0.1s;
+}
+.play-mini-btn:active { transform: scale(0.95); }
+.bpm-display { font-size: 1.4rem; font-weight: bold; color: var(--text-main); }
+.compact-range { width: 100%; height: 4px; margin: 10px 0; accent-color: var(--accent); }
+.compact-select { 
+    width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); 
+    color: var(--text-muted); font-size: 0.8rem; padding: 5px; margin-top: 5px; border-radius: 4px;
+}
+.toggle-grid-btn {
+    width: 100%; margin-top: 8px; background: transparent; border: 1px dashed var(--text-muted); color: var(--text-muted);
+    padding: 6px; font-size: 0.75rem; cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.toggle-grid-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Rhythm Grid */
+.rhythm-grid-container { 
+    display: grid; gap: 2px; row-gap: 4px; 
+    background: #111; padding: 8px; 
+    border: 1px solid var(--border-color); border-radius: 5px; overflow-x: auto; 
+}
+.cell { 
+    height: 20px; background: #2a2a2a; border-radius: 2px; cursor: pointer; border: 1px solid #333; min-width: 15px; 
+}
+.cell:hover { filter: brightness(1.3); }
+.cell.bass.active { background: #e57373; box-shadow: 0 0 5px #e57373; }
+.cell.snare.active { background: #fff176; box-shadow: 0 0 5px #fff176; }
+.cell.hihat.active { background: #64b5f6; box-shadow: 0 0 5px #64b5f6; }
+
+/* Files & Video */
+.add-mini-btn {
+    width: 100%; margin-top: 5px; background: rgba(255,255,255,0.05); border: none; color: var(--text-muted);
+    padding: 8px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.add-mini-btn:hover { background: var(--accent); color: #000; }
+/* --- CSS ΓΙΑ INTRO/INTER (Final) --- */
+
+.meta-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.meta-row {
+    display: flex;
+    align-items: center; /* Κάθετη στοίχιση στο κέντρο */
+    gap: 10px;           /* Απόσταση κουμπιού από κείμενο */
+}
+/* Τα 3 μεγέθη γραμματοσειράς (ΔΙΟΡΘΩΜΕΝΑ) */
+.intro-size-0 { font-size: 0.9rem !important; color: var(--text-muted) !important; }
+.intro-size-1 { font-size: 1.1rem !important; color: var(--text-main) !important; font-weight: bold !important; }
+.intro-size-2 { font-size: 1.3rem !important; color: var(--accent) !important; font-weight: 900 !important; line-height: 1.2 !important; }
+
+/* Εξασφαλίζουμε ότι και τα παιδιά (span, strong) θα κληρονομήσουν το μέγεθος */
+.intro-size-0 span, .intro-size-1 span, .intro-size-2 span { font-size: inherit; color: inherit; }
+
+/* Το κουμπάκι */
+.size-toggle-btn {
+    background: rgba(255,255,255,0.1); 
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+.size-toggle-btn:hover { 
+    color: var(--accent); 
+    border-color: var(--accent); 
+    background: rgba(255,255,255,0.15);
+}
+
+/* Spacer (αόρατο κουμπί) για ευθυγράμμιση όταν λείπει το Intro */
+.spacer-btn {
+    width: 30px; 
+    height: 30px; 
+    display: inline-block;
+}
+
+/* =========================================
+   NEW UI UPDATES (v2.1)
+   ========================================= */
+
+/* Στυλ για τα νέα Select Dropdowns */
+.sort-select-v2, .context-select-v2, .setlist-select-v2 {
+    width: 100%;
+    padding: 8px;
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.setlist-select-v2 {
+    color: var(--accent);
+    font-weight: bold;
+    border-color: var(--accent);
+}
+
+/* Labels για το Sidebar */
+.small-label-v2 {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 3px;
+}
+
+/* Cloud Status Badge στο Sidebar */
+.badge-cloud {
+    font-size: 0.7rem;
+    margin-left: 6px;
+    color: var(--accent);
+    opacity: 0.8;
+}
+
+/* Footer buttons styling */
+.footer-btn.danger-v2 {
+    border-color: var(--danger);
+    color: var(--danger);
+    flex: 0.5;
+    justify-content: center;
+}
+
+/* Διορθώσεις για το Sticky Note Area */
+.note-content-public {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #222;
+}
+
+.note-content-private {
+    font-style: italic;
+    color: #444;
+    border-top: 1px dashed #666;
+    padding-top: 5px;
+    margin-top: 5px;
+}
+
+/* Drum Machine (Sequencer) UI Fixes */
+.btn-play-seq {
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+}
+
+.seq-status-v2 {
+    font-size: 0.8rem;
+    color: #aaa;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Progress Bar για το Upload */
+.prog-bg {
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 2px;
+}
+
+.prog-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.2s;
+}
+/* =========================================
+   FINAL SEQUENCER STYLING (Center & Icons)
+   ========================================= */
+
+/* 1. ΚΕΝΤΡΙΚΟ ΠΑΡΑΘΥΡΟ (Fixed & Centered) */
+.sequencer-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Απόλυτο κεντράρισμα */
+    
+    width: 95%;           
+    max-width: 1000px;    
+    height: 85vh;         
+    
+    background: #181818;
+    border: 1px solid #444;
+    box-shadow: 0 0 100px rgba(0,0,0,0.9);
+    border-radius: 10px;
+    z-index: 20000;       
+    
+    display: flex;       
+    flex-direction: column;
+}
+
+/* 2. HEADER */
+.seq-header {
+    padding: 15px;
+    background: #202020;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 10px 10px 0 0;
+}
+
+/* 3. TOOLBAR (Κουμπιά) */
+.seq-toolbar {
+    padding: 10px 15px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 15px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #252525;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+
+/* 4. GRID AREA (Scrollable) */
+.seq-grid-area {
+    flex: 1; 
+    overflow-y: auto; 
+    background: #121212;
+    padding: 20px;
+}
+
+#rhythm-tracks {
+    display: grid;
+    gap: 15px;
+    padding-bottom: 20px;
+    /* Mobile: 2 Beats ανά γραμμή */
+    grid-template-columns: repeat(2, 1fr); 
+}
+
+/* Desktop: 4 Beats ανά γραμμή */
+@media (min-width: 900px) {
+    #rhythm-tracks {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* 5. BEAT BLOCKS (Χωρίς Labels) */
+.beat-block {
+    background: #1b1b1b;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px; 
+    position: relative;
+    transition: background 0.2s;
+}
+
+.beat-block:hover {
+    background: #222;
+    border-color: #555;
+}
+
+.beat-number {
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    background: #333;
+    color: #aaa;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border: 1px solid #444;
+}
+
+/* 6. ΚΟΥΤΑΚΙΑ (Cells) */
+.inst-row {
+    display: flex;
+    align-items: center;
+}
+
+.steps-group {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+}
+
+.cell {
+    flex: 1; 
+    aspect-ratio: 1 / 1;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Ενεργό κελί: Παίρνει το χρώμα του οργάνου */
+.cell.active { 
+    background-color: var(--active-color, #fff); 
+    box-shadow: 0 0 8px currentColor; 
+    border-color: #fff; 
+}
+
+.cell.highlight {
+    background-color: #fff !important;
+    filter: brightness(2.0);
+    transform: scale(1.1);
+}
+
+/* 7. FOOTER */
+.seq-footer {
+    padding: 15px;
+    background: #202020;
+    border-top: 1px solid #333;
+    border-radius: 0 0 10px 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+@media (max-width: 1024px) {
+    #mainZone { height: 100vh !important; padding-bottom: 0 !important; margin-bottom: 0 !important; }
+    .mobile-nav { display: none !important; }
+}
+body.mobile-layout-active #mainZone { height: 100vh !important; padding-bottom: 0 !important; margin-bottom: 0 !important; }
+body.mobile-layout-active .mobile-nav { display: none !important; }
+/* =========================================
+   THEME-DRIVEN LIBRARY SEPARATION
+   ========================================= */
+
+/* 1. Κοινή βάση και για τα δύο */
+.song-item {
+    border-left: 4px solid transparent; /* Προετοιμασία για το χρώμα */
+    transition: all 0.2s ease;
+}
+
+/* 2. Προσωπικά Τραγούδια (Personal) */
+.song-item.personal-cloud {
+    border-left-color: var(--accent); /* Χρησιμοποιεί το χρώμα του θέματος */
+}
+.song-item.personal-cloud:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* 3. Τραγούδια Μπάντας (Band) */
+.song-item.band-cloud {
+    /* Χρησιμοποιούμε το text-muted για να είναι πιο "ήσυχο" 
+       ή μια σταθερή απόχρωση που ταιριάζει με το "σύνολο" */
+    border-left-color: var(--text-muted); 
+    opacity: 0.9;
+}
+
+/* Ειδική ρύθμιση για τον τίτλο της Μπάντας */
+.song-item.band-cloud .song-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Προσθήκη εικονιδίου "Ομάδας" πριν τον τίτλο μόνο για την μπάντα */
+.song-item.band-cloud .song-title::before {
+    content: '\f0c0'; /* FontAwesome Users Icon */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* 4. Active State Override */
+/* Όταν ένα τραγούδι είναι επιλεγμένο, το border-left γίνεται πάντα έντονο */
+.song-item.active {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-left-width: 6px; /* Λίγο πιο παχύ για να ξεχωρίζει */
+}
+
+/* Highlight για το Light Theme (γιατί το λευκό θέλει σκούρο background στο hover) */
+body.theme-light .song-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* =========================================
+   LIBRARY CONTEXT & ROLES STYLING
+   ========================================= */
+
+/* 1. Προσωπικά Τραγούδια (My Songs) - Χρησιμοποιεί το Accent του θέματος */
+.song-item.personal-cloud {
+    border-left: 4px solid var(--accent);
+}
+
+/* 2. Τραγούδια Μπάντας (Band Songs) - Σταθερό διακριτικό χρώμα */
+.song-item.band-cloud {
+    border-left: 4px solid var(--text-muted); 
+    background: rgba(255, 255, 255, 0.02);
+}
+/* Εικονίδιο ομάδας πριν τον τίτλο */
+.song-item.band-cloud .song-title::before {
+    content: '\f0c0'; /* FontAwesome Users Icon */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    margin-right: 6px;
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+/* 3. Proposals (Εκκρεμείς Προτάσεις - Ορατά στον Admin) */
+.song-item.proposal-item {
+    border-left: 4px dashed var(--accent);
+    opacity: 0.8;
+}
+
+/* 4. Toggle Button στον Player (W.Y.S.I.W.Y.G.) */
+#btnToggleView {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    margin-left: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    display: none; /* Κρυφό αρχικά */
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+#btnToggleView.active-mode {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: bold;
+}
+#btnToggleView:hover {
+    filter: brightness(1.2);
+}
+
+/* Όταν βλέπεις το Original (Band View), δίνουμε μια οπτική ένδειξη στο background */
+body.viewing-original .col-stage {
+    background-image: linear-gradient(to bottom, rgba(255, 152, 0, 0.03), transparent 300px);
+}
+/* =========================================
+   SUPER USER / DEBUG PANEL
+   ========================================= */
+.debug-panel {
+    position: fixed !important;
+    top: 50% !important;        /* Στο κέντρο ύψους */
+    left: 50% !important;       /* Στο κέντρο πλάτους */
+    transform: translate(-50%, -50%) !important; /* Απόλυτο κέντρο */
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #ff0000; /* Κόκκινο για να ξεχωρίζει */
+    border-radius: 8px;
+    padding: 15px;
+    z-index: 10000 !important;
+    color: #fff !important;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.4)!important;
+    display: none; /* Κρυφό αρχικά */
+    font-family:'Courier New', monospace;
+}
+/* Overlay για να "παγώνει" η εφαρμογή από πίσω */
+.debug-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.7);
+    z-index: 999999;
+    display: none;
+}
+.debug-panel h4 {
+    margin: 0 0 10px 0;
+    color: #ff0000;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+}
+
+.debug-row {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.debug-row label {
+    font-size: 0.75rem;
+    color: #aaa;
+}
+
+.debug-select {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 5px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.debug-btn {
+    width: 100%;
+    background: #ff0000;
+    color: white;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+.debug-btn:hover { background: #cc0000; }
+/* BAND MANAGER STYLING */
+.member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.05);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-left: 3px solid #555;
+    font-size: 0.9rem;
+}
+
+.member-item.owner { border-left-color: var(--accent); } /* Χρώμα Αρχηγού */
+.member-item.admin { border-left-color: #ff9800; }     /* Χρώμα Admin */
+
+.invite-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px dashed var(--accent);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.invite-code-display {
+    font-family: 'Courier New', monospace;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    font-weight: bold;
+    color: var(--accent);
+    margin: 10px 0;
+    display: block;
+    user-select: all; /* Για εύκολη επιλογή */
+}
+
+.band-stat {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 5px;
+    text-align: center;
+}
+/* =========================================
+   PRICING MODAL STYLES (CLEAN & UNIFIED)
+   ========================================= */
+#pricingModal .modal-box,
+.pricing-content {
+    max-width: 1000px; 
+    width: 95%;        
+    max-height: 90vh;  
+    overflow-y: auto;  
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    gap: 25px;
+    margin-top: 25px;
+    padding: 10px;
+}
+
+.pricing-card {
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 16px;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pricing-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.pricing-card.featured {
+    border: 2px solid var(--accent);
+    background: #2a2a2a;
+    transform: scale(1.05);
+    z-index: 2;
+    box-shadow: 0 15px 35px rgba(187, 134, 252, 0.2);
+}
+
+.pricing-card.featured:hover {
+    transform: scale(1.05) translateY(-5px);
+}
+
+.badge-pop {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #000;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.p-header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 20px; }
+.p-header h3 { margin: 0; font-size: 1.5rem; color: #fff; }
+.price { font-size: 2rem; font-weight: bold; color: #fff; margin-top: 10px; }
+.price span { font-size: 1rem; color: #888; font-weight: normal; }
+
+.p-features { list-style: none; padding: 0; margin: 0 0 20px 0; flex: 1; }
+.p-features li { margin-bottom: 10px; font-size: 0.9rem; color: #ddd; display: flex; align-items: center; gap: 10px; }
+.p-features li i { color: var(--accent); }
+.p-features li.disabled { color: #555; text-decoration: line-through; }
+.p-features li.disabled i { color: #555; }
+
+.p-btn { width: 100%; padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+.p-btn.current { background: #333; color: #666; cursor: default; }
+.p-btn.accent { background: var(--accent); color: #000; }
+.p-btn.accent:hover { filter: brightness(1.1); }
+
+/* Το κουμπί κλεισίματος (X) */
+#pricingModal .modal-box > button.close-btn, 
+#pricingModal .modal-box > .close-icon,
+.close-pricing { 
+    position: absolute; top: 15px; right: 15px; font-size: 24px; background: none; border: none; color: #fff; cursor: pointer; z-index: 10;
+}
+@media (max-width: 768px) {
+    .pricing-card.featured { transform: scale(1); }
+}
+body.mobile-layout-active .pricing-card.featured { transform: scale(1); }
+
+/* =========================================
+   CONTEXT MODES (PERSONAL VS BAND)
+   ========================================= */
+
+/* 1. Μια μόνιμη, οπτική ένδειξη στο πάνω μέρος της οθόνης */
+body.band-mode::before {
+    content: "🎸 BAND MODE";
+    position: fixed;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #e91e63; /* Έντονο Ροζ/Κόκκινο για να ξεχωρίζει */
+    color: white;
+    padding: 5px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    pointer-events: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    letter-spacing: 1px;
+}
+
+/* 2. Αλλαγή χρώματος στην πλαϊνή στήλη ή στην κεφαλίδα για τη Μπάντα */
+body.band-mode .sidebar {
+    border-right: 3px solid #e91e63;
+    background: linear-gradient(180deg, rgba(233,30,99,0.05) 0%, transparent 100%);
+}
+
+/* Προαιρετικά: Αν έχεις top-navbar, άλλαξέ της το χρώμα */
+body.band-mode .top-nav {
+    background-color: #2c1e3e; /* Ένα πιο 'σκοτεινό'/διαφορετικό χρώμα */
+    border-bottom: 2px solid #e91e63;
+}
+.floating-window {
+    position: fixed;
+    top: 100px;
+    left: 50px;
+    width: 400px;
+    height: 300px;
+    background: #1e1e1e;
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    min-width: 200px;
+    min-height: 150px;
+}
+
+.fw-header {
+    background: #333;
+    padding: 8px 12px;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+}
+
+.fw-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); }
+
+.fw-controls button {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.fw-controls button:hover { color: #fff; }
+
+.fw-body {
+    flex: 1;
+    overflow: auto;
+    background: #fff; /* Λευκό για να φαίνονται οι παρτιτούρες */
+    position: relative;
+}
+
+.fw-resizer {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    cursor: nwse-resize;
+    
+}
+
+/* Εικονίδιο γωνίας για το resize */
+.fw-resizer::after {
+    content: "";
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 10px 10px;
+    border-color: transparent transparent var(--accent) transparent;
+}
+
+
+/* =========================================
+   Z-INDEX ARCHITECTURE (Standard Logic)
+   ========================================= */
+/* ΕΠΙΠΕΔΟ 0: Βασικό UI */
+.col-nav, .col-tools { z-index: 10; }
+.resizer { z-index: 20; }
+.chord { z-index: 30; } /* Για να βγαίνουν οι συγχορδίες πάνω από τους στίχους */
+
+/* ΕΠΙΠΕΔΟ 1: Σταθερές Μπάρες (Desktop & Mobile) */
+.player-footer { z-index: 50; }
+.desktop-controls-area { z-index: 100; }
+.mobile-nav { z-index: 1000; }
+
+/* ΕΠΙΠΕΔΟ 2: Dropdowns & Drawers */
+.tag-suggestions { z-index: 1500; }
+#drawerHandle { z-index: 2000; }
+.right-drawer { z-index: 2001; }
+
+/* ΕΠΙΠΕΔΟ 3: Βασικά Modals (Login, Pricing, Settings) */
+.modal, .modal-overlay { z-index: 3000; }
+
+/* ΕΠΙΠΕΔΟ 4: Ογκώδη Εργαλεία / Editors (Sequencer) */
+.sequencer-box { z-index: 4000; }
+
+/* ΕΠΙΠΕΔΟ 5: Υπο-Παράθυρα Εργαλείων / PDF Viewer */
+#sound-lab-modal,
+#rhythmLoadModal, 
+#rhythmSaveModal { z-index: 5000; }
+.floating-window { z-index: 5000; }
+.fw-resizer { z-index: 5001; }
+
+/* ΕΠΙΠΕΔΟ 6: Ειδοποιήσεις & Υπέρτατα Στοιχεία (Band Badge, Toasts, Debug) */
+body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπάντας */
+#toast { z-index: 9000; }
+.debug-overlay { z-index: 9999; }
+.debug-panel { z-index: 10000 !important; }
+
+/* =========================================
+   ΕΝΟΠΟΙΗΣΗ ΤΙΤΛΩΝ ΣΤΗΝ ΠΛΑΪΝΗ ΜΠΑΡΑ
+   ========================================= */
+.tool-section .section-title,
+.tool-group summary {
+    color: var(--accent); 
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+}
+
+.tool-section .section-title i,
+.tool-group summary i {
+    color: var(--accent);
+    margin-right: 8px; 
+}
+
+/* =========================================
+   FLOATING AUTO-SCROLL BUTTON
+   ========================================= */
+.floating-scroll-btn {
+    position: absolute;
+    bottom: 30px; 
+    right: 30px; /* Τέρμα δεξιά */
+    
+    background: rgba(20, 20, 20, 0.4); 
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    
+    color: var(--accent); 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    
+    border-radius: 50%; /* Κυκλικό */
+    width: 45px; /* Σταθερό πλάτος */
+    height: 45px; /* Σταθερό ύψος */
+    padding: 0;
+    font-size: 1.1rem; /* Λίγο μεγαλύτερο εικονίδιο */
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Κεντράρισμα εικονιδίου */
+    transition: opacity 0.4s ease, transform 0.4s ease, background 0.2s;
+}
+
+.floating-scroll-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px); /* Αφαίρεση του translateX(-50%) */
+}
+
+/* ===========================================================
+   TABLET OPTIMIZATIONS (Οθόνες από 768px έως 1024px)
+   =========================================================== */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    
+    /* 1. Μεγαλώνουμε τον κεντρικό Τίτλο του τραγουδιού */
+    #mainAppTitle {
+        font-size: 1.8rem !important; 
+    }
+    
+    /* Καλλιτέχνης (δίπλα από τον τίτλο) */
+    #mainAppTitle > span > span {
+        font-size: 1.2rem !important;
+    }
+
+    /* 2. Κουμπιά Πλοήγησης (Next/Prev) μέσα στο Header */
+    .mobile-nav-buttons button {
+        width: 48px !important;
+        height: 48px !important;
+        font-size: 1.4rem !important;
+    }
+
+    /* 3. Κουμπί "Πινέζα" (Σημειώσεις) - Να πατιέται εύκολα με το δάχτυλο */
+    #mainAppTitle button[onclick="toggleStickyNotes()"],
+    #mainAppTitle button[title="Εμφάνιση Σημειώσεων"] {
+        width: 42px !important;
+        height: 42px !important;
+    }
+    #mainAppTitle button[onclick="toggleStickyNotes()"] i,
+    #mainAppTitle button[title="Εμφάνιση Σημειώσεων"] i {
+        font-size: 1.3rem !important;
+    }
+
+    /* 4. Κουτί Intro / Interlude & Κείμενα */
+    .meta-info-box {
+        padding: 15px !important;
+    }
+    
+    .intro-size-0 { font-size: 1.1rem !important; }
+    .intro-size-1 { font-size: 1.4rem !important; }
+    .intro-size-2 { font-size: 1.7rem !important; }
+    
+    /* Το κουμπάκι (AA) που αλλάζει το μέγεθος στο Intro */
+    .meta-row .size-toggle-btn {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.4rem !important;
+    }
+    
+    .meta-row .spacer-btn {
+        width: 44px !important;
+        height: 44px !important;
+    }
+}
+/* Προεπιλεγμένο στυλ για το κουμπί (για μεγαλύτερες οθόνες) */
+#btnToggleView {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px; /* Κανονικό padding */
+    font-size: 1rem; /* Κανονικό μέγεθος γραμματοσειράς */
+    border-radius: 4px;
+    cursor: pointer;
+    /* ... άλλα στυλ ... */
+}
+
+/* Στυλ για κινητά (οθόνες με πλάτος έως 600px) */
+@media screen and (max-width: 600px) {
+    #btnToggleView {
+        padding: 4px 8px; /* Μικρότερο padding */
+        font-size: 0.8rem; /* Μικρότερη γραμματοσειρά */
+    }
+}
+/* ==========================================
+   FULL-SCREEN LOADER OVERLAY
+   ========================================== */
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.85); /* Ή rgba(0,0,0,0.85) για Dark Mode */
+    backdrop-filter: blur(4px); /* Δίνει την κινηματογραφική αίσθηση */
+    z-index: 9999; /* Πάνω από όλα τα μενού και τα drawers */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s ease;
+}
+
+.loader-overlay.hidden {
+    display: none;
+    opacity: 0;
+}
+
+.loader-content {
+    text-align: center;
+    color: #333; /* Ή λευκό για Dark Mode */
+}
+.loader-logo {
+    width: clamp(100px, 25vw, 180px); /* Προσαρμόζεις το μέγεθος ανάλογα με την αισθητική σου */
+    height: auto;
+    margin-bottom: 25px; /* Δίνει αέρα ανάμεσα στο λογότυπο και το spinner */
+    animation: logoPulse 2s ease-in-out infinite; /* (Προαιρετικό) Δίνει μια απαλή πάλλουσα κίνηση */
+}
+
+/* (Προαιρετικό) CSS Animation για το λογότυπο */
+@keyframes logoPulse {
+    0%, 100% { opacity: 0.8; transform: scale(0.98); }
+    50% { opacity: 1; transform: scale(1); }
+}
+.spinner {
+    width: 45px;
+    height: 45px;
+    border: 4px solid #e0e0e0;
+    border-top-color: #007bff; /* Άλλαξέ το στο κύριο χρώμα (primary) της εφαρμογής σου */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+/* Το βασικό κουτί των ρυθμίσεων */
+.settings-content {
+    background: var(--bg-panel, #222); /* Αν δεν έχεις τη μεταβλητή, βάζει σκούρο γκρι */
+    color: var(--text-main, #eee);
+    width: 90%;
+    max-width: 520px; /* Επεκτάθηκε σε 520px για άνετη διάταξη των στοιχείων */
+    max-height: 85vh; /* ✨ ΑΠΑΡΑΙΤΗΤΟ: Σταματάει στο 85% του ύψους της οθόνης */
+    overflow-y: auto; /* ✨ ΑΠΑΡΑΙΤΗΤΟ: Ενεργοποιεί το κάθετο scroll */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+/* Ομορφη, λεπτή μπάρα κύλισης ειδικά για τις ρυθμίσεις */
+.settings-content::-webkit-scrollbar {
+    width: 6px;
+}
+.settings-content::-webkit-scrollbar-thumb {
+    background: var(--accent, #ffb74d); 
+    border-radius: 4px;
+}
+/* Μεγαλώνουμε ελαφρώς τα κουτάκια */
+.setting-checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--accent, #ffb74d); /* ✨ Κάνει το "τικ" να παίρνει το χρώμα της εφαρμογής σου! */
+    margin: 0; /* Βγάζουμε περιττά περιθώρια */
+}
+
+/* Ομοιομορφία στα πεδία κειμένου/αριθμών */
+.settings-content select, 
+.settings-content input[type="number"] {
+    background: rgba(255, 255, 255, 0.05); /* Ελαφρώς διαφανές φόντο */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: inherit;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: inherit;
+    outline: none;
+}
+.settings-content select:focus, 
+.settings-content input[type="number"]:focus {
+    border-color: var(--accent, #ffb74d);
+}
+
+.settings-content input,
+.settings-content select,
+.settings-content button {
+    box-sizing: border-box;
+}
+
+.settings-content input[type="range"] {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+/* Ομαλή μετάβαση (hover) στα checkboxes */
+.setting-checkbox-label {
+    padding: 4px 0;
+    transition: opacity 0.2s ease;
+}
+.setting-checkbox-label:hover {
+    opacity: 0.8;
+}
+
+/* Στρογγύλεμα των κουμπιών δράσης στο τέλος */
+.modal-buttons button {
+    border-radius: 6px;
+    transition: filter 0.2s ease;
+}
+.modal-buttons button:hover {
+    filter: brightness(1.2);
+}
+
+/* Επιβολή χρωμάτων σε όλα τα dropdowns και τα πεδία εισαγωγής */
+.set-control, 
+select, 
+option {
+    background-color: var(--bg-panel, #222) !important; /* Το φόντο του πάνελ */
+    color: var(--text-main, #fff) !important;         /* Το κύριο χρώμα κειμένου */
+    border: 1px solid var(--border-color, #444);
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Συγκεκριμένα για τις επιλογές (Options) που συχνά "επαναστατούν" */
+select option {
+    background-color: var(--bg-panel, #222);
+    color: var(--text-main, #fff);
+}
+
+/* Διόρθωση για το Light Theme (επειδή εκεί θέλουμε το αντίθετο) */
+.theme-light .set-control,
+.theme-light select,
+.theme-light option {
+    background-color: #ffffff !important;
+    color: #222222 !important;
+    border: 1px solid #cccccc;
+}
+/* Deep Night */
+body.theme-dark {
+    --tuner-perfect: #00e676; /* Πράσινο */
+    --tuner-warning: #ffb300; /* Κίτρινο */
+    --tuner-danger: #ff4757;  /* Κόκκινο */
+}
+
+/* Slate Gray */
+body.theme-slate {
+    --tuner-perfect: #20c997;
+    --tuner-warning: #f6ad55;
+    --tuner-danger: #fc8181;
+}
+
+/* Paper Light */
+body.theme-light {
+    --tuner-perfect: #198754;
+    --tuner-warning: #d97706;
+    --tuner-danger: #dc3545;
+}
+/* Διασφάλιση ότι τα κουμπιά πλοήγησης της σκηνής (Next/Prev) φαίνονται μόνο σε κινητά, 
+   αλλά το κοντέινερ παραμένει ορατό για το μολυβάκι στο Desktop */
+.stage-nav-buttons {
+    display: flex !important;
+}
+
+/* Κρύβουμε τα Next/Prev στο Desktop (γιατί τα βάλαμε κάτω), ΕΚΤΟΣ από συσκευές αφής (Tablets) */
+@media (hover: hover) and (pointer: fine) {
+    body:not(.mobile-layout-active) .stage-nav-buttons button:not(.btn-edit-stage) {
+        display: none !important;
+    }
+}
+
+/* Το μολυβάκι επεξεργασίας στο Stage να φαίνεται μόνο σε Desktop */
+.btn-edit-stage {
+    display: flex !important;
+}
+body.mobile-layout-active .btn-edit-stage {
+    display: none !important;
+}
+
+/* Στο Desktop τα θέλουμε λίγο πιο διακριτικά αλλά πάντα εκεί */
+body:not(.mobile-layout-active) {
+    .stage-nav-buttons .round-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+    }
+    .stage-nav-buttons .round-btn:hover {
+        background: var(--accent);
+        color: #000;
+        border-color: var(--accent);
+    }
+}
+/* --- TOOL DRAWERS (Δεξιά Στήλη) --- */
+.tool-group {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 5px; /* Κενό ανάμεσα στα drawers */
+}
+
+/* Αφαίρεση του προεπιλεγμένου native βέλους του browser */
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: bold;
+    user-select: none;
+    list-style: none; /* Safari/Chrome */
+}
+.drawer-header::-webkit-details-marker { display: none; } /* Safari/older Chrome */
+.drawer-header::marker { display: none; content: ""; } /* Standard Modern Browsers */
+
+.drawer-header:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.drawer-content {
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Animation για το ΔΙΚΟ ΜΑΣ βελάκι όταν ανοίγει */
+details[open] .drawer-header .toggle-icon {
+    transform: rotate(180deg);
+}
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+/* =========================================
+   ΤΕΛΕΙΟΠΟΙΗΣΗ ΔΕΞΙΑΣ ΣΤΗΛΗΣ (Σταθερό Footer & Scrollable Drawers)
+   ========================================= */
+
+/* 1. Η Κύρια Στήλη: Κλείδωμα στο ύψος της οθόνης */
+.col-tools {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important; /* Fallback για παλιούς browsers */
+    height: 100dvh !important; /* ✨ ΤΟ ΜΥΣΤΙΚΟ ΓΙΑ ΤΑ ΣΥΓΧΡΟΝΑ ΚΙΝΗΤΑ ✨ */
+    max-height: 100dvh !important; 
+    overflow: hidden !important;  
+    box-sizing: border-box;
+}
+
+/* 2. Το Header: Πάντα σταθερό πάνω */
+.sidebar-header-tools {
+    flex-shrink: 0 !important; /* Απαγορεύεται να συμπιεστεί */
+    padding: 15px; 
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* 3. Η Περιοχή των Drawers (Ο πρωταγωνιστής) */
+.tool-panel {
+    flex: 1 !important; 
+    overflow-y: auto !important; 
+    overflow-x: hidden !important; 
+    padding: 10px;
+    padding-bottom: 25px; /* ✨ Μικρό μαξιλαράκι αναπνοής πριν το footer */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    -webkit-overflow-scrolling: touch; 
+}
+
+/* Ομορφη μπάρα κύλισης ειδικά για τα εργαλεία (προαιρετικό) */
+.tool-panel::-webkit-scrollbar { width: 6px; }
+.tool-panel::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+/* 4. Το Footer: Καρφωμένο κάτω */
+.tools-footer {
+    flex-shrink: 0 !important; /* Απαγορεύεται να εξαφανιστεί ή να μικρύνει */
+    height: 70px;
+    min-height: 70px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+/* =========================================
+   SETTINGS MODAL MOBILE OPTIMIZATION
+   ========================================= */
+.settings-content {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important; /* Θα μπει εσωτερικά στα blocks */
+    overflow: hidden !important;
+}
+
+.settings-header {
+    flex-shrink: 0;
+    padding: 20px;
+    border-bottom: 2px solid var(--accent);
+    background: transparent;
+}
+
+.settings-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.settings-footer {
+    flex-shrink: 0;
+    padding: 20px;
+    border-top: 1px solid rgba(150,150,150,0.1);
+    background: transparent;
+}
+
+/* FULL SCREEN ON MOBILE */
+@media screen and (max-width: 600px) {
+    #settingsModal .settings-content {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    
+    .settings-header {
+        padding: 15px 20px;
+    }
+    
+    .settings-body {
+        padding: 15px 20px;
+    }
+    
+    .settings-footer {
+        padding: 15px 20px 25px 20px; /* Λίγο παραπάνω κάτω για τα gestures των κινητών */
+    }
+
+    .settings-group h4 {
+        font-size: 0.95rem;
+        margin-top: 5px;
+    }
+    
+    .setting-checkbox-label {
+        padding: 12px 0; /* Μεγαλύτερο hit area */
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+}
+
+/* =========================================
+   AUTH MODAL MOBILE OPTIMIZATION
+   ========================================= */
+.auth-content {
+    background: #16162a !important;
+    color: #e0e0e0 !important;
+    border: 1px solid rgba(187,134,252,0.3) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(187,134,252,0.1) !important;
+    max-width: 420px !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+.auth-header {
+    padding: 30px 30px 20px 30px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.auth-body {
+    padding: 0 30px 30px 30px;
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Social Buttons Styling */
+.social-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 13px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    box-sizing: border-box;
+}
+
+.social-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+
+.social-btn.google { background: #fff; color: #333; }
+.social-btn.facebook { background: #1877f2; color: #fff; }
+.social-btn.facebook:hover { background: #1464d3; }
+.social-btn.apple { background: #000; color: #fff; border: 1px solid #444; }
+.social-btn.apple:hover { background: #1a1a1a; }
+.social-btn.discord { background: #5865f2; color: #fff; }
+.social-btn.discord:hover { background: #4752c4; }
+
+.auth-close-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid #333;
+    color: #666;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: 0.2s;
+    margin-top: 10px;
+}
+
+.auth-close-btn:hover {
+    border-color: #555;
+    color: #aaa;
+}
+
+/* FULL SCREEN ON MOBILE */
+@media screen and (max-width: 600px) {
+    #authModal .auth-content {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    
+    .auth-header {
+        padding: 40px 20px 20px 20px;
+    }
+    
+    .auth-body {
+        padding: 10px 20px 30px 20px;
+    }
+}
+
+/* Editor Real-time Highlight CSS */
+.editor-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 300px; /* Ensure it takes up enough space */
+}
+
+/* Force exact matching styles between textarea and backdrop to prevent misalignment */
+#inpBodyBackdrop, textarea#inpBody {
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 1.1rem !important;
+    line-height: 1.5 !important;
+    padding: 10px !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    letter-spacing: normal !important;
+    text-align: left !important;
+}
+
+#inpBodyBackdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow-y: auto;
+    color: var(--text-main);
+    background: var(--input-bg);
+    border-color: transparent !important;
+    /* Hide scrollbar so it doesn't overlap textarea's scrollbar, but keep its layout width */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+#inpBodyBackdrop::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+}
+
+textarea#inpBody {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    background: transparent !important;
+    color: transparent !important;
+    caret-color: #fff;
+    resize: none;
+}
+
+/* Single-line Input Real-time Highlight CSS (Intro & Inter) */
+.single-input-container {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
+
+.single-input-backdrop, input.single-input-highlight {
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 1rem !important;
+    line-height: 1.4 !important;
+    padding: 10px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    white-space: pre !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    height: 42px;
+    border-radius: 6px !important;
+    letter-spacing: normal !important;
+    text-align: left !important;
+}
+
+.single-input-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid transparent !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.single-input-backdrop::-webkit-scrollbar {
+    display: none;
+}
+
+input.single-input-highlight {
+    position: relative;
+    z-index: 2;
+    background: transparent !important;
+    color: transparent !important;
+    caret-color: var(--text-main, #fff);
+    border: 1px solid var(--border-color) !important;
+}
+
+input.single-input-highlight::placeholder {
+    color: var(--text-muted);
+}
+
+input.single-input-highlight:focus {
+    border-color: var(--accent) !important;
+    outline: none;
+}
+
+/* The actual highlight classes */
+.chord-highlight {
+    color: var(--highlight-chord, #d4b856);
+}
+
+.strum-highlight {
+    color: var(--highlight-strum, #6b9e73);
+}
+
+/* Επισημασμένα τραγούδια (Highlighter Marker):
+   Ελεύθερη επισήμανση από τον μουσικό. Δεν ξεθωριάζει (opacity: 1),
+   αλλά τονίζεται με έντονη οριζόντια μολυβιά μαρκαδόρου (Neon Yellow). */
+.song-item.song-played {
+    border-left: 4px solid #ffe600 !important;
+    background: linear-gradient(90deg, rgba(255, 230, 0, 0.16) 0%, rgba(255, 230, 0, 0.04) 60%, transparent 100%);
+}
+.song-item.song-played .song-title {
+    background: linear-gradient(104deg, rgba(255, 230, 0, 0.55) 0%, rgba(255, 230, 0, 0.70) 100%);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #000 !important;
+    font-weight: 700;
+    box-shadow: 0 0 8px rgba(255, 230, 0, 0.35);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+.song-item.song-played .song-title span {
+    color: #000 !important;
+}
+.song-item.song-played.active .song-title {
+    background: linear-gradient(104deg, rgba(255, 230, 0, 0.75) 0%, rgba(255, 230, 0, 0.90) 100%);
+    color: #000 !important;
+}
+
+/* Badge ένδειξης μαρκαρισμένων τραγουδιών δίπλα στο ACTIVE SETLIST */
+.setlist-marked-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #ffe600;
+    color: #000;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* Παλιό badge σκηνής — αποκρύπτεται πλήρως κατόπιν απαίτησης χρήστη */
+.stage-played-badge {
+    display: none !important;
+}
+
+/* Χωρίς αυτό, το κράτημα πάνω στους στίχους βγάζει το μενού αντιγραφής
+   του κινητού και μπλε επιλογή, και το long-press δεν ολοκληρώνεται ποτέ.
+   Αντάλλαγμα: δεν αντιγράφεις πια στίχους από τη σκηνή — μόνο από τον
+   editor. Συνειδητή απόφαση. (04/09/2026) */
+#fixed-container, #scroll-container {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Οριζόντια μπάρα σκηνής — αποκρύπτεται, αρκεί το φώτισμα του τίτλου */
+.stage-played-bookmark {
+    display: none !important;
+}
+
+/* Τίτλος τραγουδιού στη σκηνή: διαδραστικός σε long-press χωρίς mobile callouts */
+#mainAppTitle {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    cursor: pointer;
+}
+
+/* Τίτλος τραγουδιού στη σκηνή όταν είναι μαρκαρισμένο */
+#mainAppTitle.title-marked > span:first-child {
+    background: linear-gradient(104deg, rgba(255, 230, 0, 0.50) 0%, rgba(255, 230, 0, 0.65) 100%);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #000 !important;
+    text-shadow: none;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+#mainAppTitle.title-marked > span:first-child span {
+    color: #222 !important;
+}
+
+/* Ένδειξη ενεργού φίλτρου στην καρτέλα Setlist. Μία γραμμή — αντικαθιστά
+   ~95px χειριστηρίων που δεν χωρούσαν στη σκηνή. (05/09/2026) */
+#setlistFilterNotice {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 8px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    background: rgba(255, 152, 0, 0.15);
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+#setlistFilterNotice button {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+/* Μπάρα ενημέρωσης. Δεν εμφανίζεται ποτέ μόνη της — μόνο όταν υπάρχει
+   νέα έκδοση σε αναμονή, και η ανανέωση γίνεται με ρητή επιλογή του
+   χρήστη. Ποτέ αυτόματα: θα συνέβαινε στη μέση παράστασης. (07/09/2026) */
+#swUpdateBar {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--bg-panel);
+    border: 1px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+#swUpdateBar button {
+    background: var(--accent);
+    color: #111;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Κατάσταση δικτύου / συγχρονισμού.
+   Pill και όχι μπάρα: μια μπάρα πάνω από το λογότυπο προσθέτει ύψος στο
+   sidebar, ενώ μόλις κερδήθηκαν ~95px βγάζοντας τα φίλτρα από την καρτέλα
+   Setlist για να χωράνε περισσότερα τραγούδια. (09/09/2026) */
+.net-badge {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.6;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.net-badge.offline {
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+.net-badge.pending {
+    background: rgba(255, 152, 0, 0.15);
+    border: 1px solid rgba(255, 152, 0, 0.6);
+    color: #ffb74d;
+}
+
+/* Στη σκηνή εμφανίζεται ΜΟΝΟ όταν υπάρχουν αλλαγές που δεν στάλθηκαν.
+   Σκέτο «offline» δεν εμφανίζεται ποτέ εδώ: ο μουσικός ξέρει ότι το μαγαζί
+   δεν έχει internet, και ο κανόνας της σκηνής είναι μηδενικός θόρυβος. */
+.stage-pending-badge {
+    display: none;
+    align-items: center;
+    height: 42px;
+    min-height: 36px;
+    padding: 0 9px;
+    border-radius: 21px;
+    border: 1px solid rgba(255, 152, 0, 0.6);
+    background: rgba(255, 152, 0, 0.15);
+    color: #ffb74d;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* =========================================
+   mNotes 3-Letter Markup & Stage Formatting
+   ========================================= */
+
+/* Stage Cue Pill (Comments / Directives) */
+.stage-cue-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(243, 156, 18, 0.12);
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    color: #f39c12;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-style: normal;
+    margin: 3px 0;
+    user-select: none;
+}
+.stage-cue-pill i {
+    font-size: 0.82rem;
+    opacity: 0.9;
+}
+.stage-cue-pill .chord {
+    color: var(--accent, #00ff00) !important;
+}
+.line-row.cue-row {
+    margin: 6px 0 !important;
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* Structural Section Containers */
+.song-section {
+    position: relative;
+    transition: all 0.2s ease;
+}
+.song-section.chorus-section {
+    border-left: 3px solid var(--accent, #00ff00);
+    background: linear-gradient(90deg, rgba(0, 255, 0, 0.05) 0%, transparent 100%);
+    padding: 4px 0 4px 10px;
+    margin: 8px 0;
+    border-radius: 0 6px 6px 0;
+}
+.song-section.verse-section {
+    padding: 2px 0;
+    margin: 6px 0;
+}
+.song-section.bridge-section {
+    border-left: 3px solid #ff9800;
+    background: linear-gradient(90deg, rgba(255, 152, 0, 0.05) 0%, transparent 100%);
+    padding: 4px 0 4px 10px;
+    margin: 8px 0;
+    border-radius: 0 6px 6px 0;
+}
+.song-section.tab-section {
+    font-family: 'Consolas', 'Courier New', monospace;
+    white-space: pre;
+    overflow-x: auto;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 8px 0;
+    color: #00e676;
+    border-left: 3px solid #00e676;
+}
+.section-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--accent, #00ff00);
+    opacity: 0.9;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+}
+.song-section.bridge-section .section-label {
+    color: #ff9800;
+}
+
+/* Chords Grid Rows (Instrumental bar measures) */
+.line-row.chords-grid-row {
+    letter-spacing: 1px;
+}
+
+/* Syntax Highlighting in Editor Backdrop */
+.define-highlight {
+    color: #4fc3f7 !important;
+    font-weight: bold;
+    font-family: monospace;
+}
+.com-highlight {
+    color: #f39c12 !important;
+    font-style: italic;
+}
+.chorus-highlight {
+    color: #bb86fc !important;
+    font-weight: bold;
+}
+.verse-highlight {
+    color: #64b5f6 !important;
+    font-weight: bold;
+}
+.bridge-highlight {
+    color: #ffb74d !important;
+    font-weight: bold;
+}
+.tab-highlight {
+    color: #00e676 !important;
+    font-weight: bold;
+}
+.close-tag-highlight {
+    color: #e57373 !important;
+    font-weight: bold;
+}
+
+/* Editor Smart Format Button & Speed-Dial Menu */
+.editor-format-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-panel, #2a2a2a);
+    border: 1px solid var(--border-color, #444);
+    color: var(--text-main, #eee);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.editor-format-btn:hover {
+    border-color: var(--accent, #00ff00);
+    color: var(--accent, #00ff00);
+}
+.editor-format-btn.block-active {
+    background: linear-gradient(135deg, rgba(187, 134, 252, 0.25) 0%, rgba(187, 134, 252, 0.15) 100%);
+    border-color: #bb86fc;
+    color: #bb86fc;
+    box-shadow: 0 0 8px rgba(187, 134, 252, 0.35);
+    animation: pulse-format 2s infinite ease-in-out;
+}
+@keyframes pulse-format {
+    0%, 100% { box-shadow: 0 0 6px rgba(187, 134, 252, 0.3); }
+    50% { box-shadow: 0 0 14px rgba(187, 134, 252, 0.65); }
+}
+
+.editor-format-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg-card, #1e1e1e);
+    border: 1px solid var(--border-color, #444);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 175px;
+}
+.format-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-main, #eee);
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    width: 100%;
+}
+.format-menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+.format-menu-item.item-chorus { color: #bb86fc; }
+.format-menu-item.item-verse { color: #64b5f6; }
+.format-menu-item.item-bridge { color: #ffb74d; }
+.format-menu-item.item-comment { color: #f39c12; }
+.format-menu-item.item-strum { color: #3498db; }
+.format-menu-item.item-tab { color: #00e676; }
+
+/* Print Styles for Sections and Cues */
+@media print {
+    .print-section.chorus-section {
+        border-left: 2pt solid #333 !important;
+        padding-left: 6pt !important;
+        margin: 6pt 0 !important;
+    }
+    .print-section-label {
+        font-size: 7.5pt !important;
+        font-weight: bold !important;
+        letter-spacing: 0.5pt !important;
+        text-transform: uppercase !important;
+        color: #444 !important;
+        margin-bottom: 2pt !important;
+    }
+    .stage-cue-pill {
+        border: 0.5pt solid #888 !important;
+        background: #f9f9f9 !important;
+        color: #333 !important;
+        padding: 1pt 5pt !important;
+        border-radius: 6pt !important;
+        font-size: 7.5pt !important;
+        font-style: italic !important;
+        display: inline-block !important;
+    }
+}
+
+
+/* ===========================================================
+   EDITION IDENTITY (PRO vs SOLO) & SOLO HIDING
+   =========================================================== */
+:root {
+    --edition-color: #bb86fc;
+    --edition-color-dark: #8e54e9;
+}
+
+body[data-edition="solo"] {
+    --edition-color: #E8890C;
+    --edition-color-dark: #B86A00;
+}
+
+body[data-edition="solo"] [data-pro-only] {
+    display: none !important;
+}
+
+.edition-strip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--edition-color);
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.edition-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    background: var(--edition-color);
+    color: #000;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.edition-badge::after {
+    content: 'PRO';
+}
+
+body[data-edition="solo"] .edition-badge::after {
+    content: 'SOLO';
+}
+
+@media (max-width: 768px) {
+    body.stage-focus .edition-strip,
+    body.mobile-layout-active.lyrics-only .edition-strip {
+        display: none;
+    }
+}

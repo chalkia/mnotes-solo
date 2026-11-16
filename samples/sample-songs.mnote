@@ -1,0 +1,28 @@
+{
+  "app_version": "2.1",
+  "songs": [
+    {
+      "title": "Μήλο μου κόκκινο",
+      "artist": "Παραδοσιακό",
+      "key": "D",
+      "intro": "| !D | !G | !D , !A | !D | !D | !G | !D, !A | !D |",
+      "notes": "Δοκιμάστε να αλλάξετε τον τόνο με το Transpose!",
+      "tags": [
+        "Παραδοσιακά",
+        "Δοκιμαστικό"
+      ],
+      "body": "!DΜήλο μου κόκκινο, ρ!Gόδο βαμμ!Dένο   ] 2x\n!Dγιατί με μ!Aάρανες, !Dτον πικ!A7ραμ!Dένο   ] 2x\n\nΠηγαίνω κι έρχομαι, μα δε σε βρίσκω   ] 2x\nΒρίσκω την πόρτα σου μανταλωμένη\nτα παραθύρια σου φεγγοβολούνε\n\nΡωτώ την πόρτα σου, πού είν' η κυρά σου   ] 2x\nΚυρά μ' δεν είναι δω, πάησε στη βρύση\nπάησε να πιει νερό και να γιομίσει"
+    },
+    {
+      "title": "Amazing Grace",
+      "artist": "John Newton (1779)",
+      "key": "G",
+      "intro": "| !G | !G | !C | !G | !G | !D | !G | !G |",
+      "notes": "3/4 — Try Transpose and Smart Capo on this song!",
+      "tags": [
+        "Δοκιμαστικό"
+      ],
+      "body": "A!Gmazing grace, how !C!sweet the !G!sound\nThat saved a wretch like !D!me\nI !G!once was lost, but !C!now am !G!found\nWas !Em!blind, but !D!now I !G!see\n\n'Twas !G!grace that taught my !C!heart to !G!fear\nAnd grace my fears re!D!lieved\nHow !G!precious did that !C!grace ap!G!pear\nThe !Em!hour I !D!first be!G!lieved"
+    }
+  ]
+}

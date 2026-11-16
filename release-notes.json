@@ -1,0 +1,333 @@
+{
+  "_comment": "Σημειώσεις έκδοσης, ΟΡΑΤΕΣ ΣΤΟΝ ΧΡΗΣΤΗ / User-facing Release Notes. Νεότερη έκδοση πρώτη / Newest first. type: new | fix | improved",
+  "releases": [
+    {
+      "version": "2.6.22",
+      "date": "2026-11-16",
+      "title": {
+        "el": "Αναβάθμιση Μηχανής Ρυθμών (Σκηνή & mStudio)",
+        "en": "Drum Machine Upgrade (Stage & mStudio)"
+      },
+      "items": [
+        {
+          "type": "fix",
+          "text": {
+            "el": "Τα ασύμμετρα μέτρα (9/8 ζεϊμπέκικο, 7/8 καλαματιανό, 2/4) παίζουν πλέον στη Σκηνή με τη σωστή ταχύτητα, μίξη οργάνων και τονισμό, και είναι διαθέσιμα για αναπαραγωγή από όλους τους μουσικούς.",
+            "en": "Odd meters (9/8 zeibekiko, 7/8 kalamatiano, 2/4) now play on Stage at the exact tempo, mix, and accents, and can be played by all musicians."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Ομαδοποίηση ασύμμετρων μέτρων (9/8, 7/8, 5/8) στο mStudio με επιλογή υποδιαίρεσης (π.χ. 3+2+2+2 ή 2+2+2+3), 3 επίπεδα έντασης ανά βήμα (Κανονικό / Τονισμένο / Ghost) και Mute / Solo / άμεση ακρόαση ανά όργανο.",
+            "en": "Asymmetric meter grouping (9/8, 7/8, 5/8) in mStudio with selectable subdivisions, 3 velocity levels per step (Normal / Accent / Ghost), and per-instrument Mute / Solo / audition."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Εύρος τέμπο 40–240 BPM με αριθμητικό πεδίο, Tap Tempo (κουμπί ή πλήκτρο T), Space για Play/Stop, κουμπί «Νέος Ρυθμός» με προστασία Cloud αποθήκευσης και offline αποθήκευση δειγμάτων ήχου.",
+            "en": "Expanded 40–240 BPM range with numeric input, Tap Tempo (button or T key), Space for Play/Stop, New Rhythm button with safe Cloud save, and offline sample caching."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.15",
+      "date": "2026-11-14",
+      "title": {
+        "el": "Πλήρες πακέτο .mnotezip στο mStudio (Εξαγωγή & Εισαγωγή)",
+        "en": "Full .mnotezip Backup Package in mStudio (Export & Import)"
+      },
+      "items": [
+        {
+          "type": "new",
+          "text": {
+            "el": "Εξαγωγή ολόκληρης της προσωπικής σας βιβλιοθήκης (τραγούδια, λίστες, ρυθμοί και αρχεία PDF/ήχου) σε ένα αρχείο .mnotezip από το mStudio στον υπολογιστή.",
+            "en": "Export your entire personal library (songs, setlists, rhythms, and PDF/audio files) into a single .mnotezip file from mStudio on desktop."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Ασφαλής εισαγωγή πακέτου .mnotezip με προεπισκόπηση χώρου, ενιαία επίλυση συγκρούσεων και αυτόματη επαναφορά σε περίπτωση διακοπής.",
+            "en": "Safe .mnotezip package import with storage quota preview, unified conflict resolution, and automatic rollback if interrupted."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Κατά την αντικατάσταση τραγουδιών από πακέτο, οι ηχογραφήσεις και τα προσαρτήματα μπάντας που έχετε στη βάση διατηρούνται άθικτα.",
+            "en": "When replacing songs from a package, your existing recordings and band attachments are preserved intact."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Η μπάρα χώρου στις Ρυθμίσεις δείχνει τον πραγματικό χώρο των αρχείων σου.",
+            "en": "The storage bar in Settings now shows the actual space used by your files."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Η αλλαγή θέματος μέσα σε μπάντα δεν χαλάει πια την εμφάνιση της μπάντας.",
+            "en": "Changing the theme inside a band no longer breaks the band layout."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Ο αναγκαστικός συγχρονισμός σε μπάντα ξαναφέρνει όλα τα τραγούδια της.",
+            "en": "Force sync in a band now fetches all of its songs again."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Το «Τι νέο υπάρχει» δείχνει πάντα τη σωστή έκδοση.",
+            "en": "The \"What's New\" dialog always shows the correct version."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.13",
+      "date": "2026-10-16",
+      "title": {
+        "el": "Intro μέσα στο τραγούδι, ρυθμίσεις επεξεργαστή & βελτιώσεις συγχρονισμού",
+        "en": "In-song Intro display, editor settings & sync improvements"
+      },
+      "items": [
+        {
+          "type": "fix",
+          "text": {
+            "el": "Ο «Αναγκαστικός Συγχρονισμός» δεν σβήνει πια τραγούδια όταν δεν υπάρχει cloud ή όταν υπάρχουν αλλαγές που δεν έχουν σταλεί.",
+            "en": "Force Sync no longer deletes songs when cloud is unreachable or when unsent changes exist."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Ο σύνδεσμος πρόσκλησης σε μπάντα λειτουργεί.",
+            "en": "Band invitation link works properly."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Όποιος ανοίγει σύνδεσμο πρόσκλησης χωρίς να είναι συνδεδεμένος, βλέπει τη σύνδεση.",
+            "en": "Anyone opening an invitation link without being logged in now sees the login screen."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Το κουμπί κωδικού λέγεται «Κωδικός δώρου ή μπάντας».",
+            "en": "The code button is now named 'Gift or band code'."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Το Intro και το Inter εμφανίζονται μέσα στο τραγούδι, μένουν ορατά στην κορυφή, και αλλάζουν μέγεθος μαζί με τους στίχους.",
+            "en": "Intro and Inter are displayed inside the song, stay visible at the top, and scale with lyrics."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Ρύθμιση για απόκρυψη των κενών πεδίων Intro/Inter στον επεξεργαστή.",
+            "en": "Setting to hide empty Intro/Inter fields in the editor."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.9",
+      "date": "2026-10-11",
+      "title": {
+        "el": "Αυτόματος καθαρισμός αρχείων, νέα σελίδα ενημερώσεων & βελτιώσεις ρόλων",
+        "en": "Automatic file cleanup, What's New page & role improvements"
+      },
+      "items": [
+        {
+          "type": "new",
+          "text": {
+            "el": "Νέα σελίδα «Τι νέο υπάρχει» στο mStudio για άμεση ενημέρωση σχετικά με τις τελευταίες βελτιώσεις.",
+            "en": "New 'What's New' page in mStudio to stay up to date with the latest improvements."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Αυτόματη απελευθέρωση αποθηκευτικού χώρου στο cloud κατά τη διαγραφή αρχείων ήχου.",
+            "en": "Storage space is now automatically freed up in the cloud when deleting audio files."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Βελτιωμένη και ασφαλέστερη διαχείριση δικαιωμάτων για μέλη και μαέστρους στις μπάντες.",
+            "en": "Enhanced and more reliable permission handling for members and maestros in bands."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.8",
+      "date": "2026-09-15",
+      "title": {
+        "el": "Μία οθόνη τη φορά & μετακινούμενο μενού",
+        "en": "One screen at a time & movable menu"
+      },
+      "items": [
+        {
+          "type": "new",
+          "text": {
+            "el": "Νέα ρύθμιση «Μία οθόνη τη φορά»: δείτε μόνο τη Σκηνή, σε πλήρες πλάτος, σε οποιαδήποτε συσκευή. Ιδανικό για αναλόγιο.",
+            "en": "New 'One screen at a time' setting: view only the Stage in full width on any device. Ideal for music stands."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Το κουμπί του μενού μετακινείται: σύρετέ το ελεύθερα όπου σας βολεύει — ακόμη και στην αριστερή πλευρά.",
+            "en": "The menu button is now draggable: freely move it anywhere you want — even to the left edge."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Το συρτάρι πλοήγησης ανοίγει πάντα από την πλευρά όπου βρίσκεται το κουμπί.",
+            "en": "The navigation drawer opens smoothly from whichever side the button is on."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Μεγαλύτεροι στίχοι και καλύτερο κεντράρισμα στις μεγάλες οθόνες.",
+            "en": "Larger lyrics and centered layout for comfortable reading on wide screens."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.7",
+      "date": "2026-09-14",
+      "title": {
+        "el": "Διορθώσεις στις συγχορδίες και τον ρυθμό",
+        "en": "Fixes for chord diagrams and rhythm patterns"
+      },
+      "items": [
+        {
+          "type": "fix",
+          "text": {
+            "el": "Τα διαγράμματα συγχορδιών ξαναεμφανίζονται κανονικά στη δεξιά στήλη.",
+            "en": "Chord diagrams reappear properly in the right column."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Το ρυθμικό μοτίβο δεν «βάφει» πια το υπόλοιπο τραγούδι όταν μείνει ανοιχτό.",
+            "en": "Unclosed rhythm tags (!str) no longer leak green highlight to the rest of the song."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Το σύμβολο κλεισίματος !/ εμφανίζεται καθαρά και δείχνει τι κλείνει.",
+            "en": "The closing tag !/ displays clearly and indicates what it closes."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.5",
+      "date": "2026-09-14",
+      "title": {
+        "el": "Εισαγωγή αρχείων ChordPro",
+        "en": "ChordPro file importer"
+      },
+      "items": [
+        {
+          "type": "new",
+          "text": {
+            "el": "Εισαγωγή τραγουδιών από αρχεία ChordPro (.pro, .cho, .chopro, .crd). Τίτλος, καλλιτέχνης και τονικότητα συμπληρώνονται αυτόματα.",
+            "en": "Import songs from ChordPro files (.pro, .cho, .chopro, .crd). Title, artist and key are detected automatically."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Αν το αρχείο περιέχει δικές του δαχτυλοθεσίες, το mNotes τις σχεδιάζει — ακόμη και για ασυνήθιστες συγχορδίες.",
+            "en": "Custom chord fingerings from the file are drawn accurately — even for rare chords."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Νέα, απλούστερη σήμανση ενοτήτων: !cho για ρεφρέν, !ver για κουπλέ, και ένα κοινό !/ που κλείνει τα πάντα.",
+            "en": "Simpler section markup: !cho for chorus, !ver for verse, and a universal !/ closer for all tags."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.2",
+      "date": "2026-09-11",
+      "title": {
+        "el": "Πιο γρήγορος και αξιόπιστος συγχρονισμός",
+        "en": "Faster and more reliable sync"
+      },
+      "items": [
+        {
+          "type": "fix",
+          "text": {
+            "el": "Σταμάτησε ο περιττός πλήρης συγχρονισμός σε κάθε άνοιγμα. Η εφαρμογή ξεκινά αισθητά γρηγορότερα.",
+            "en": "Eliminated redundant full sync on app startup. The app launches noticeably faster."
+          }
+        },
+        {
+          "type": "fix",
+          "text": {
+            "el": "Τα τραγούδια που στέλνετε στη μπάντα δεν σημαδεύονται πια λανθασμένα ως αντίγραφα.",
+            "en": "Songs transferred to a band are no longer falsely marked as clones."
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.6.0",
+      "date": "2026-09-11",
+      "title": {
+        "el": "Εκτελεσμένα σήμερα & βοηθήματα πρόβας",
+        "en": "Played today & practice aids"
+      },
+      "items": [
+        {
+          "type": "new",
+          "text": {
+            "el": "Μαρκάρετε ένα τραγούδι ως εκτελεσμένο κρατώντας πατημένο τον τίτλο στη Σκηνή.",
+            "en": "Mark a song as played by long-pressing its title in Stage view."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Η δεξιά στήλη ονομάζεται πλέον «Βοηθήματα» και στις δύο διατάξεις.",
+            "en": "The right column is now consistently named 'Practice Aids' in all views."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Η εφαρμογή δουλεύει εκτός σύνδεσης και δείχνει πόσες αλλαγές περιμένουν να σταλούν.",
+            "en": "Full offline support with a clear indicator of pending changes."
+          }
+        }
+      ]
+    }
+  ]
+}
