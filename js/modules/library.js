@@ -138,14 +138,16 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
             candidates.forEach(s => {
                 // Βρίσκουμε το Master ID (DNA)
                 let masterId = s.id;
-                let curr = s;
-                let safety = 0;
-                while (curr && curr.parent_id && curr.parent_id !== curr.id && safety < 10) {
-                    masterId = curr.parent_id;
-                    let next = library.find(x => x.id === masterId);
-                    if (!next) break;
-                    curr = next;
-                    safety++;
+                if (typeof window.normalizeSongForEdition !== 'function') {
+                    let curr = s;
+                    let safety = 0;
+                    while (curr && curr.parent_id && curr.parent_id !== curr.id && safety < 10) {
+                        masterId = curr.parent_id;
+                        let next = library.find(x => x.id === masterId);
+                        if (!next) break;
+                        curr = next;
+                        safety++;
+                    }
                 }
                 
                 if (!groups[masterId]) groups[masterId] = [];
@@ -189,7 +191,9 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
 
         const countEl = document.getElementById('songCount');
         if (countEl) {
-            countEl.innerText = String(window.visiblePlaylist.length);
+            countEl.innerText = (typeof window.formatEditionSongCount === 'function')
+                ? window.formatEditionSongCount(window.visiblePlaylist.length)
+                : String(window.visiblePlaylist.length);
         }
         if (window.PlayedSet && typeof window.PlayedSet.paintCounters === 'function') {
             window.PlayedSet.paintCounters();

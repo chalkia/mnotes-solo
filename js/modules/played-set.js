@@ -86,7 +86,11 @@
             const done = api.countIn(window.visiblePlaylist);
 
             const countEl = document.getElementById('songCount');
-            if (countEl) countEl.innerText = String(total);
+            if (countEl) {
+                countEl.innerText = (typeof window.formatEditionSongCount === 'function')
+                    ? window.formatEditionSongCount(total)
+                    : String(total);
+            }
 
             const isCurrentPlayed = typeof currentSongId !== 'undefined' && played.has(currentSongId);
 

@@ -201,7 +201,15 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         }
 
         var i = liveSetlist.indexOf(id);
-        if(i > -1) liveSetlist.splice(i,1); else liveSetlist.push(id);
+        if (i > -1) {
+            const sel = document.getElementById('selSetlistName');
+            if (sel && sel.value === '🗑️ Κάδος' && typeof window.canRestoreFromTrash === 'function' && !window.canRestoreFromTrash(id)) {
+                return;
+            }
+            liveSetlist.splice(i, 1);
+        } else {
+            liveSetlist.push(id);
+        }
         logic.save();
         renderSidebar();
         // Ανανεώνεται πάντα, όχι μόνο σε προβολή λίστας: το μενού ρυθμίζει και

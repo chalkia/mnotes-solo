@@ -184,6 +184,10 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
 
         if (!currentUser) {
             if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_GUEST_SONG', currentCount)) {
+                if (typeof window.onSongLimitReached === 'function') {
+                    window.onSongLimitReached('editor_new', { currentCount, maxSongs: limits.maxSongs || limits.maxGuestSongs });
+                    return;
+                }
                 showToast(t('msg_guest_limit_reached').replace('{count}', limits.maxGuestSongs), "warning");
                 const authMsg = document.getElementById('authMsg');
                 if (authMsg) authMsg.innerText = t('msg_create_free_acc_songs');

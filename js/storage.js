@@ -459,13 +459,28 @@ window.loadSampleSongs = async function () {
         return false;
     }
 
+    if (typeof window.soloImportSongs === 'function') {
+        const res = window.soloImportSongs(rawSongs);
+        if (!res || !res.ok) return false;
+        if (typeof applySortAndRender === 'function') applySortAndRender();
+        else if (typeof renderSidebar === 'function') renderSidebar();
+        if (res.addedIds && res.addedIds.length > 0 && typeof loadSong === 'function') {
+            loadSong(res.addedIds[0]);
+        }
+        if (typeof showToast === 'function') {
+            const msg = (typeof t === 'function' ? t('msg_samples_loaded', 'Προστέθηκαν {n} δοκιμαστικά τραγούδια') : 'Προστέθηκαν {n} δοκιμαστικά τραγούδια').replace('{n}', String(res.addedCount));
+            showToast(msg, 'success');
+        }
+        return true;
+    }
+
     const userSongs = (window.library || []).filter(s => !String(s.id).includes('demo'));
     const limits = typeof getUserLimits === 'function' ? getUserLimits() : { maxGuestSongs: 5, maxSongs: 40 };
     const projectedCount = (typeof window.countDistinctSongs === 'function')
         ? window.countDistinctSongs(userSongs.concat(rawSongs))
         : userSongs.length + rawSongs.length;
 
-    if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_SONG', { currentCount: userSongs.length })) {
+    if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_SONG', userSongs.length)) {
         if (typeof promptUpgrade === 'function') promptUpgrade(typeof t === 'function' ? t('msg_unlimited_songs', 'Απεριόριστα Τραγούδια') : 'Απεριόριστα Τραγούδια');
         return false;
     }
@@ -703,6 +718,19 @@ async function importJSON(input) {
 
             if (!confirm(confirmMsg)) {
                 input.value = ''; return;
+            }
+
+            if (typeof window.soloImportSongs === 'function') {
+                const res = window.soloImportSongs(importedSongs, { tombstones: data && data.tombstones });
+                if (res && res.ok) {
+                    if (typeof updateSetlistDropdown === 'function') updateSetlistDropdown();
+                    if (typeof applyFilters === 'function') applyFilters();
+                    else if (typeof renderSidebar === 'function') renderSidebar();
+                    const resultMsg = `Η Εισαγωγή Ολοκληρώθηκε!\n\nΝέα: ${res.addedCount}\nΕνημερώθηκαν: ${res.updatedCount}\nΠαραλείφθηκαν (Διπλά): ${res.skippedCount}`;
+                    alert(resultMsg);
+                }
+                input.value = '';
+                return;
             }
 
             // §Σ3.4: Αν ο χρήστης βρίσκεται σε context μπάντας, προβολή toast

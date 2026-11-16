@@ -1144,6 +1144,16 @@ window.processImportedData = async function (data) {
     if (!data) return;
 
     let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
+    if (typeof window.soloImportSongs === 'function') {
+        const res = window.soloImportSongs(newSongs, { tombstones: data && data.tombstones });
+        if (res && res.ok) {
+            if (typeof applySortAndRender === 'function') applySortAndRender();
+            if (typeof showToast === 'function') {
+                showToast(`Εισαγωγή: ${res.addedCount} νέα, ${res.updatedCount} ενημερώσεις`, 'success');
+            }
+        }
+        return;
+    }
     const userSongs = (window.library || []).filter(s => !String(s.id).includes('demo'));
 
     const limits = typeof getUserLimits === 'function' ? getUserLimits() : { maxGuestSongs: 5, maxSongs: 40 };
@@ -1563,6 +1573,16 @@ async function saveSong(manualSongData = null) {
             updated_at: new Date().toISOString()
         };
         
+        if (isNewSong && typeof window.countSongsForLimit === 'function' && typeof window.onSongLimitReached === 'function') {
+            const curCount = window.countSongsForLimit(library);
+            const limits = typeof getUserLimits === 'function' ? getUserLimits() : { maxSongs: 20 };
+            const maxSongs = typeof limits.maxSongs === 'number' ? limits.maxSongs : 20;
+            if (curCount >= maxSongs) {
+                window.onSongLimitReached('save_new', { currentCount: curCount, maxSongs });
+                return false;
+            }
+        }
+
         if (isNewSong) currentSongId = internalId;
     }
 
@@ -1585,6 +1605,9 @@ async function saveSong(manualSongData = null) {
                 window.currentSongId = freshId;
             }
             if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData);
+            if (isNewSong && typeof window.onSongCountChanged === 'function' && typeof window.countSongsForLimit === 'function') {
+                window.onSongCountChanged(window.countSongsForLimit(library));
+            }
 
             const canCloud = (typeof canUserPerform === 'function')
                              && canUserPerform('USE_SUPABASE');
@@ -2163,6 +2186,9 @@ function ensureSongStructure(song) {
     }
 
     cleaned.updatedAt = cleaned.updated_at;
+    if (typeof window.normalizeSongForEdition === 'function') {
+        window.normalizeSongForEdition(cleaned);
+    }
 
     return cleaned;
 }
@@ -3111,6 +3137,9 @@ async function deleteCurrentSong() {
         }
         
         window.persistContextLibrary(window.library);
+        if (typeof window.recordSongTombstones === 'function') {
+            window.recordSongTombstones(Array.from(allToRemove));
+        }
 
         // --- Καθαρισμός Setlists από "φαντάσματα" ---
         // ⚠️ Η ΣΕΙΡΑ ΕΧΕΙ ΣΗΜΑΣΙΑ. Το saveSetlists() κάνει, για την ΕΝΕΡΓΗ λίστα,
@@ -3353,6 +3382,9 @@ async function emptyTrashSetlist() {
         window.library = window.library.filter(s => !trashList.includes(s.id));
         library = window.library;
         window.persistContextLibrary(window.library);
+        if (typeof window.recordSongTombstones === 'function') {
+            window.recordSongTombstones(trashList);
+        }
 
         allSetlists[trashKey].songs = [];
         liveSetlist = [];
@@ -3529,6 +3561,9 @@ window.countDistinctSongs = function (pool) {
     if (!list) {
         try { list = JSON.parse(localStorage.getItem('mnotes_data') || '[]'); }
         catch (e) { list = window.library || []; }
+    }
+    if (typeof window.countSongsForLimit === 'function') {
+        return window.countSongsForLimit(list);
     }
     const real = (list || []).filter(s =>
         s && s.id && !s.is_deleted && !String(s.id).includes('demo')
