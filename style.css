@@ -3345,12 +3345,15 @@ body.play-mode #mainZone {
 }
 
 /* Variant C Floating Right-Side Controls (44x44 neutral matte capsules) */
-.stage-round-ctl,
+.stage-round-ctl:not(#drawerHandle),
 #floatingScrollBtn.stage-round-ctl {
-    position: fixed !important;
     right: 16px !important;
     left: auto !important;
     top: auto !important;
+}
+.stage-round-ctl,
+#floatingScrollBtn.stage-round-ctl {
+    position: fixed !important;
     transform: none !important;
     width: 44px !important;
     height: 44px !important;

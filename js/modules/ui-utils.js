@@ -170,7 +170,7 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     utilsMod.isDraggingHandle = false;
 
     function clampHandleTopAbovePlay(targetTop, handleH, edge, winH) {
-        const minTop = 45;
+        const minTop = 48;
         let maxTop = Math.max(minTop, winH - handleH - 65);
         if (edge === 'right') {
             const playBtn = document.getElementById('stagePlayBtn');
