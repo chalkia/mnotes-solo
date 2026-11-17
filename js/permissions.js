@@ -183,12 +183,13 @@ function currentEdition() {
  */
 function getUserLimits() {
     // Αν δεν υπάρχει profile ή user, επιστρέφει Guest (ή Solo Free στη Solo)
-    if (typeof userProfile === 'undefined' || !userProfile) {
+    const prof = (typeof userProfile !== 'undefined' && userProfile) ? userProfile : (typeof window !== 'undefined' ? window.userProfile : null);
+    if (!prof) {
         return currentEdition() === 'solo' ? TIER_CONFIG['edition_solo_free'] : TIER_CONFIG['guest'];
     }
 
-    const unlocks = getActiveUnlocks(userProfile);
-    const activeTierRaw = getActiveTierRaw(userProfile);
+    const unlocks = getActiveUnlocks(prof);
+    const activeTierRaw = getActiveTierRaw(prof);
     const tierKey = mapTierKey(activeTierRaw);
     const baseConfig = TIER_CONFIG[tierKey] || TIER_CONFIG['solo_free'];
 

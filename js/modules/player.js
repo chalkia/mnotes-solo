@@ -45,6 +45,23 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 
         const fixedBox = document.getElementById('fixed-container');
         if (fixedBox) {
+            const searchVal = (document.getElementById('searchInp')?.value || '').trim();
+            const tagVal = document.getElementById('tagFilter')?.value || '';
+            const hasActiveLibrarySongs = Array.isArray(window.library) && window.library.some(s => s && !s.is_deleted);
+            if ((searchVal !== '' || tagVal !== '') && hasActiveLibrarySongs) {
+                const filterMsg = typeof t === 'function' ? t('msg_no_songs_filter', 'Κανένα τραγούδι με αυτό το φίλτρο') : 'Κανένα τραγούδι με αυτό το φίλτρο';
+                const clearLbl = typeof t === 'function' ? t('btn_clear_filter', 'Καθαρισμός φίλτρου') : 'Καθαρισμός φίλτρου';
+                fixedBox.innerHTML = `
+                    <div id="emptyFilterStage" style="text-align:center; padding:60px 20px; color:var(--text-muted); max-width:420px; margin:0 auto;">
+                        <i class="fas fa-filter" style="font-size:3rem; color:var(--accent); opacity:0.6; margin-bottom:18px; display:block;"></i>
+                        <h3 style="margin:0 0 18px 0; color:var(--text-main); font-weight:600;">${filterMsg}</h3>
+                        <button type="button" id="btnClearStageFilter" class="modal-btn accent" onclick="if(typeof clearLibraryFilters==='function') clearLibraryFilters()">
+                            <i class="fas fa-times"></i> ${clearLbl}
+                        </button>
+                    </div>
+                `;
+                return;
+            }
             const emptyMsg = typeof t === 'function' ? t('msg_library_empty_stage', 'Η βιβλιοθήκη σου είναι άδεια') : 'Η βιβλιοθήκη σου είναι άδεια';
             const btnNewLbl = typeof t === 'function' ? t('btn_new_song', 'Νέο τραγούδι') : 'Νέο τραγούδι';
             const btnImpLbl = typeof t === 'function' ? t('btn_import_short', 'Εισαγωγή') : 'Εισαγωγή';
@@ -283,6 +300,18 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         if (typeof updateOfflineState === 'function') updateOfflineState();
         if (typeof player.applyAutoFit === 'function') {
             player.applyAutoFit();
+        }
+        // Αν το τραγούδι χωράει ολόκληρο στην οθόνη (χωρίς κύλιση), ανοίγουμε την κεφαλίδα· αλλιώς συμπαγής μπάρα
+        if (typeof isMobileView === 'function' && isMobileView() && !document.body.classList.contains('play-mode')) {
+            document.body.classList.add('stage-tools-open');
+            const sc = document.getElementById('scroll-container');
+            const fc = document.getElementById('fixed-container');
+            const scFits = !sc || sc.scrollHeight <= sc.clientHeight + 2;
+            const fcFits = !fc || fc.style.display === 'none' || fc.scrollHeight <= fc.clientHeight + 2;
+            if (!scFits || !fcFits) {
+                document.body.classList.remove('stage-tools-open');
+            }
+            if (typeof window.updateCompactExpandArrow === 'function') window.updateCompactExpandArrow();
         }
     };
 

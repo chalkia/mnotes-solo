@@ -1033,7 +1033,12 @@ const TRANSLATIONS = {
         lbl_bridge: "Bridge",
         lbl_format: "Format",
         lbl_close_format: "Close",
-        lbl_lyrics_and_chords: "Lyrics & Chords"
+        lbl_lyrics_and_chords: "Lyrics & Chords",
+        solo_tier_free: "mNotes Solo · Free (up to 20 songs)",
+        solo_tier_paid: "mNotes Solo · Full edition",
+        solo_local_storage_notice: "Your songs and scores are stored locally on your device. Keep a backup.",
+        solo_btn_export_lib: "Export library",
+        solo_btn_import_lib: "Import"
     },
 
     el: {
@@ -2053,7 +2058,12 @@ const TRANSLATIONS = {
         lbl_bridge: "Γέφυρα",
         lbl_format: "Μορφοποίηση",
         lbl_close_format: "Κλείσιμο",
-        lbl_lyrics_and_chords: "Στίχοι & Συγχορδίες"
+        lbl_lyrics_and_chords: "Στίχοι & Συγχορδίες",
+        solo_tier_free: "mNotes Solo · Δωρεάν (έως 20 τραγούδια)",
+        solo_tier_paid: "mNotes Solo · Πλήρης έκδοση",
+        solo_local_storage_notice: "Τα τραγούδια και οι παρτιτούρες αποθηκεύονται τοπικά στη συσκευή σου. Κράτα αντίγραφο ασφαλείας.",
+        solo_btn_export_lib: "Εξαγωγή βιβλιοθήκης",
+        solo_btn_import_lib: "Εισαγωγή"
     }
 };
 

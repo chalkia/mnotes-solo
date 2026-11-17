@@ -213,6 +213,16 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
             if (txt && hiding) txt.innerText = `🔍 ${shown} από ${total}`;
         }
 
+        if (window.visiblePlaylist.length === 0 && (rawTxt.trim() !== '' || tag !== '') && library.some(s => s && !s.is_deleted)) {
+            const filterLi = document.createElement('li');
+            filterLi.className = 'empty-filter-notice';
+            filterLi.style.cssText = 'list-style:none; padding:18px 12px; text-align:center; color:var(--text-muted);';
+            const filterMsg = typeof t === 'function' ? t('msg_no_songs_filter', 'Κανένα τραγούδι με αυτό το φίλτρο') : 'Κανένα τραγούδι με αυτό το φίλτρο';
+            const clearLbl = typeof t === 'function' ? t('btn_clear_filter', 'Καθαρισμός φίλτρου') : 'Καθαρισμός φίλτρου';
+            filterLi.innerHTML = `<div style="margin-bottom:10px; font-size:0.9rem;">${filterMsg}</div><button type="button" class="modal-btn accent" style="padding:6px 12px; font-size:0.85rem;" onclick="if(typeof clearLibraryFilters==='function') clearLibraryFilters()"><i class="fas fa-times"></i> ${clearLbl}</button>`;
+            list.appendChild(filterLi);
+        }
+
         window.visiblePlaylist.forEach(s => {
             var li = document.createElement('li');
             
@@ -552,6 +562,14 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
                 activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }, 100); 
+    };
+
+    window.clearLibraryFilters = function() {
+        const sInp = document.getElementById('searchInp');
+        const tSel = document.getElementById('tagFilter');
+        if (sInp) sInp.value = '';
+        if (tSel) tSel.value = '';
+        if (typeof applyFilters === 'function') applyFilters();
     };
 
     libraryMod.saveData = function() {

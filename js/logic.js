@@ -3014,6 +3014,7 @@ async function deleteCurrentSong() {
 
     try {
         console.log(`🗑️ [DELETE] Εκκίνηση διαγραφής για: ${s.title}`);
+        const prevVisibleIdx = (window.visiblePlaylist || []).findIndex(x => x.id === s.id);
 
         // ─── Graceful Migration: μεταφορά προσωπικών clones στην προσωπική βιβλιοθήκη ───
         if (isBandMaster && canUserPerform('USE_SUPABASE') && navigator.onLine) {
@@ -3175,9 +3176,12 @@ async function deleteCurrentSong() {
             isBandMaster ? "warning" : "info"
         );
 
-        // Πάντα επιστροφή στον Viewer μετά τη διαγραφή
-        if (library.length > 0) {
-            loadSong(library[0].id);
+        // Πάντα επιστροφή στον Viewer μετά τη διαγραφή (επόμενο/προηγούμενο στη visiblePlaylist)
+        if (window.visiblePlaylist && window.visiblePlaylist.length > 0) {
+            const nextIdx = prevVisibleIdx >= 0 ? Math.min(prevVisibleIdx, window.visiblePlaylist.length - 1) : 0;
+            loadSong(window.visiblePlaylist[nextIdx].id);
+        } else if (typeof window.renderEmptyStage === 'function') {
+            window.renderEmptyStage();
         }
         if (typeof toViewer === 'function') toViewer(false);
 
@@ -3295,9 +3299,9 @@ async function syncEditorFromBand() {
         document.getElementById('inpArtist').value = masterSong.artist || "";
         document.getElementById('inpKey').value = masterSong.key || "";
         document.getElementById('inpBody').value = masterSong.body || "";
-        if (typeof window.updateHighlights === 'function') window.updateHighlights();
         document.getElementById('inpIntro').value = masterSong.intro || "";
         document.getElementById('inpInter').value = masterSong.interlude || "";
+        if (typeof window.updateHighlights === 'function') window.updateHighlights();
 
         showToast(t('msg_band_data_loaded', "Τα δεδομένα φορτώθηκαν! Πατήστε Αποθήκευση για οριστικοποίηση. ✅"));
 

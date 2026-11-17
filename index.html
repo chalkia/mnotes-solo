@@ -7,7 +7,7 @@
     <title data-edition-title="mNotes Solo">mNotes Solo</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192solo.png">
-    <meta name="theme-color" content="#E8890C">
+    <meta name="theme-color" content="#121212">
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -171,7 +171,7 @@
                         <span id="compactBarKey" class="bar-meta-pill key-pill" style="display:none;"></span>
                         <span id="compactBarBpm" class="bar-meta-pill" style="display:none;"></span>
                     </div>
-                    <button type="button" class="bar-expand-btn" onclick="toggleCompactStageBar(event)" title="Εργαλεία"><i class="fas fa-chevron-down"></i></button>
+                    <button type="button" class="bar-expand-btn" onclick="toggleCompactStageBar(event)" title="Εργαλεία"><i id="compactExpandIcon" class="fas fa-chevron-down"></i></button>
                 </header>
                 <div class="player-header-container">
                     <h2 id="mainAppTitle" style="margin:0; font-size:1rem; opacity:0.8;"></h2>
@@ -191,17 +191,13 @@
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
                 <div id="scroll-container" class="scroll-lyrics"></div>
-                <button id="floatingScrollBtn" class="floating-scroll-btn stage-round-ctl" onclick="toggleAutoScroll(event)" title="Αυτόματη Κύλιση">
-                    <i class="fas fa-arrows-alt-v" id="scrollBtnIcon"></i>
+                <button id="floatingScrollBtn" class="floating-scroll-btn stage-round-ctl" onclick="toggleAutoScroll(event)" title="Κύλιση">
+                    <i class="fas fa-angles-down" id="scrollBtnIcon"></i>
+                    <span id="scrollBtnLabel" class="scroll-btn-label">Κύλιση</span>
                 </button>
                 <button id="stagePlayBtn" class="stage-round-ctl" onclick="handleStagePlayBtn(event)" title="Play / Stop">
                     <i class="fas fa-play" id="stagePlayIcon"></i>
                 </button>
-                <div id="scrollSpeedPill" class="scroll-speed-pill" style="display:none;">
-                    <button type="button" onclick="adjustAutoScrollSpeed(-0.1)" title="Πιο αργά">-</button>
-                    <span id="scrollSpeedValue">1.0×</span>
-                    <button type="button" onclick="adjustAutoScrollSpeed(0.1)" title="Πιο γρήγορα">+</button>
-                </div>
 
                 <!-- Stage Visual Layer (Over the Stage content) -->
                 <div id="stageVisualLayer" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:1500; align-items:center; justify-content:center; flex-direction:column; padding:15px; border-top:1px solid var(--border-color); box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);">
@@ -1030,11 +1026,21 @@
                         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;"><span data-i18n="idx_auto_83">Επιδιορθώνει προβλήματα απώλειας τραγουδιών επαναφέροντας τα πάντα από το Cloud.</span></div>
                     </div>
                     <div id="offlineStatusRow" style="text-align:center; margin-top:10px; font-size:0.8rem; font-weight:700;">
-                        <span id="offlineStatusText">—</span>
+                        <span data-pro-only><span id="offlineStatusText">—</span></span>
+                        <div id="soloLocalNotice" data-solo-only style="font-weight:500; color:var(--text-muted); line-height:1.45;">
+                            <div data-i18n="solo_local_storage_notice" style="margin-bottom:8px;">Τα τραγούδια και οι παρτιτούρες αποθηκεύονται τοπικά στη συσκευή σου. Κράτα αντίγραφο ασφαλείας.</div>
+                            <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                                <button type="button" id="btnSoloExportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="if(typeof exportJSON==='function') exportJSON()" data-i18n="solo_btn_export_lib">Εξαγωγή βιβλιοθήκης</button>
+                                <button type="button" id="btnSoloImportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="document.getElementById('hiddenFileInput')?.click()" data-i18n="solo_btn_import_lib">Εισαγωγή</button>
+                            </div>
+                        </div>
                     </div>
                     <button id="btnInstallApp" type="button" onclick="promptInstall()" class="modal-btn accent" style="display:none; width:100%; margin-top:8px;">
                         <i class="fas fa-download"></i> Εγκατάσταση στη συσκευή
                     </button>
+                    <div id="soloEditionLine" data-solo-only data-i18n="solo_tier_free" style="text-align:center; margin-top:8px; font-size:0.78rem; color:var(--text-muted);">
+                        mNotes Solo · Δωρεάν (έως 20 τραγούδια)
+                    </div>
                     <div id="appVersionDisplay" style="text-align:center; margin-top:10px; font-size:0.7rem; color:var(--text-muted); font-family:monospace; letter-spacing:1px;">
                         <span data-i18n="idx_auto_82">Ανάγνωση έκδοσης...</span>
                     </div>
@@ -1214,6 +1220,9 @@
                 <label data-i18n="lbl_controls">CONTROLS</label>
                 <button id="viewModeToggle" class="drawer-btn" onclick="toggleLyricsMode()">
                     <i class="fas fa-scroll"></i> <span data-i18n="btn_lyrics_mode">Lyrics Mode</span>
+                </button>
+                <button id="btnForgetSongTiming" class="drawer-btn" onclick="forgetCurrentSongTiming()">
+                    <i class="fas fa-eraser"></i> Ξέχνα τον χρόνο
                 </button>
 
                 <div class="drawer-row">
@@ -1759,55 +1768,55 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.6.26T.171126"></script>
-        <script src="js/config.js?v=2.6.26T.171126"></script>
+        <script src="js/edition.js?v=2.6.27T.171126"></script>
+        <script src="js/config.js?v=2.6.27T.171126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.6.26T.171126"></script>
-        <script src="js/translations.js?v=2.6.26T.171126"></script>
-        <script src="js/storage.js?v=2.6.26T.171126"></script>
+        <script src="js/data.js?v=2.6.27T.171126"></script>
+        <script src="js/translations.js?v=2.6.27T.171126"></script>
+        <script src="js/storage.js?v=2.6.27T.171126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.6.26T.171126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.6.26T.171126"></script>
-        <script src="js/custom-kits.js?v=2.6.26T.171126"></script>
-        <script src="js/drum-machine.js?v=2.6.26T.171126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.6.26T.171126"></script>
+        <script src="js/sample-kit-data.js?v=2.6.27T.171126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.6.27T.171126"></script>
+        <script src="js/custom-kits.js?v=2.6.27T.171126"></script>
+        <script src="js/drum-machine.js?v=2.6.27T.171126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.6.27T.171126"></script>
 
-        <script src="js/modules/utils.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/assets.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/played-set.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/player.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/editor.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/library.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/settings.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/ui-utils.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/rhythm.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/theory.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/visuals.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/band.js?v=2.6.26T.171126"></script>
-        <script src="js/modules/export.js?v=2.6.26T.171126"></script>
+        <script src="js/modules/utils.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/assets.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/played-set.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/player.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/editor.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/library.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/settings.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/ui-utils.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/rhythm.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/theory.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/visuals.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/band.js?v=2.6.27T.171126"></script>
+        <script src="js/modules/export.js?v=2.6.27T.171126"></script>
 
-        <script src="js/auth.js?v=2.6.26T.171126"></script>
-        <script src="js/basicmetronome.js?v=2.6.26T.171126"></script>
-        <script src="js/permissions.js?v=2.6.26T.171126"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.6.26T.171126-70799e1"></script>
-        <script src="js/solo/local-assets.js?v=2.6.26T.171126-70799e1"></script>
-        <script src="js/logic.js?v=2.6.26T.171126"></script>
-        <script src="js/floating-tools.js?v=2.6.26T.171126"></script>
-        <script src="js/tuner.js?v=2.6.26T.171126"></script>
-        <script src="js/ui.js?v=2.6.26T.171126"></script>
-        <script src="js/release-notes.js?v=2.6.26T.171126"></script>
-        <script src="js/chord-player.js?v=2.6.26T.171126"></script>
-        <script src="js/chords.js?v=2.6.26T.171126"></script>
+        <script src="js/auth.js?v=2.6.27T.171126"></script>
+        <script src="js/basicmetronome.js?v=2.6.27T.171126"></script>
+        <script src="js/permissions.js?v=2.6.27T.171126"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.6.27T.171126-b526370"></script>
+        <script src="js/solo/local-assets.js?v=2.6.27T.171126-b526370"></script>
+        <script src="js/logic.js?v=2.6.27T.171126"></script>
+        <script src="js/floating-tools.js?v=2.6.27T.171126"></script>
+        <script src="js/tuner.js?v=2.6.27T.171126"></script>
+        <script src="js/ui.js?v=2.6.27T.171126"></script>
+        <script src="js/release-notes.js?v=2.6.27T.171126"></script>
+        <script src="js/chord-player.js?v=2.6.27T.171126"></script>
+        <script src="js/chords.js?v=2.6.27T.171126"></script>
 
-        <script src="js/app.js?v=2.6.26T.171126"></script>
+        <script src="js/app.js?v=2.6.27T.171126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.6.26T.171126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.6.27T.171126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

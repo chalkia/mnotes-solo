@@ -169,14 +169,36 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     utilsMod.justDraggedHandle = false;
     utilsMod.isDraggingHandle = false;
 
+    function clampHandleTopAbovePlay(targetTop, handleH, edge, winH) {
+        const minTop = 45;
+        let maxTop = Math.max(minTop, winH - handleH - 65);
+        if (edge === 'right') {
+            const playBtn = document.getElementById('stagePlayBtn');
+            const playR = playBtn ? playBtn.getBoundingClientRect() : null;
+            if (playR && playR.height > 0 && playR.top > minTop) {
+                maxTop = Math.min(maxTop, Math.max(minTop, Math.floor(playR.top - handleH - 8)));
+            } else {
+                maxTop = Math.min(maxTop, Math.max(minTop, winH - handleH - 72));
+            }
+        }
+        return Math.min(maxTop, Math.max(minTop, targetTop));
+    }
+
     utilsMod.applyDrawerHandlePos = function(pos) {
         const handle = document.getElementById('drawerHandle');
         if (!handle) return;
+        const winH = window.innerHeight || 600;
+        const handleH = handle.offsetHeight || 44;
         if (!pos || typeof pos !== 'object') {
-            pos = { edge: 'right', y: 0.5 };
+            const defaultTop = clampHandleTopAbovePlay(winH - 130 - handleH, handleH, 'right', winH);
+            document.body.classList.remove('drawer-left');
+            handle.style.top = defaultTop + 'px';
+            handle.style.bottom = 'auto';
+            handle.style.transform = 'none';
+            return;
         }
         const edge = pos.edge === 'left' ? 'left' : 'right';
-        const yRatio = (typeof pos.y === 'number' && !isNaN(pos.y)) ? pos.y : 0.5;
+        const yRatio = (typeof pos.y === 'number' && !isNaN(pos.y)) ? pos.y : 0.72;
 
         if (edge === 'left') {
             document.body.classList.add('drawer-left');
@@ -184,15 +206,11 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             document.body.classList.remove('drawer-left');
         }
 
-        const winH = window.innerHeight || 600;
-        const handleH = handle.offsetHeight || 60;
-        const minTop = 45;
-        const maxTop = Math.max(minTop, winH - handleH - 65);
-        let targetTop = Math.round(yRatio * winH - handleH / 2);
-        if (targetTop < minTop) targetTop = minTop;
-        if (targetTop > maxTop) targetTop = maxTop;
+        const rawTop = Math.round(yRatio * winH - handleH / 2);
+        const targetTop = clampHandleTopAbovePlay(rawTop, handleH, edge, winH);
 
         handle.style.top = targetTop + 'px';
+        handle.style.bottom = 'auto';
         handle.style.transform = 'none';
     };
 
@@ -268,23 +286,18 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
 
             const winW = window.innerWidth || 360;
             const winH = window.innerHeight || 600;
-            const handleH = handle.offsetHeight || 60;
-            const minTop = 45;
-            const maxTop = Math.max(minTop, winH - handleH - 65);
-
-            let newTop = startTop + dy;
-            if (newTop < minTop) newTop = minTop;
-            if (newTop > maxTop) newTop = maxTop;
+            const handleH = handle.offsetHeight || 44;
+            currentEdge = (e.clientX < winW / 2) ? 'left' : 'right';
+            const newTop = clampHandleTopAbovePlay(startTop + dy, handleH, currentEdge, winH);
 
             handle.style.top = newTop + 'px';
+            handle.style.bottom = 'auto';
             handle.style.transform = 'none';
             currentYRatio = (newTop + handleH / 2) / winH;
 
-            if (e.clientX < winW / 2) {
-                currentEdge = 'left';
+            if (currentEdge === 'left') {
                 document.body.classList.add('drawer-left');
             } else {
-                currentEdge = 'right';
                 document.body.classList.remove('drawer-left');
             }
         });
@@ -403,7 +416,63 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         badge.textContent = `⏳ ${Math.ceil(secRemaining)}s`;
     }
 
+    const TIMING_STORAGE_KEY = 'mnotes_song_timing';
+
+    function loadAllSongTimings() {
+        try {
+            return JSON.parse(localStorage.getItem(TIMING_STORAGE_KEY) || '{}') || {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function saveAllSongTimings(map) {
+        try {
+            safeSetLocal(TIMING_STORAGE_KEY, JSON.stringify(map || {}));
+        } catch (_) {}
+    }
+
+    utilsMod.getSongTiming = function(songId) {
+        if (!songId) return null;
+        const all = loadAllSongTimings();
+        return all[songId] || null;
+    };
+
+    utilsMod.saveSongTiming = function(songId, patch) {
+        if (!songId) return null;
+        const all = loadAllSongTimings();
+        const prev = all[songId] || {};
+        const next = Object.assign({}, prev, patch);
+        all[songId] = next;
+        saveAllSongTimings(all);
+        return next;
+    };
+
+    utilsMod.forgetCurrentSongTiming = function() {
+        const song = getCurrentSongObj();
+        if (!song) return;
+        const all = loadAllSongTimings();
+        delete all[song.id];
+        saveAllSongTimings(all);
+        delete song.scroll_speed;
+        if (typeof window.persistContextLibrary === 'function' && typeof window.library !== 'undefined') {
+            window.persistContextLibrary(window.library);
+        }
+        if (typeof showToast === 'function') showToast('Ο μαθημένος χρόνος διαγράφηκε', 'info');
+    };
+
+    function countSyllables(text) {
+        const matches = String(text || '').match(/[αεηιουωάέήίόύώΐΰaeiouy]+/gi);
+        return matches ? matches.length : 0;
+    }
+
     utilsMod.computeSmartStartDelaySec = function(song, fixedEl, scrollEl) {
+        // (α) Μαθημένος χρόνος του τραγουδιού (αν υπάρχει)
+        const timing = song ? utilsMod.getSongTiming(song.id) : null;
+        if (timing && Number(timing.learnedStartSec) > 0) {
+            return Math.round(Number(timing.learnedStartSec));
+        }
+
         const hasIntro = !!(song && song.intro && String(song.intro).trim());
         const baseDelay = (typeof userSettings !== 'undefined' && typeof userSettings.scrollDelay !== 'undefined')
             ? parseInt(userSettings.scrollDelay, 10)
@@ -417,18 +486,41 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             return introSec;
         }
 
-        let durationSec = 0;
-        if (song && Number(song.duration) > 0) {
-            durationSec = Number(song.duration);
-        } else if (song && Number(song.bpm) > 0 && (Number(song.measures) > 0 || Number(song.bars) > 0)) {
+        // (β) BPM και μέτρα (αν υπάρχει συνδεδεμένος ρυθμός)
+        if (song && Number(song.bpm) > 0 && (Number(song.measures) > 0 || Number(song.bars) > 0)) {
             const bars = Number(song.measures || song.bars);
-            durationSec = (bars * 4 * 60) / Number(song.bpm);
-        } else {
-            durationSec = totalLines * 3.5;
+            const durationSec = (bars * 4 * 60) / Number(song.bpm);
+            return Math.round(introSec + (fixedLines / totalLines) * durationSec);
         }
 
-        return Math.round(introSec + (fixedLines / totalLines) * durationSec);
+        // (γ) Συλλαβές του σταθερού κομματιού × ρυθμιζόμενη ταχύτητα τραγουδίσματος (~2.5 συλλ./sec)
+        const fixedText = fixedEl ? Array.from(fixedEl.querySelectorAll('.lyric')).map(n => n.textContent).join(' ') : '';
+        const fixedSyllables = countSyllables(fixedText);
+        const singingRate = 2.5;
+        const fixedSec = fixedSyllables > 0 ? (fixedSyllables / singingRate) : (fixedLines * 3.5);
+        return Math.round(introSec + fixedSec);
     };
+
+    function computeBasePxPerSec(song, fixedEl, scrollEl) {
+        const baseSpeed = (typeof userSettings !== 'undefined' && userSettings.scrollSpeed) ? parseInt(userSettings.scrollSpeed, 10) : 50;
+        const timing = song ? utilsMod.getSongTiming(song.id) : null;
+        const learnedStart = timing && Number(timing.learnedStartSec) > 0 ? Number(timing.learnedStartSec) : 0;
+
+        // Αν υπάρχει μαθημένος χρόνος σταθερού, υπολογίζουμε ρυθμό τραγουδίσματος & ταχύτητα από συλλαβές
+        if (learnedStart > 0 && fixedEl && scrollEl && scrollEl.scrollHeight > scrollEl.clientHeight + 2) {
+            const fixedText = Array.from(fixedEl.querySelectorAll('.lyric')).map(n => n.textContent).join(' ');
+            const scrollText = Array.from(scrollEl.querySelectorAll('.lyric')).map(n => n.textContent).join(' ');
+            const fixedSyl = countSyllables(fixedText);
+            const scrollSyl = countSyllables(scrollText);
+            if (fixedSyl > 0 && scrollSyl > 0) {
+                const singingRate = fixedSyl / learnedStart;
+                const estScrollSec = Math.max(5, scrollSyl / singingRate);
+                const scrollablePx = Math.max(10, scrollEl.scrollHeight - scrollEl.clientHeight);
+                return Math.min(120, Math.max(4, scrollablePx / estScrollSec));
+            }
+        }
+        return Math.max(4, baseSpeed * 0.45);
+    }
 
     function getActiveScrollTargets() {
         const fixedEl = document.getElementById('fixed-container');
@@ -445,33 +537,31 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             targets.push(scrollEl);
         } else if (mainZone && mainZone.scrollHeight > mainZone.clientHeight + 2) {
             targets.push(mainZone);
-        } else if (scrollEl) {
-            targets.push(scrollEl);
         }
         return targets;
     }
 
-    function updateSpeedPillUI(show) {
-        const pill = document.getElementById('scrollSpeedPill');
-        const valEl = document.getElementById('scrollSpeedValue');
-        const song = getCurrentSongObj();
-        const mult = (song && Number(song.scroll_speed) > 0) ? Number(song.scroll_speed) : 1.0;
-        if (valEl) valEl.textContent = `${mult.toFixed(1)}×`;
-        if (pill) pill.style.display = show ? 'inline-flex' : 'none';
-    }
-
-    utilsMod.adjustAutoScrollSpeed = function(delta) {
-        const song = getCurrentSongObj();
-        const cur = (song && Number(song.scroll_speed) > 0) ? Number(song.scroll_speed) : 1.0;
-        const next = Math.min(2.5, Math.max(0.5, Math.round((cur + delta) * 10) / 10));
-        if (song) {
-            song.scroll_speed = next;
-            if (typeof window.persistContextLibrary === 'function' && typeof window.library !== 'undefined') {
-                window.persistContextLibrary(window.library);
+    function updateScrollBtnUI(state) {
+        const btn = document.getElementById('floatingScrollBtn');
+        const btnIcon = document.getElementById('scrollBtnIcon');
+        const btnLabel = document.getElementById('scrollBtnLabel');
+        if (state === 'scrolling') {
+            if (btn) btn.style.opacity = '0.8';
+            if (btnIcon) btnIcon.className = 'fas fa-pause';
+            if (btnLabel) btnLabel.textContent = 'Παύση';
+        } else if (state === 'waiting') {
+            if (btn) btn.style.opacity = '0.9';
+            if (btnIcon) btnIcon.className = 'fas fa-hourglass-half';
+            if (btnLabel) btnLabel.textContent = 'Αναμονή';
+        } else {
+            if (btn) {
+                btn.classList.remove('hidden');
+                btn.style.opacity = '1';
             }
+            if (btnIcon) btnIcon.className = 'fas fa-angles-down';
+            if (btnLabel) btnLabel.textContent = 'Κύλιση';
         }
-        updateSpeedPillUI(true);
-    };
+    }
 
     utilsMod.stopAutoScroll = function() {
         if (utilsMod.scrollTimer) {
@@ -490,25 +580,86 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         utilsMod.scrollAccumulator = 0;
         utilsMod.scrollLastFrame = 0;
         updateCountdownBadge(null);
-        updateSpeedPillUI(false);
-
-        const btn = document.getElementById('floatingScrollBtn');
-        const btnIcon = document.getElementById('scrollBtnIcon');
-        if (btn) {
-            btn.classList.remove('hidden');
-            btn.style.opacity = '1';
-        }
-        if (btnIcon) btnIcon.className = 'fas fa-arrows-alt-v';
+        updateScrollBtnUI('idle');
     };
 
-    function beginScrollLoop(targets) {
-        const btn = document.getElementById('floatingScrollBtn');
-        const btnIcon = document.getElementById('scrollBtnIcon');
-        if (btn) {
-            if (btnIcon) btnIcon.className = 'fas fa-pause';
-            btn.style.opacity = '0.6';
+    function learnStartDelay(measuredSec) {
+        const song = getCurrentSongObj();
+        if (!song || measuredSec <= 0) return;
+        const prev = utilsMod.getSongTiming(song.id);
+        const oldVal = (prev && Number(prev.learnedStartSec) > 0) ? Number(prev.learnedStartSec) : null;
+        const normalized = oldVal ? ((oldVal + measuredSec) / 2) : measuredSec;
+        utilsMod.saveSongTiming(song.id, { learnedStartSec: Math.round(normalized * 10) / 10 });
+    }
+
+    function learnScrollSpeedFactor(factor) {
+        const song = getCurrentSongObj();
+        if (!song) return;
+        const prev = utilsMod.getSongTiming(song.id);
+        const cur = (song && Number(song.scroll_speed) > 0)
+            ? Number(song.scroll_speed)
+            : ((prev && Number(prev.scrollSpeed) > 0) ? Number(prev.scrollSpeed) : 1.0);
+        const target = Math.min(2.0, Math.max(0.5, cur * factor));
+        const normalized = Math.min(2.0, Math.max(0.5, Math.round(((cur + target) / 2) * 100) / 100));
+        song.scroll_speed = normalized;
+        utilsMod.saveSongTiming(song.id, { scrollSpeed: normalized });
+        if (typeof window.persistContextLibrary === 'function' && typeof window.library !== 'undefined') {
+            window.persistContextLibrary(window.library);
         }
-        updateSpeedPillUI(true);
+    }
+
+    function bindLearningTouchHandlers(scrollEl) {
+        if (!scrollEl || scrollEl._learningBound) return;
+        scrollEl._learningBound = true;
+        let touchStartTop = 0;
+        let touchStartY = 0;
+        let movedEnough = false;
+
+        scrollEl.addEventListener('touchstart', function(e) {
+            if (!e.touches || e.touches.length !== 1) return;
+            touchStartTop = scrollEl.scrollTop;
+            touchStartY = e.touches[0].clientY;
+            movedEnough = false;
+        }, { passive: true });
+
+        scrollEl.addEventListener('touchmove', function(e) {
+            if (!e.touches || e.touches.length !== 1) return;
+            if (Math.abs(e.touches[0].clientY - touchStartY) > 12) {
+                movedEnough = true;
+                // Σε Play: σύρσιμο πριν την αυτόματη έναρξη = «άργησε» -> «ξεκίνα τώρα»
+                if ((document.body.classList.contains('play-mode') || window.isPlayModeActive) && utilsMod.scrollStartTimeout) {
+                    utilsMod.startScrollNow();
+                }
+            }
+        }, { passive: true });
+
+        scrollEl.addEventListener('touchend', function(e) {
+            if (!movedEnough) return;
+            const deltaTop = scrollEl.scrollTop - touchStartTop;
+            const deltaY = (e.changedTouches && e.changedTouches[0]) ? (e.changedTouches[0].clientY - touchStartY) : 0;
+            if (!utilsMod.scrollTimer) return;
+
+            const sinceAutoStart = utilsMod.autoScrollLoopStartTime ? (performance.now() - utilsMod.autoScrollLoopStartTime) : 99999;
+            // Σύρσιμο ΠΡΟΣ ΤΑ ΠΑΝΩ (δάχτυλο κάτω: deltaY > 20 ή scrollTop μειώθηκε) μέσα στα πρώτα 5s = «βιάστηκε»
+            if (sinceAutoStart < 5000 && (deltaTop < -10 || deltaY > 20)) {
+                const song = getCurrentSongObj();
+                const prev = song ? utilsMod.getSongTiming(song.id) : null;
+                const base = (prev && Number(prev.learnedStartSec) > 0) ? Number(prev.learnedStartSec) : (utilsMod.lastComputedDelaySec || 5);
+                learnStartDelay(base + 3);
+                return;
+            }
+            // Κατά την κύλιση: σύρσιμο ΜΠΡΟΣΤΑ -> +5%, ΠΙΣΩ -> -5%
+            if (deltaTop > 15 || deltaY < -20) {
+                learnScrollSpeedFactor(1.05);
+            } else if (deltaTop < -15 || deltaY > 20) {
+                learnScrollSpeedFactor(0.95);
+            }
+        }, { passive: true });
+    }
+
+    function beginScrollLoop(targets) {
+        updateScrollBtnUI('scrolling');
+        utilsMod.autoScrollLoopStartTime = performance.now();
 
         let targetIdx = 0;
         utilsMod.scrollPaused = false;
@@ -522,10 +673,15 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
 
             if (!utilsMod.scrollPaused && targets[targetIdx]) {
                 const container = targets[targetIdx];
-                const baseSpeed = (typeof userSettings !== 'undefined' && userSettings.scrollSpeed) ? parseInt(userSettings.scrollSpeed, 10) : 50;
                 const song = getCurrentSongObj();
-                const mult = (song && Number(song.scroll_speed) > 0) ? Number(song.scroll_speed) : 1.0;
-                const pxPerSec = Math.max(4, (baseSpeed * 0.45) * mult);
+                const fixedEl = document.getElementById('fixed-container');
+                const scrollEl = document.getElementById('scroll-container');
+                const basePx = computeBasePxPerSec(song, fixedEl, scrollEl);
+                const timing = song ? utilsMod.getSongTiming(song.id) : null;
+                const mult = (song && Number(song.scroll_speed) > 0)
+                    ? Number(song.scroll_speed)
+                    : ((timing && Number(timing.scrollSpeed) > 0) ? Number(timing.scrollSpeed) : 1.0);
+                const pxPerSec = Math.max(4, basePx * mult);
 
                 utilsMod.scrollAccumulator += pxPerSec * dt;
                 if (utilsMod.scrollAccumulator >= 1) {
@@ -559,6 +715,13 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             utilsMod.scrollCountdownTimer = null;
         }
         updateCountdownBadge(null);
+
+        // Μάθηση έναρξης από t = 0 (στιγμή πατήματος Play / toggleAutoScroll)
+        if (utilsMod.playStartTime) {
+            const measuredSec = Math.max(0.5, (performance.now() - utilsMod.playStartTime) / 1000);
+            learnStartDelay(measuredSec);
+        }
+
         const targets = getActiveScrollTargets();
         if (targets.length > 0) beginScrollLoop(targets);
         return true;
@@ -567,8 +730,7 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     utilsMod.toggleAutoScrollPause = function() {
         if (!utilsMod.scrollTimer) return;
         utilsMod.scrollPaused = !utilsMod.scrollPaused;
-        const btnIcon = document.getElementById('scrollBtnIcon');
-        if (btnIcon) btnIcon.className = utilsMod.scrollPaused ? 'fas fa-play' : 'fas fa-pause';
+        updateScrollBtnUI(utilsMod.scrollPaused ? 'idle' : 'scrolling');
     };
 
     utilsMod.toggleAutoScroll = function(e) {
@@ -586,20 +748,21 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         const targets = getActiveScrollTargets();
         if (targets.length === 0) return;
 
+        if (!utilsMod.playStartTime) utilsMod.playStartTime = performance.now();
+
         const song = getCurrentSongObj();
         const fixedEl = document.getElementById('fixed-container');
         const scrollEl = document.getElementById('scroll-container');
+        bindLearningTouchHandlers(scrollEl);
         const delaySec = utilsMod.computeSmartStartDelaySec(song, fixedEl, scrollEl);
+        utilsMod.lastComputedDelaySec = delaySec;
 
         if (delaySec <= 0) {
             beginScrollLoop(targets);
             return;
         }
 
-        const btn = document.getElementById('floatingScrollBtn');
-        const btnIcon = document.getElementById('scrollBtnIcon');
-        if (btn && btnIcon) btnIcon.className = 'fas fa-hourglass-half';
-        updateSpeedPillUI(true);
+        updateScrollBtnUI('waiting');
 
         let remaining = delaySec;
         updateCountdownBadge(remaining);
@@ -798,6 +961,7 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         utilsMod.setupGestures();
         utilsMod.setupStageTapZones();
         utilsMod.setupDraggableHandle();
+        window.addEventListener('resize', function() { utilsMod.applyScrollBtnVisibility(); });
 
         const initialHandlePos = (typeof userSettings !== 'undefined' && userSettings) ? userSettings.drawerHandlePos : null;
         utilsMod.applyDrawerHandlePos(initialHandlePos);
@@ -990,9 +1154,17 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     window.toggleRightDrawer = utilsMod.toggleRightDrawer;
     window.applyDrawerHandlePos = utilsMod.applyDrawerHandlePos;
     window.switchDrawerTab = utilsMod.switchDrawerTab;
+    utilsMod.updateCompactExpandArrow = function() {
+        const icon = document.getElementById('compactExpandIcon');
+        if (!icon) return;
+        const isOpen = document.body.classList.contains('stage-tools-open');
+        icon.className = isOpen ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+    };
+
     utilsMod.toggleCompactStageBar = function(e) {
         if (e) e.stopPropagation();
         document.body.classList.toggle('stage-tools-open');
+        utilsMod.updateCompactExpandArrow();
     };
 
     let playFadeTimer = null;
@@ -1019,6 +1191,7 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         document.body.classList.add('play-mode');
         document.body.classList.remove('play-dimmed', 'play-armed', 'stage-tools-open');
         window.isPlayModeActive = true;
+        utilsMod.playStartTime = performance.now();
 
         const drawer = document.getElementById('rightDrawer');
         if (drawer) drawer.classList.remove('open');
@@ -1028,8 +1201,10 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
 
         if (typeof utilsMod.requestWakeLock === 'function') utilsMod.requestWakeLock();
 
+        // Έλεγχος overflow ΜΕΤΑ τη μεγιστοποίηση: κύλιση μόνο αν χρειάζεται
+        const targets = getActiveScrollTargets();
         const smartScroll = (typeof userSettings === 'undefined' || userSettings.smartScrollOnPlay !== false);
-        if (smartScroll && !utilsMod.scrollTimer && !utilsMod.scrollStartTimeout) {
+        if (smartScroll && targets.length > 0 && !utilsMod.scrollTimer && !utilsMod.scrollStartTimeout) {
             utilsMod.toggleAutoScroll();
         }
 
@@ -1073,9 +1248,10 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     window.toggleAutoScroll = utilsMod.toggleAutoScroll;
     window.stopAutoScroll = utilsMod.stopAutoScroll;
     window.startScrollNow = utilsMod.startScrollNow;
-    window.adjustAutoScrollSpeed = utilsMod.adjustAutoScrollSpeed;
     window.computeSmartStartDelaySec = utilsMod.computeSmartStartDelaySec;
     window.toggleCompactStageBar = utilsMod.toggleCompactStageBar;
+    window.updateCompactExpandArrow = utilsMod.updateCompactExpandArrow;
+    window.forgetCurrentSongTiming = utilsMod.forgetCurrentSongTiming;
     window.enterPlayMode = utilsMod.enterPlayMode;
     window.exitPlayMode = utilsMod.exitPlayMode;
     window.handleStagePlayBtn = utilsMod.handleStagePlayBtn;

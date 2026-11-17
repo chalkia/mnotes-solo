@@ -389,6 +389,34 @@
         } catch (_) {}
     };
 
+    global.syncSoloEditionUI = function () {
+        if (typeof document === 'undefined' || !document.body) return;
+        const maxSongs = getMaxSongsLimit();
+        const isPaid = maxSongs >= 999;
+        document.body.setAttribute('data-solo-tier', isPaid ? 'paid' : 'free');
+        const lineEl = document.getElementById('soloEditionLine');
+        if (lineEl) {
+            const key = isPaid ? 'solo_tier_paid' : 'solo_tier_free';
+            const fallback = isPaid ? 'mNotes Solo · Πλήρης έκδοση' : 'mNotes Solo · Δωρεάν (έως 20 τραγούδια)';
+            lineEl.setAttribute('data-i18n', key);
+            lineEl.textContent = typeof global.t === 'function' ? global.t(key, fallback) : fallback;
+        }
+        if (typeof global.t === 'function') {
+            document.querySelectorAll('[data-solo-only] [data-i18n]').forEach(el => {
+                const k = el.getAttribute('data-i18n');
+                if (k) el.textContent = global.t(k, el.textContent);
+            });
+        }
+    };
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', global.syncSoloEditionUI);
+        } else {
+            global.syncSoloEditionUI();
+        }
+    }
+
     if (typeof localStorage !== 'undefined') {
         global.backfillSoloSongsMetadata();
     }
