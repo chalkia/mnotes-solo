@@ -3284,15 +3284,28 @@ body[data-edition="solo"][data-solo-tier="paid"] .edition-badge::after {
 body.play-mode .compact-stage-bar,
 body.play-mode #view-player .player-header-container,
 body.play-mode #editionStrip,
-body.play-mode #sidebar,
-body.play-mode #dragMeLeft,
 body.play-mode #rightDrawer,
 body.play-mode #floatingScrollBtn,
 body.play-mode #drawerHandle,
 body.play-mode .desktop-controls-area {
     display: none !important;
 }
-body.play-mode #mainZone {
+@media (max-width: 1024px) {
+    body.play-mode #sidebar,
+    body.play-mode #dragMeLeft {
+        display: none !important;
+    }
+    body.play-mode #mainZone {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+}
+body.mobile-layout-active.play-mode #sidebar,
+body.mobile-layout-active.play-mode #dragMeLeft {
+    display: none !important;
+}
+body.mobile-layout-active.play-mode #mainZone {
     width: 100% !important;
     max-width: 100% !important;
     flex: 1 1 100% !important;
