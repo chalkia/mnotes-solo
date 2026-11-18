@@ -184,7 +184,7 @@
     setBpm(bpm) {
       const n = Number(bpm);
       if (!Number.isFinite(n) || n <= 0) return;
-      this.bpm = clamp(n, 40, 240);
+      this.bpm = clamp(n, 40, 300);
       this.emit('bpmChanged', { bpm: this.bpm });
     }
 
