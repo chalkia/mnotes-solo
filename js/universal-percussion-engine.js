@@ -157,7 +157,8 @@
         const beatCount = Number(pattern.grid.beatCount) || 4;
         const stepsPerBeat = Number(pattern.grid.stepsPerBeat) || 4;
         const stepCount = Number(pattern.grid.stepCount) || (beatCount * stepsPerBeat);
-        this.patternGrid = { beatCount, stepsPerBeat, stepCount };
+        const denominator = Number(pattern.grid.denominator) > 0 ? Number(pattern.grid.denominator) : 4;
+        this.patternGrid = { beatCount, stepsPerBeat, stepCount, denominator };
       }
       if (normalized.__voiceSettings) {
         this.voiceSettings = mergeVoiceSettings(this.voiceSettings, normalized.__voiceSettings);
@@ -184,7 +185,7 @@
     setBpm(bpm) {
       const n = Number(bpm);
       if (!Number.isFinite(n) || n <= 0) return;
-      this.bpm = clamp(n, 40, 300);
+      this.bpm = n;
       this.emit('bpmChanged', { bpm: this.bpm });
     }
 
@@ -313,17 +314,23 @@
       this.schedulerTimer = setTimeout(() => this._scheduler(), this.lookaheadMs);
     }
 
+    getStepDurationSec() {
+      const cfg = this.getGridConfig();
+      const den = (cfg && Number(cfg.denominator) > 0) ? Number(cfg.denominator) : 4;
+      const spb = (cfg && Number(cfg.stepsPerBeat) > 0) ? Number(cfg.stepsPerBeat) : 4;
+      return (60 / this.bpm) * (4 / (den * spb));
+    }
+
     _advanceStep() {
       const cfg = this.getGridConfig();
-      const stepDuration = (60 / this.bpm) / cfg.stepsPerBeat;
+      const stepDuration = this.getStepDurationSec();
       this.nextNoteTime += stepDuration;
       this.currentStep = (this.currentStep + 1) % cfg.stepCount;
     }
 
     _scheduleStep(stepIndex, when) {
       this.emit('step', stepIndex);
-      const cfg = this.getGridConfig();
-      const stepDuration = (60 / this.bpm) / cfg.stepsPerBeat;
+      const stepDuration = this.getStepDurationSec();
       for (const voiceId of VOICES) {
         if (!this.isVoiceAudible(voiceId)) continue;
         const step = this.pattern[voiceId]?.[stepIndex];
@@ -805,6 +812,23 @@
     src.connect(f); f.connect(g); g.connect(dest);
     src.start(time); src.stop(time + Math.min(buffer.duration + 0.2 * decayMul, 1.8));
   }
+
+  UniversalPercussionEngine.parseTimeSignatureDenominator = function (timeSig) {
+    const m = String(timeSig || '').trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+    return m ? Number(m[2]) : 4;
+  };
+  UniversalPercussionEngine.isLegacyEighthTempoAsset = function (asset) {
+    if (!asset || typeof asset !== 'object') return false;
+    const rev = Number(asset.formatRevision || 0);
+    const ts = asset.metadata?.timeSignature || asset.metadata?.meter || '';
+    const den = UniversalPercussionEngine.parseTimeSignatureDenominator(ts);
+    return rev < 2 && den === 8;
+  };
+  UniversalPercussionEngine.normalizeLegacyBpmValue = function (bpm, asset) {
+    const n = Number(bpm);
+    if (!Number.isFinite(n) || n <= 0) return n;
+    return UniversalPercussionEngine.isLegacyEighthTempoAsset(asset) ? Math.round(n / 2) : n;
+  };
 
   global.UniversalPercussionEngine = UniversalPercussionEngine;
 })(window);

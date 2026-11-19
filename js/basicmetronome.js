@@ -73,9 +73,7 @@ const BasicMetronome = {
 
     setBpm: function(val) {
         let v = parseInt(val);
-        if (isNaN(v)) return;
-        if (v < 30) v = 30;
-        if (v > 300) v = 300;
+        if (isNaN(v) || v <= 0) return;
         this.bpm = v;
         const disp = document.getElementById('dispBpm');
         if(disp) disp.innerText = this.bpm;

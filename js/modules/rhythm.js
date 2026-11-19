@@ -110,16 +110,23 @@ window.mNotes.ui.rhythm = window.mNotes.ui.rhythm || {};
                 nameDisplay.style.color = "var(--accent)"; 
             }
 
-            if (savedBpm) {
+            const EngineCls = window.UniversalPercussionEngine;
+            const rawTargetBpm = savedBpm || rhythmData.metadata?.defaultBpm;
+            const effectiveBpm = (rawTargetBpm && EngineCls && typeof EngineCls.normalizeLegacyBpmValue === 'function')
+                ? EngineCls.normalizeLegacyBpmValue(rawTargetBpm, rhythmData)
+                : rawTargetBpm;
+
+            if (effectiveBpm) {
                 const rngBpm = document.getElementById('rngBpm');
-                if (rngBpm) rngBpm.value = savedBpm;
-                rhythmMod.changeBpm(savedBpm);
+                if (rngBpm) rngBpm.value = effectiveBpm;
+                rhythmMod.changeBpm(effectiveBpm);
             }
 
             if (window.mRhythm) {
                 await window.mRhythm.loadFromObject(rhythmData);
+                if (effectiveBpm) window.mRhythm.setBpm(effectiveBpm);
                 window.activeRhythmType = 'sequencer'; 
-                showToast(t('msg_rhythm_loaded').replace('{bpm}', savedBpm || 100));
+                showToast(t('msg_rhythm_loaded').replace('{bpm}', effectiveBpm || 100));
             } else {
                 window.activeRhythmType = 'metronome';
             }

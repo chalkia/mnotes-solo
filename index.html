@@ -584,7 +584,8 @@
                             </button>
                             <div class="bpm-display" style="text-align: center;">
                                 <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
-                                    <input type="number" id="txtBpm" value="100" min="40" max="250"
+                                    <span style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">♩ =</span>
+                                    <input type="number" id="txtBpm" value="100" min="20" max="240"
                                         style="background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-size: 1.8rem; font-weight: bold; width: 80px; text-align: center; border-radius: 6px; padding: 2px;"
                                         onchange="changeRhythmBpm(this.value)">
                                     <span id="dispBpm" style="display:none;">100</span>
@@ -603,7 +604,7 @@
                                     <span><i class="fas fa-tachometer-alt"></i> <span
                                             data-i18n="lbl_speed"><span data-i18n="idx_auto_112">Ταχύτητα</span></span></span>
                                 </div>
-                                <input type="range" id="rngBpm" min="40" max="250" value="100" class="compact-range"
+                                <input type="range" id="rngBpm" min="20" max="240" value="100" class="compact-range"
                                     style="width: 100%; accent-color: var(--accent);"
                                     oninput="changeRhythmBpm(this.value)">
                             </div>
@@ -1768,55 +1769,55 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.6.32T.181126"></script>
-        <script src="js/config.js?v=2.6.32T.181126"></script>
+        <script src="js/edition.js?v=2.6.33T.191126"></script>
+        <script src="js/config.js?v=2.6.33T.191126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.6.32T.181126"></script>
-        <script src="js/translations.js?v=2.6.32T.181126"></script>
-        <script src="js/storage.js?v=2.6.32T.181126"></script>
+        <script src="js/data.js?v=2.6.33T.191126"></script>
+        <script src="js/translations.js?v=2.6.33T.191126"></script>
+        <script src="js/storage.js?v=2.6.33T.191126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.6.32T.181126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.6.32T.181126"></script>
-        <script src="js/custom-kits.js?v=2.6.32T.181126"></script>
-        <script src="js/drum-machine.js?v=2.6.32T.181126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.6.32T.181126"></script>
+        <script src="js/sample-kit-data.js?v=2.6.33T.191126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.6.33T.191126"></script>
+        <script src="js/custom-kits.js?v=2.6.33T.191126"></script>
+        <script src="js/drum-machine.js?v=2.6.33T.191126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.6.33T.191126"></script>
 
-        <script src="js/modules/utils.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/assets.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/played-set.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/player.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/editor.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/library.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/settings.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/ui-utils.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/rhythm.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/theory.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/visuals.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/band.js?v=2.6.32T.181126"></script>
-        <script src="js/modules/export.js?v=2.6.32T.181126"></script>
+        <script src="js/modules/utils.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/assets.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/played-set.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/player.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/editor.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/library.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/settings.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/ui-utils.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/rhythm.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/theory.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/visuals.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/band.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/export.js?v=2.6.33T.191126"></script>
 
-        <script src="js/auth.js?v=2.6.32T.181126"></script>
-        <script src="js/basicmetronome.js?v=2.6.32T.181126"></script>
-        <script src="js/permissions.js?v=2.6.32T.181126"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.6.32T.181126-a7d2421"></script>
-        <script src="js/solo/local-assets.js?v=2.6.32T.181126-a7d2421"></script>
-        <script src="js/logic.js?v=2.6.32T.181126"></script>
-        <script src="js/floating-tools.js?v=2.6.32T.181126"></script>
-        <script src="js/tuner.js?v=2.6.32T.181126"></script>
-        <script src="js/ui.js?v=2.6.32T.181126"></script>
-        <script src="js/release-notes.js?v=2.6.32T.181126"></script>
-        <script src="js/chord-player.js?v=2.6.32T.181126"></script>
-        <script src="js/chords.js?v=2.6.32T.181126"></script>
+        <script src="js/auth.js?v=2.6.33T.191126"></script>
+        <script src="js/basicmetronome.js?v=2.6.33T.191126"></script>
+        <script src="js/permissions.js?v=2.6.33T.191126"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.6.33T.191126-6ece2d6"></script>
+        <script src="js/solo/local-assets.js?v=2.6.33T.191126-6ece2d6"></script>
+        <script src="js/logic.js?v=2.6.33T.191126"></script>
+        <script src="js/floating-tools.js?v=2.6.33T.191126"></script>
+        <script src="js/tuner.js?v=2.6.33T.191126"></script>
+        <script src="js/ui.js?v=2.6.33T.191126"></script>
+        <script src="js/release-notes.js?v=2.6.33T.191126"></script>
+        <script src="js/chord-player.js?v=2.6.33T.191126"></script>
+        <script src="js/chords.js?v=2.6.33T.191126"></script>
 
-        <script src="js/app.js?v=2.6.32T.181126"></script>
+        <script src="js/app.js?v=2.6.33T.191126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.6.32T.181126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.6.33T.191126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

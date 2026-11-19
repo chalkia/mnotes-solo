@@ -103,15 +103,21 @@
 
   function normalizeAsset(asset) {
     const stepCount = asset.pattern.stepCount;
+    const rawBpm = isFiniteNumber(asset.metadata.defaultBpm) ? asset.metadata.defaultBpm : 90;
+    const EngineCls = global.UniversalPercussionEngine;
+    const normalizedBpm = (EngineCls && typeof EngineCls.normalizeLegacyBpmValue === 'function')
+      ? EngineCls.normalizeLegacyBpmValue(rawBpm, asset)
+      : rawBpm;
     const normalized = {
       assetType: "mGroove",
       schemaVersion: 2,
+      formatRevision: 2,
       metadata: {
         id: asset.metadata.id || null,
         name: asset.metadata.name || "Untitled Rhythm",
         authorId: asset.metadata.authorId || null,
         timeSignature: asset.metadata.timeSignature || asset.metadata.meter || null,
-        defaultBpm: isFiniteNumber(asset.metadata.defaultBpm) ? asset.metadata.defaultBpm : 90,
+        defaultBpm: normalizedBpm,
         preferredKit: asset.metadata.preferredKit || DEFAULT_FALLBACK_KIT
       },
       pattern: {
@@ -232,29 +238,35 @@
 
       let beatCount = 4;
       let stepsPerBeat = 4;
+      let denominator = 4;
       const grid = normalized.pattern.grid;
+      const ts = normalized.metadata.timeSignature;
+      if (typeof ts === 'string' && ts.includes('/')) {
+        const parsedDen = parseInt(ts.split('/')[1], 10);
+        if (!isNaN(parsedDen) && parsedDen > 0) denominator = parsedDen;
+      }
       if (isObject(grid) && isFiniteNumber(grid.beatCount) && grid.beatCount > 0 && isFiniteNumber(grid.stepsPerBeat) && grid.stepsPerBeat > 0) {
         beatCount = grid.beatCount;
         stepsPerBeat = grid.stepsPerBeat;
-      } else {
-        const ts = normalized.metadata.timeSignature;
-        if (typeof ts === 'string' && ts.includes('/')) {
-           const parts = ts.split('/');
-           const num = parseInt(parts[0]);
-           const den = parseInt(parts[1]);
-           if (!isNaN(num) && !isNaN(den)) {
-               beatCount = num;
-               if (den === 4) stepsPerBeat = 4;
-               else if (den === 8) stepsPerBeat = 2;
-               else stepsPerBeat = 16 / den;
-           }
+        if (isFiniteNumber(grid.denominator) && grid.denominator > 0) denominator = grid.denominator;
+      } else if (typeof ts === 'string' && ts.includes('/')) {
+        const parts = ts.split('/');
+        const num = parseInt(parts[0]);
+        const den = parseInt(parts[1]);
+        if (!isNaN(num) && !isNaN(den)) {
+          beatCount = num;
+          denominator = den;
+          if (den === 4) stepsPerBeat = 4;
+          else if (den === 8) stepsPerBeat = 2;
+          else stepsPerBeat = 16 / den;
         }
       }
 
       this.runtimeGridConfig = {
         beatCount: beatCount,
         stepsPerBeat: stepsPerBeat,
-        stepCount: normalized.pattern.stepCount
+        stepCount: normalized.pattern.stepCount,
+        denominator: denominator
       };
 
       const payload = Object.assign({}, normalized.pattern.voices, {
