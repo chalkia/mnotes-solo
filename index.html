@@ -790,20 +790,20 @@
 
 
         <div id="whatsNewModal" class="modal" style="display:none;">
-            <div class="modal-content" style="max-width: 500px; padding: 0; overflow: hidden; border-radius: 12px; background: var(--bg-dark); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                <div style="background: linear-gradient(135deg, var(--accent), #00ffcc); padding: 30px 20px; text-align: center; color: #111;">
-                    <i class="fas fa-rocket" style="font-size: 3rem; margin-bottom: 10px;"></i>
-                    <h2 style="margin: 0; font-size: 1.8rem;" data-i18n="wn_title">mNotes Update!</h2>
-                    <p style="margin: 5px 0 0; font-weight: 600; font-size: 1.1rem;"><span id="wnVersion">vX.X.X</span> "<span id="wnCodename">Codename</span>"</p>
+            <div class="modal-content">
+                <div class="wn-header">
+                    <i class="fas fa-rocket"></i>
+                    <h2 data-i18n="wn_title">mNotes Update!</h2>
+                    <p><span id="wnVersion">vX.X.X</span> "<span id="wnCodename">Codename</span>"</p>
                 </div>
-                <div style="padding: 25px;">
+                <div class="wn-body">
                     <h4 style="margin-top: 0; color: var(--accent);" data-i18n="wn_subtitle">What's New:</h4>
-                    <ul id="wnChangelogList" style="line-height: 1.6; color: var(--text-light); padding-left: 20px;">
+                    <ul id="wnChangelogList" style="line-height: 1.6; color: var(--text-light); padding-left: 20px; margin-bottom: 0;">
                         <!-- Injected via JS -->
                     </ul>
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button class="modal-btn accent" onclick="closeWhatsNewModal()" style="font-size: 1.1rem; padding: 10px 30px;" data-i18n="wn_btn_awesome">Awesome, let's go!</button>
-                    </div>
+                </div>
+                <div class="wn-footer">
+                    <button class="modal-btn accent" onclick="closeWhatsNewModal()" style="font-size: 1.05rem; padding: 10px 28px;" data-i18n="wn_btn_awesome">Awesome, let's go!</button>
                 </div>
             </div>
         </div>
@@ -1038,6 +1038,10 @@
                     </div>
                     <button id="btnInstallApp" type="button" onclick="promptInstall()" class="modal-btn accent" style="display:none; width:100%; margin-top:8px;">
                         <i class="fas fa-download"></i> Εγκατάσταση στη συσκευή
+                    </button>
+                    <button id="btnOpenWhatsNew" type="button" onclick="showWhatsNewModal()" class="modal-btn" style="width:100%; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <i class="fas fa-bullhorn"></i> <span data-i18n="btn_whats_new">Τι νέο υπάρχει</span>
+                        <span id="settingsWhatsNewDot" style="display:none; width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>
                     </button>
                     <div id="soloEditionLine" data-solo-only data-i18n="solo_tier_free" style="text-align:center; margin-top:8px; font-size:0.78rem; color:var(--text-muted);">
                         mNotes Solo · Δωρεάν (έως 20 τραγούδια)
@@ -1769,58 +1773,58 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.7.1T.201126"></script>
-        <script src="js/config.js?v=2.7.1T.201126"></script>
+        <script src="js/edition.js?v=2.7.3T.201126"></script>
+        <script src="js/config.js?v=2.7.3T.201126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.7.1T.201126"></script>
-        <script src="js/translations.js?v=2.7.1T.201126"></script>
-        <script src="js/storage.js?v=2.7.1T.201126"></script>
+        <script src="js/data.js?v=2.7.3T.201126"></script>
+        <script src="js/translations.js?v=2.7.3T.201126"></script>
+        <script src="js/storage.js?v=2.7.3T.201126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.7.1T.201126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.7.1T.201126"></script>
-        <script src="js/custom-kits.js?v=2.7.1T.201126"></script>
-        <script src="js/drum-machine.js?v=2.7.1T.201126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.7.1T.201126"></script>
+        <script src="js/sample-kit-data.js?v=2.7.3T.201126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.7.3T.201126"></script>
+        <script src="js/custom-kits.js?v=2.7.3T.201126"></script>
+        <script src="js/drum-machine.js?v=2.7.3T.201126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.7.3T.201126"></script>
 
-        <script src="js/modules/utils.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/assets.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/played-set.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/player.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/editor.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/library.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/settings.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/ui-utils.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/rhythm.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/theory.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/visuals.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/band.js?v=2.7.1T.201126"></script>
-        <script src="js/modules/export.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/utils.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/assets.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/played-set.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/player.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/editor.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/library.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/settings.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/ui-utils.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/rhythm.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/theory.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/visuals.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/band.js?v=2.7.3T.201126"></script>
+        <script src="js/modules/export.js?v=2.7.3T.201126"></script>
 
-        <script src="js/auth.js?v=2.7.1T.201126"></script>
-        <script src="js/basicmetronome.js?v=2.7.1T.201126"></script>
-        <script src="js/permissions.js?v=2.7.1T.201126"></script>
-        <script src="libs/fflate.min.js?v=2.7.1T.201126-1b578da"></script>
-        <script src="js/modules/package.js?v=2.7.1T.201126-1b578da"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.7.1T.201126-1b578da"></script>
-        <script src="js/solo/local-assets.js?v=2.7.1T.201126-1b578da"></script>
-        <script src="js/solo/backup.js?v=2.7.1T.201126-1b578da"></script>
-        <script src="js/logic.js?v=2.7.1T.201126"></script>
-        <script src="js/floating-tools.js?v=2.7.1T.201126"></script>
-        <script src="js/tuner.js?v=2.7.1T.201126"></script>
-        <script src="js/ui.js?v=2.7.1T.201126"></script>
-        <script src="js/release-notes.js?v=2.7.1T.201126"></script>
-        <script src="js/chord-player.js?v=2.7.1T.201126"></script>
-        <script src="js/chords.js?v=2.7.1T.201126"></script>
+        <script src="js/auth.js?v=2.7.3T.201126"></script>
+        <script src="js/basicmetronome.js?v=2.7.3T.201126"></script>
+        <script src="js/permissions.js?v=2.7.3T.201126"></script>
+        <script src="libs/fflate.min.js?v=2.7.3T.201126-f157c93"></script>
+        <script src="js/modules/package.js?v=2.7.3T.201126-f157c93"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.7.3T.201126-f157c93"></script>
+        <script src="js/solo/local-assets.js?v=2.7.3T.201126-f157c93"></script>
+        <script src="js/solo/backup.js?v=2.7.3T.201126-f157c93"></script>
+        <script src="js/logic.js?v=2.7.3T.201126"></script>
+        <script src="js/floating-tools.js?v=2.7.3T.201126"></script>
+        <script src="js/tuner.js?v=2.7.3T.201126"></script>
+        <script src="js/ui.js?v=2.7.3T.201126"></script>
+        <script src="js/release-notes.js?v=2.7.3T.201126"></script>
+        <script src="js/chord-player.js?v=2.7.3T.201126"></script>
+        <script src="js/chords.js?v=2.7.3T.201126"></script>
 
-        <script src="js/app.js?v=2.7.1T.201126"></script>
+        <script src="js/app.js?v=2.7.3T.201126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.7.1T.201126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.7.3T.201126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

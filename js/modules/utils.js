@@ -16,17 +16,22 @@ window.mNotes.ui = window.mNotes.ui || {};
     var activeToastTimer = null;
 
     /**
-     * Εμφάνιση Toast μηνύματος
+     * Εμφάνιση Toast μηνύματος (προαιρετικά με action button & διάρκεια)
      */
-    utils.showToast = function(msg, type = 'info') {
+    utils.showToast = function(msg, type = 'info', opts = {}) {
         if (activeToast && activeToast.parentNode) {
             clearTimeout(activeToastTimer);
             activeToast.parentNode.removeChild(activeToast);
             activeToast = null;
         }
 
+        var o = (opts && typeof opts === 'object') ? opts : {};
+        var durationMs = (typeof o.durationMs === 'number' && o.durationMs > 0) ? o.durationMs : 3000;
+        var hasAction = Boolean(o.actionLabel && typeof o.onAction === 'function');
+
         var div = document.createElement("div");
         activeToast = div;
+        div.id = "mnotesActiveToast";
 
         var bgColor = "#222";
         if (type === 'success') {
@@ -37,10 +42,29 @@ window.mNotes.ui = window.mNotes.ui || {};
             bgColor = "#c62828"; // Κόκκινο (σφάλμα)
         }
 
-        div.innerHTML = msg;
+        if (hasAction) {
+            var span = document.createElement('span');
+            span.innerHTML = msg;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'toast-action-btn';
+            btn.textContent = o.actionLabel;
+            btn.style.cssText = 'margin-left:10px; padding:4px 10px; border-radius:14px; border:1px solid rgba(255,255,255,0.45); background:rgba(255,255,255,0.16); color:#fff; font-weight:700; font-size:13px; cursor:pointer;';
+            btn.onclick = function(ev) {
+                ev.stopPropagation();
+                clearTimeout(activeToastTimer);
+                if (div.parentNode) div.parentNode.removeChild(div);
+                if (activeToast === div) activeToast = null;
+                o.onAction();
+            };
+            div.appendChild(span);
+            div.appendChild(btn);
+        } else {
+            div.innerHTML = msg;
+        }
         
         div.style.position = "fixed";
-        div.style.bottom = "80px";        
+        div.style.bottom = hasAction ? "18px" : "80px";
         div.style.left = "50%";
         div.style.transform = "translateX(-50%)"; 
         div.style.backgroundColor = bgColor; 
@@ -52,9 +76,14 @@ window.mNotes.ui = window.mNotes.ui || {};
         div.style.boxShadow = "0 6px 20px rgba(0,0,0,0.5)"; 
         div.style.zIndex = "9000";   
         div.style.opacity = "0";
-        div.style.maxWidth = "85vw";
+        div.style.maxWidth = hasAction ? "calc(100vw - 140px)" : "85vw";
         div.style.textAlign = "center";
-        div.style.pointerEvents = "none";
+        div.style.display = hasAction ? "inline-flex" : "block";
+        div.style.alignItems = "center";
+        div.style.justifyContent = "center";
+        div.style.flexWrap = "wrap";
+        div.style.gap = "4px";
+        div.style.pointerEvents = hasAction ? "auto" : "none";
         div.style.transition = "opacity 0.3s ease-in-out, transform 0.3s";
         
         document.body.appendChild(div);
@@ -71,7 +100,7 @@ window.mNotes.ui = window.mNotes.ui || {};
                 if (div.parentNode) div.parentNode.removeChild(div);
                 if (activeToast === div) activeToast = null;
             }, 300);
-        }, 3000);
+        }, durationMs);
     };
 
     /**

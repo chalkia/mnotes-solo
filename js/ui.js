@@ -711,6 +711,15 @@ document.addEventListener('DOMContentLoaded', () => {
 /* =========================================
    WHAT'S NEW MODAL LOGIC
    ========================================= */
+window.updateWhatsNewDot = function() {
+    const dot = document.getElementById('settingsWhatsNewDot');
+    if (!dot) return;
+    const appVer = (typeof window.MNOTES_VERSION === 'string' && window.MNOTES_VERSION) ? window.MNOTES_VERSION : '';
+    let seenVer = '';
+    try { seenVer = localStorage.getItem('mnotes_seen_release') || ''; } catch (e) {}
+    dot.style.display = (appVer && seenVer !== appVer) ? 'inline-block' : 'none';
+};
+
 window.showWhatsNewModal = function() {
     const modal = document.getElementById('whatsNewModal');
     if (!modal) return;
@@ -725,6 +734,11 @@ window.showWhatsNewModal = function() {
     if (list && typeof window.renderWhatsNewReleaseNotes === 'function') {
         window.renderWhatsNewReleaseNotes(list, versionEl);
     }
+
+    if (appVer && typeof safeSetLocal === 'function') {
+        safeSetLocal('mnotes_seen_release', appVer);
+    }
+    window.updateWhatsNewDot();
     
     modal.style.display = 'flex';
 };
@@ -735,6 +749,22 @@ window.closeWhatsNewModal = function() {
     const appVer = (typeof window.MNOTES_VERSION === 'string' && window.MNOTES_VERSION) ? window.MNOTES_VERSION : '';
     if (appVer) safeSetLocal('mnotes_last_version', appVer);
 };
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.updateWhatsNewDot();
+    const modal = document.getElementById('whatsNewModal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) window.closeWhatsNewModal();
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const m = document.getElementById('whatsNewModal');
+            if (m && m.style.display !== 'none') window.closeWhatsNewModal();
+        }
+    });
+});
 
 
 document.addEventListener('DOMContentLoaded', () => {

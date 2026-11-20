@@ -2860,118 +2860,95 @@ async function tryJoinBandWithCode(cleanCode) {
 window.tryJoinBandWithCode = tryJoinBandWithCode;
 
 async function redeemGiftCode() {
-    const codeInput = prompt(t('msg_enter_gift_code', "Εισάγετε τον κωδικό δώρου σας:"));
-    if (!codeInput || !currentUser) return;
+    const promptMsg = t('msg_enter_gift_code', "Εισάγετε τον κωδικό δώρου σας:");
+    const codeInput = (typeof window.mDialog === 'function')
+        ? await window.mDialog({ type: 'prompt', message: promptMsg })
+        : (typeof window.mPrompt === 'function' ? await window.mPrompt(promptMsg, '') : null);
+    if (!codeInput) return;
 
-    let raw = codeInput.trim();
+    if (!currentUser) {
+        if (typeof showToast === 'function') {
+            showToast(t('msg_gift_unauthenticated', "Παρακαλώ συνδεθείτε πρώτα."), 'warning');
+        }
+        return;
+    }
+
+    let raw = String(codeInput).trim();
     if (raw.includes('join=')) {
         raw = raw.split('join=')[1].split('&')[0].split('#')[0];
     }
     const cleanCode = decodeURIComponent(raw).trim().toUpperCase();
-    if (!cleanCode) return;
+    if (!cleanCode) {
+        if (typeof showToast === 'function') {
+            showToast(t('msg_gift_empty_code', "Παρακαλώ εισάγετε έναν κωδικό."), 'warning');
+        }
+        return;
+    }
 
     try {
-        const { data: codeObj, error: findErr } = await supabaseClient
-            .from('gift_codes').select('*').eq('code', cleanCode).eq('is_used', false).single();
+        const { data: res, error } = await supabaseClient.rpc('redeem_gift_code', { p_code: cleanCode });
+        if (error) throw error;
 
-        if (findErr || !codeObj) {
-            // Δεν είναι κωδικός δώρου. Πριν πούμε «δεν βρέθηκε», δοκιμάζουμε αν
-            // είναι κωδικός πρόσκλησης μπάντας — ένα πεδίο, δύο είδη κωδικού,
-            // αποφασίζει ο διακομιστής. Το κουμπί «Συμμετοχή» του mStudio είναι
-            // κλειδωμένο για free/plus, οπότε αυτή είναι η ΜΟΝΗ πόρτα εισόδου
-            // που φτάνει ο προσκεκλημένος.
-            const joined = await tryJoinBandWithCode(cleanCode);
-            if (joined) return;
-
-            alert(t('msg_err_code_not_found', "Ο κωδικός δεν βρέθηκε ή έχει ήδη εξαργυρωθεί."));
+        if (!res || !res.ok) {
+            const reason = res && res.reason;
+            if (reason === 'not_found') {
+                const joined = await tryJoinBandWithCode(cleanCode);
+                if (joined) return;
+                if (typeof showToast === 'function') {
+                    showToast(t('msg_err_code_not_found', "Ο κωδικός δεν βρέθηκε ή έχει ήδη εξαργυρωθεί."), 'error');
+                }
+                return;
+            }
+            const reasonMessages = {
+                already_used: ['msg_gift_already_used', "Αυτός ο κωδικός έχει ήδη εξαργυρωθεί.", 'warning'],
+                expired: ['msg_err_code_expired', "Λυπούμαστε, αυτός ο κωδικός προσφοράς έχει λήξει!", 'warning'],
+                invalid_code: ['msg_gift_invalid_code', "Μη έγκυρος κωδικός δώρου.", 'error'],
+                rate_limited: ['msg_gift_rate_limited', "Πολλές προσπάθειες, δοκίμασε σε μία ώρα.", 'warning'],
+                unauthenticated: ['msg_gift_unauthenticated', "Παρακαλώ συνδεθείτε πρώτα.", 'warning'],
+                empty_code: ['msg_gift_empty_code', "Παρακαλώ εισάγετε έναν κωδικό.", 'warning']
+            };
+            const entry = reasonMessages[reason] || ['msg_err_redeem', "Προέκυψε σφάλμα κατά την εξαργύρωση.", 'error'];
+            if (typeof showToast === 'function') {
+                showToast(t(entry[0], entry[1]), entry[2]);
+            }
             return;
         }
 
-        if (codeObj.expires_at) {
-            const codeExpiration = new Date(codeObj.expires_at);
-            const now = new Date();
-            if (now > codeExpiration) {
-                alert(t('msg_err_code_expired', "Λυπούμαστε, αυτός ο κωδικός προσφοράς έχει λήξει!"));
-                return;
-            }
+        const { data: prof } = await supabaseClient
+            .from('profiles')
+            .select('special_unlocks')
+            .eq('id', currentUser.id)
+            .single();
+        if (prof && prof.special_unlocks) {
+            userProfile.special_unlocks = prof.special_unlocks;
         }
 
-        let currentUnlocks = userProfile.special_unlocks || {};
-
-        if (codeObj.reward_type === 'extra_bands') {
-            const currentExtra = currentUnlocks.extra_bands || 0;
-            currentUnlocks.extra_bands = currentExtra + parseInt(codeObj.reward_value, 10);
-            if (typeof showToast === 'function') showToast(t('msg_gift_extra_band', `Συγχαρητήρια! Κερδίσατε δικαίωμα για +${codeObj.reward_value} μπάντα! 🎉`));
-        }
-        else if (codeObj.reward_type === 'tier_upgrade') {
-            let upgradedTier = codeObj.reward_value;
-            if (upgradedTier === 'solo_pro' || upgradedTier === 'pro') {
-                upgradedTier = 'solo_plus';
-                console.log("♻️ [PROMO] Ο παλιός (ή λάθος) κωδικός μετατράπηκε αυτόματα σε solo_plus.");
-            }
-
-            // ✅ Αποθηκεύουμε το tier στο gift_tier (special_unlocks),
-            //    ΟΧΙ στο subscription_tier — έτσι υποστηρίζεται η λήξη
-            //    και η βιβλιοθήκη του χρήστη παραμένει ασφαλής μετά τη λήξη.
-            currentUnlocks.gift_tier = upgradedTier;
-
-            if (codeObj.duration_days && parseInt(codeObj.duration_days, 10) > 0) {
-                let expDate = new Date();
-                expDate.setDate(expDate.getDate() + parseInt(codeObj.duration_days, 10));
-                currentUnlocks.expires_at = expDate.toISOString();
-                console.log(`⏱️ [PROMO] Το πακέτο θα λήξει στις: ${expDate.toLocaleDateString()}`);
-            } else {
-                // Χωρίς χρονικό όριο — αφαιρούμε τυχόν παλιό expires_at
-                delete currentUnlocks.expires_at;
-            }
-
-            // Ενημερώνουμε το τοπικό userProfile ώστε να εφαρμοστεί αμέσως
-            userProfile.special_unlocks = currentUnlocks;
-
-            if (typeof showToast === 'function') {
-                if (codeObj.duration_days && parseInt(codeObj.duration_days, 10) > 0) {
-                    showToast(t('msg_gift_tier_temp', `Το προφίλ σας αναβαθμίστηκε σε ${upgradedTier} για ${codeObj.duration_days} ημέρες! ⏱️`));
-                } else {
-                    showToast(t('msg_gift_tier_perm', `Συγχαρητήρια! Το προφίλ σας αναβαθμίστηκε σε ${upgradedTier}! 🚀`));
-                }
-            }
-        }
-        else if (codeObj.reward_type === 'extra_storage') {
-            const currentStorage = currentUnlocks.extra_storage_mb || 0;
-            currentUnlocks.extra_storage_mb = currentStorage + parseInt(codeObj.reward_value, 10);
-            if (typeof showToast === 'function') showToast(t('msg_gift_storage', `Κερδίσατε +${codeObj.reward_value}MB έξτρα χώρο στο Cloud! 💾`));
-        }
-        else if (codeObj.reward_type === 'rhythm_credits') {
-            const currentCredits = currentUnlocks.rhythm_credits || 0;
-            currentUnlocks.rhythm_credits = currentCredits + parseInt(codeObj.reward_value, 10);
-            if (typeof showToast === 'function') showToast(t('msg_gift_rhythm', `Κερδίσατε ${codeObj.reward_value} δωρεάν ρυθμούς (Beats) για το Drum Store! 🥁`));
-        }
-
-        // ✨ ΔΙΟΡΘΩΣΗ 2: Έλεγχος σφάλματος και στα special_unlocks
-        const { error: unlocksErr } = await supabaseClient.from('profiles').update({ special_unlocks: currentUnlocks }).eq('id', currentUser.id);
-        if (unlocksErr) {
-            console.error("❌ Σφάλμα κατά την ενημέρωση των special unlocks:", unlocksErr);
-            throw new Error("Αποτυχία ενημέρωσης επιπλέον παροχών.");
-        }
-
-        // Καίμε τον κωδικό ΜΟΝΟ αν έχουν πετύχει όλα τα παραπάνω
-        await supabaseClient.from('gift_codes').update({
-            is_used: true,
-            used_by: currentUser.id,
-            used_at: new Date().toISOString()
-        }).eq('id', codeObj.id);
-
-        userProfile.special_unlocks = currentUnlocks;
-
-        // ✨ ΔΙΟΡΘΩΣΗ 3: Ενημέρωση της Τοπικής Μνήμης (για να μη χάνεται στο Refresh)
         const cacheKey = `mnotes_user_profile_${currentUser.id}`;
-        safeSetLocal(cacheKey, JSON.stringify(userProfile));
-
+        if (typeof safeSetLocal === 'function') safeSetLocal(cacheKey, JSON.stringify(userProfile));
         if (typeof updateUIForRole === 'function') updateUIForRole();
 
+        if (typeof showToast === 'function') {
+            if (res.reward_type === 'extra_bands') {
+                showToast(t('msg_gift_extra_band', `Συγχαρητήρια! Κερδίσατε δικαίωμα για +${res.reward_value} μπάντα! 🎉`), 'success');
+            } else if (res.reward_type === 'tier_upgrade') {
+                if (res.duration_days && parseInt(res.duration_days, 10) > 0) {
+                    showToast(t('msg_gift_tier_temp', `Το προφίλ σας αναβαθμίστηκε προσωρινά! ⏱️`), 'success');
+                } else {
+                    showToast(t('msg_gift_tier_perm', `Συγχαρητήρια! Το προφίλ σας αναβαθμίστηκε! 🚀`), 'success');
+                }
+            } else if (res.reward_type === 'extra_storage') {
+                showToast(t('msg_gift_storage', `Κερδίσατε +${res.reward_value}MB έξτρα χώρο στο Cloud! 💾`), 'success');
+            } else if (res.reward_type === 'rhythm_credits') {
+                showToast(t('msg_gift_rhythm', `Κερδίσατε ${res.reward_value} δωρεάν ρυθμούς (Beats) για το Drum Store! 🥁`), 'success');
+            } else if (res.reward_type === 'solo_edition') {
+                showToast(t('msg_gift_solo_edition', "Ο κωδικός Solo ενεργοποιήθηκε στο προφίλ σας! 🎁"), 'success');
+            }
+        }
     } catch (err) {
         console.error("Gift Code Error:", err);
-        alert(t('msg_err_redeem', "Προέκυψε σφάλμα κατά την εξαργύρωση: ") + err.message);
+        if (typeof showToast === 'function') {
+            showToast(t('msg_err_redeem', "Προέκυψε σφάλμα κατά την εξαργύρωση.") + (err && err.message ? ` (${err.message})` : ''), 'error');
+        }
     }
 }
 

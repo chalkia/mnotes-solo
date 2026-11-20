@@ -14,10 +14,25 @@ window.addEventListener('load', function() {
     setTimeout(() => {
         const appVer = (typeof window.MNOTES_VERSION === 'string' && window.MNOTES_VERSION) ? window.MNOTES_VERSION : '';
         const lastVer = localStorage.getItem('mnotes_last_version');
+        if (typeof window.updateWhatsNewDot === 'function') window.updateWhatsNewDot();
         if (appVer && lastVer !== appVer) {
             if (lastVer) {
-                // Not a new user, show modal
-                if (typeof showWhatsNewModal === 'function') showWhatsNewModal();
+                // Ποτέ σε Play mode: παραλείπεται αν η Σκηνή είναι σε Play
+                const inPlay = document.body && document.body.classList.contains('play-mode');
+                if (!inPlay) {
+                    safeSetLocal('mnotes_last_version', appVer);
+                    if (typeof showToast === 'function') {
+                        const msgPrefix = (typeof t === 'function')
+                            ? t('msg_updated_to_version', 'Ενημερώθηκε στην v{ver}').replace('{ver}', appVer)
+                            : `Ενημερώθηκε στην v${appVer}`;
+                        const actionLbl = (typeof t === 'function') ? t('btn_whats_new_short', 'Τι νέο') : 'Τι νέο';
+                        showToast(msgPrefix, 'info', {
+                            durationMs: 8000,
+                            actionLabel: actionLbl,
+                            onAction: () => { if (typeof showWhatsNewModal === 'function') showWhatsNewModal(); }
+                        });
+                    }
+                }
             } else {
                 // New user or cleared cache, set silently to avoid popups on first use
                 safeSetLocal('mnotes_last_version', appVer);
