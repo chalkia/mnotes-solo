@@ -1031,7 +1031,7 @@
                         <div id="soloLocalNotice" data-solo-only style="font-weight:500; color:var(--text-muted); line-height:1.45;">
                             <div data-i18n="solo_local_storage_notice" style="margin-bottom:8px;">Τα τραγούδια και οι παρτιτούρες αποθηκεύονται τοπικά στη συσκευή σου. Κράτα αντίγραφο ασφαλείας.</div>
                             <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-                                <button type="button" id="btnSoloExportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="if(typeof exportJSON==='function') exportJSON()" data-i18n="solo_btn_export_lib">Εξαγωγή βιβλιοθήκης</button>
+                                <button type="button" id="btnSoloExportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="if(window.SoloBackup&&SoloBackup.openExportDialog){SoloBackup.openExportDialog();}else if(typeof exportJSON==='function'){exportJSON();}" data-i18n="solo_btn_export_lib">Εξαγωγή βιβλιοθήκης</button>
                                 <button type="button" id="btnSoloImportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="document.getElementById('hiddenFileInput')?.click()" data-i18n="solo_btn_import_lib">Εισαγωγή</button>
                             </div>
                         </div>
@@ -1049,7 +1049,7 @@
             </div>
         </div>
 
-        <input type="file" id="hiddenFileInput" accept=".json, .mnote, .mnotes, .pro, .cho, .chopro, .crd, .txt"
+        <input type="file" id="hiddenFileInput" accept=".json, .mnote, .mnotes, .mnotezip, .zip, .pro, .cho, .chopro, .crd, .txt"
             onchange="importJSON(this)" style="display: none;">
 
         <div id="authModal" data-pro-only class="modal-overlay" style="display:none;">
@@ -1769,55 +1769,58 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.6.33T.191126"></script>
-        <script src="js/config.js?v=2.6.33T.191126"></script>
+        <script src="js/edition.js?v=2.7.1T.201126"></script>
+        <script src="js/config.js?v=2.7.1T.201126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.6.33T.191126"></script>
-        <script src="js/translations.js?v=2.6.33T.191126"></script>
-        <script src="js/storage.js?v=2.6.33T.191126"></script>
+        <script src="js/data.js?v=2.7.1T.201126"></script>
+        <script src="js/translations.js?v=2.7.1T.201126"></script>
+        <script src="js/storage.js?v=2.7.1T.201126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.6.33T.191126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.6.33T.191126"></script>
-        <script src="js/custom-kits.js?v=2.6.33T.191126"></script>
-        <script src="js/drum-machine.js?v=2.6.33T.191126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.6.33T.191126"></script>
+        <script src="js/sample-kit-data.js?v=2.7.1T.201126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.7.1T.201126"></script>
+        <script src="js/custom-kits.js?v=2.7.1T.201126"></script>
+        <script src="js/drum-machine.js?v=2.7.1T.201126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.7.1T.201126"></script>
 
-        <script src="js/modules/utils.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/assets.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/played-set.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/player.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/editor.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/library.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/settings.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/ui-utils.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/rhythm.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/theory.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/visuals.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/band.js?v=2.6.33T.191126"></script>
-        <script src="js/modules/export.js?v=2.6.33T.191126"></script>
+        <script src="js/modules/utils.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/assets.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/played-set.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/player.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/editor.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/library.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/settings.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/ui-utils.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/rhythm.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/theory.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/visuals.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/band.js?v=2.7.1T.201126"></script>
+        <script src="js/modules/export.js?v=2.7.1T.201126"></script>
 
-        <script src="js/auth.js?v=2.6.33T.191126"></script>
-        <script src="js/basicmetronome.js?v=2.6.33T.191126"></script>
-        <script src="js/permissions.js?v=2.6.33T.191126"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.6.33T.191126-6ece2d6"></script>
-        <script src="js/solo/local-assets.js?v=2.6.33T.191126-6ece2d6"></script>
-        <script src="js/logic.js?v=2.6.33T.191126"></script>
-        <script src="js/floating-tools.js?v=2.6.33T.191126"></script>
-        <script src="js/tuner.js?v=2.6.33T.191126"></script>
-        <script src="js/ui.js?v=2.6.33T.191126"></script>
-        <script src="js/release-notes.js?v=2.6.33T.191126"></script>
-        <script src="js/chord-player.js?v=2.6.33T.191126"></script>
-        <script src="js/chords.js?v=2.6.33T.191126"></script>
+        <script src="js/auth.js?v=2.7.1T.201126"></script>
+        <script src="js/basicmetronome.js?v=2.7.1T.201126"></script>
+        <script src="js/permissions.js?v=2.7.1T.201126"></script>
+        <script src="libs/fflate.min.js?v=2.7.1T.201126-1b578da"></script>
+        <script src="js/modules/package.js?v=2.7.1T.201126-1b578da"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.7.1T.201126-1b578da"></script>
+        <script src="js/solo/local-assets.js?v=2.7.1T.201126-1b578da"></script>
+        <script src="js/solo/backup.js?v=2.7.1T.201126-1b578da"></script>
+        <script src="js/logic.js?v=2.7.1T.201126"></script>
+        <script src="js/floating-tools.js?v=2.7.1T.201126"></script>
+        <script src="js/tuner.js?v=2.7.1T.201126"></script>
+        <script src="js/ui.js?v=2.7.1T.201126"></script>
+        <script src="js/release-notes.js?v=2.7.1T.201126"></script>
+        <script src="js/chord-player.js?v=2.7.1T.201126"></script>
+        <script src="js/chords.js?v=2.7.1T.201126"></script>
 
-        <script src="js/app.js?v=2.6.33T.191126"></script>
+        <script src="js/app.js?v=2.7.1T.201126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.6.33T.191126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.7.1T.201126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

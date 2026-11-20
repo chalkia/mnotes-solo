@@ -78,6 +78,9 @@
 
     // ── Άγκιστρο 3: Ειδοποίηση 15/20 & Modal/Μήνυμα ορίου 20/20 ───────────────
     global.onSongCountChanged = function (count) {
+        if (typeof global.SoloBackup !== 'undefined' && typeof global.SoloBackup.recordBackupChange === 'function') {
+            global.SoloBackup.recordBackupChange();
+        }
         const maxSongs = getMaxSongsLimit();
         if (maxSongs === 20 && count === 15 && !warned15ThisSession) {
             warned15ThisSession = true;

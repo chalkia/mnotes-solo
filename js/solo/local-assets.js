@@ -754,6 +754,7 @@
         extractAssetId,
         isQuotaError,
         setDbAdapter,
+        getDbAdapter: () => customDbAdapter || browserDbAdapter,
         resetDbAdapter,
         setImageCompressor,
         resetImageCompressor,

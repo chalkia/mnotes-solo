@@ -652,6 +652,20 @@ async function importJSON(input) {
     const file = input.files[0];
     if(!file) return;
 
+    if (typeof window.beforeImportFile === 'function') {
+        try {
+            const handled = await window.beforeImportFile(file, input);
+            if (handled) {
+                input.value = '';
+                return;
+            }
+        } catch (err) {
+            console.error('❌ [IMPORT HOOK ERROR]', err);
+            input.value = '';
+            return;
+        }
+    }
+
     // ✨ 1. ΕΛΕΓΧΟΣ ΚΑΤΑΛΗΞΗΣ (Απορρίπτει λάθος αρχεία)
     const validExtensions = ['.mnote', '.mnotes', '.json', '.pro', '.cho', '.chopro', '.crd', '.txt'];
     const fileName = file.name.toLowerCase();
@@ -746,6 +760,7 @@ async function importJSON(input) {
             let addedCount = 0;
             let updatedCount = 0;
             let skippedCount = 0;
+            let firstImportedSongId = null;
             
             // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (Batching)
             let batchCloudPayloads = []; 
@@ -840,6 +855,9 @@ async function importJSON(input) {
 
                 // Προσθήκη στο καλάθι (Αντί για 1-1 upload) — μόνο για Pro
                 if (needsCloudSync) {
+                    if (!firstImportedSongId && safeSong && safeSong.id && !safeSong.is_deleted) {
+                        firstImportedSongId = safeSong.id;
+                    }
                     const hasUser = (typeof currentUser !== 'undefined' && !!currentUser);
                     window.enqueueOrBatchImportedSong(safeSong, {
                         userId: hasUser ? currentUser.id : 'offline',
@@ -873,6 +891,10 @@ async function importJSON(input) {
             } else {
                 const resultMsg = `Η Εισαγωγή Ολοκληρώθηκε!\n\nΝέα: ${addedCount}\nΕνημερώθηκαν: ${updatedCount}\nΠαραλείφθηκαν (Διπλά): ${skippedCount}`;
                 alert(resultMsg);
+            }
+
+            if (firstImportedSongId && typeof loadSong === 'function') {
+                loadSong(firstImportedSongId);
             }
             
         } catch(err) {

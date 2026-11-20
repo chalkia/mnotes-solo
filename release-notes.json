@@ -2,6 +2,65 @@
   "_comment": "Σημειώσεις έκδοσης, ΟΡΑΤΕΣ ΣΤΟΝ ΧΡΗΣΤΗ / User-facing Release Notes. Νεότερη έκδοση πρώτη / Newest first. type: new | fix | improved",
   "releases": [
     {
+      "version": "2.7.0",
+      "date": "2026-11-20",
+      "title": {
+        "el": "mNotes 2.7",
+        "en": "mNotes 2.7"
+      },
+      "items": [
+        {
+          "type": "new",
+          "text": {
+            "el": "Ανανεωμένη Σκηνή & λειτουργία Play: καθαρή οθόνη για ζωντανό παίξιμο, επιλογή εμφάνισης 3 καταστάσεων (Πλήρες / Μόνο στίχοι / Λέξεις-οδηγοί), αυτόματη προσαρμογή μεγέθους γραμματοσειράς (Auto-Fit) και παρτιτούρα πλήρους οθόνης με pinch-zoom.",
+            "en": "Refreshed Stage & Play mode: distraction-free live view, 3-state display toggle (Full / Lyrics Only / Cue Words), automatic font Auto-Fit, and full-screen sheet music with pinch-zoom."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Έξυπνη αυτόματη κύλιση που προσαρμόζεται στον ρυθμό σας ανά τραγούδι και συρόμενο συρτάρι εργαλείων με μνήμη θέσης.",
+            "en": "Smart auto-scroll that learns your song timing locally and a draggable tools drawer handle with position memory."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Υποστήριξη πεντάλ Bluetooth (αριστερό/δεξί για κύλιση, αυτόματη κύλιση ή αλλαγή τραγουδιού, προαιρετικό κράτημα για αλλαγή τραγουδιού και δοκιμαστής στις Ρυθμίσεις).",
+            "en": "Bluetooth pedal support (left/right actions for scroll, auto-scroll, or song navigation, optional hold-to-switch song, and a pedal tester in Settings)."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Μηχανή Ρυθμών: 9 ελληνικοί ρυθμοί (Ζεϊμπέκικο ♩ 60, Παλιό Ζεϊμπέκικο, Καλαματιανός, Τσιφτετέλι, Καρσιλαμάς, Συρτός, Χασάπικο, Χασαποσέρβικο, Τσάμικος), ενιαίο τέμπο σε τέταρτα (♩ 20–240), μουσική ορολογία, εισαγωγή αρχείων .dr και αλλαγή μέτρου χωρίς απώλεια χτυπημάτων (με Ctrl+Z).",
+            "en": "Drum Machine: 9 Greek skeleton rhythms (Zeibekiko ♩ 60, Palio Zeibekiko, Kalamatianos, Tsifteteli, Karsilamas, Syrtos, Chasapiko, Hasaposerviko, Tsamikos), unified quarter-note tempo (♩ 20–240), musical time terminology, .dr rhythm import, and lossless meter/resolution conversion (with Ctrl+Z undo)."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Παρτιτούρα ABC στο mStudio: σταθερή αποθήκευση ταμπλατούρας οργάνων, κουμπί «Νέα Παρτιτούρα» και προστασία αλλαγής ονόματος.",
+            "en": "ABC Notation in mStudio: reliable instrument tablature saving, New Score button, and rename protection."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Καθαρή αρχική βιβλιοθήκη με προαιρετική φόρτωση δοκιμαστικών τραγουδιών από τη συσκευή όποτε το θελήσετε.",
+            "en": "Clean empty library with optional one-click loading of sample songs whenever you need them."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Αλλαγή πλάνων: το mStudio και ο προσωπικός συγχρονισμός Cloud είναι πλέον διαθέσιμα αποκλειστικά σε συνδρομές Pro (οι δωρεάν/Plus λογαριασμοί λειτουργούν τοπικά στη συσκευή).",
+            "en": "Plan change: mStudio and personal Cloud sync are now exclusive to Pro plans (Free/Plus accounts work locally on the device)."
+          }
+        }
+      ]
+    },
+    {
       "version": "2.6.22",
       "date": "2026-11-16",
       "title": {
