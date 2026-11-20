@@ -2,6 +2,37 @@
   "_comment": "Σημειώσεις έκδοσης, ΟΡΑΤΕΣ ΣΤΟΝ ΧΡΗΣΤΗ / User-facing Release Notes. Νεότερη έκδοση πρώτη / Newest first. type: new | fix | improved",
   "releases": [
     {
+      "version": "2.7.3",
+      "date": "2026-11-20",
+      "title": {
+        "el": "Βελτιώσεις Σκηνής, «Τι νέο» & Κωδικών Δώρου",
+        "en": "Stage, What's New & Gift Code Improvements"
+      },
+      "items": [
+        {
+          "type": "fix",
+          "text": {
+            "el": "Στο κινητό το παράθυρο \"Τι νέο\" δεν κόβεται πια· κυλάει και κλείνει πάντα.",
+            "en": "On mobile, the \"What's New\" window no longer gets cut off; it scrolls and always closes."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Μετά από ενημέρωση εμφανίζεται ένα μικρό μήνυμα που χάνεται μόνο του· τα νέα τα βλέπεις όποτε θέλεις από τις Ρυθμίσεις → \"Τι νέο\".",
+            "en": "After an update, a small auto-dismissing message appears; you can view the news anytime from Settings → \"What's New\"."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Ασφαλέστερη εξαργύρωση κωδικών δώρου, με σαφές μήνυμα για κάθε περίπτωση.",
+            "en": "Safer gift code redemption with a clear message for every case."
+          }
+        }
+      ]
+    },
+    {
       "version": "2.7.0",
       "date": "2026-11-20",
       "title": {
