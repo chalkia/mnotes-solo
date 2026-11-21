@@ -3,57 +3,182 @@
    =========================================================== */
 
 (function(globalScope) {
+    // Pre-allocated FFT workspaces keyed by FFT size (M = 2*N) to avoid per-frame allocations
+    const fftWorkspaces = {};
+
+    function getFftWorkspace(size) {
+        if (fftWorkspaces[size]) return fftWorkspaces[size];
+        const half = size >> 1;
+        const re = new Float64Array(size);
+        const im = new Float64Array(size);
+        const cosTable = new Float64Array(half);
+        const sinTable = new Float64Array(half);
+        const bitRev = new Int32Array(size);
+        const nsdf = new Float64Array(half);
+
+        for (let i = 0; i < half; i++) {
+            const angle = (-2 * Math.PI * i) / size;
+            cosTable[i] = Math.cos(angle);
+            sinTable[i] = Math.sin(angle);
+        }
+
+        let bits = 0;
+        while ((1 << bits) < size) bits++;
+        for (let i = 0; i < size; i++) {
+            let rev = 0;
+            for (let b = 0; b < bits; b++) {
+                if ((i >> b) & 1) rev |= 1 << (bits - 1 - b);
+            }
+            bitRev[i] = rev;
+        }
+
+        const ws = { size, re, im, cosTable, sinTable, bitRev, nsdf };
+        fftWorkspaces[size] = ws;
+        return ws;
+    }
+
+    function fftInPlace(ws) {
+        const { size, re, im, cosTable, sinTable, bitRev } = ws;
+
+        for (let i = 0; i < size; i++) {
+            const j = bitRev[i];
+            if (i < j) {
+                const tr = re[i]; re[i] = re[j]; re[j] = tr;
+                const ti = im[i]; im[i] = im[j]; im[j] = ti;
+            }
+        }
+
+        for (let halfLen = 1; halfLen < size; halfLen <<= 1) {
+            const step = halfLen << 1;
+            const tableStep = size / step;
+            for (let i = 0; i < size; i += step) {
+                let k = 0;
+                for (let j = 0; j < halfLen; j++) {
+                    const idx1 = i + j;
+                    const idx2 = idx1 + halfLen;
+                    const cos = cosTable[k];
+                    const sin = sinTable[k];
+                    const tRe = re[idx2] * cos - im[idx2] * sin;
+                    const tIm = re[idx2] * sin + im[idx2] * cos;
+                    re[idx2] = re[idx1] - tRe;
+                    im[idx2] = im[idx1] - tIm;
+                    re[idx1] += tRe;
+                    im[idx1] += tIm;
+                    k += tableStep;
+                }
+            }
+        }
+    }
+
+    function nextPow2(n) {
+        let p = 1;
+        while (p < n) p <<= 1;
+        return p;
+    }
+
+    function computeRmsAndPeak(buffer) {
+        if (!buffer || !buffer.length) return { rms: 0, peak: 0, energy: 0 };
+        const len = buffer.length;
+        let energy = 0;
+        let peak = 0;
+        for (let i = 0; i < len; i++) {
+            const s = buffer[i];
+            energy += s * s;
+            const a = s < 0 ? -s : s;
+            if (a > peak) peak = a;
+        }
+        return { rms: Math.sqrt(energy / len), peak, energy };
+    }
+
     /**
      * McLeod Pitch Method (NSDF + key maxima + parabolic interpolation).
+     * Uses O(N log N) FFT-based autocorrelation with reusable buffers and peak normalization.
      * Pure function (no DOM/Web Audio) so it can be tested directly in Node.
      *
      * @param {Float32Array|number[]} buffer
      * @param {number} sampleRate
-     * @param {{ min?: number, max?: number, minRms?: number, minClarity?: number, cutoff?: number }} [opts]
-     * @returns {{ freq: number, clarity: number } | null}
+     * @param {{ min?: number, max?: number, minRms?: number, minClarity?: number, cutoff?: number, direct?: boolean }} [opts]
+     * @returns {{ freq: number, clarity: number, rms: number } | null}
      */
     function detectPitch(buffer, sampleRate, opts) {
         if (!buffer || !buffer.length || !sampleRate) return null;
         const options = opts || {};
         const minFreq = options.min || 30;
         const maxFreq = options.max || 4000;
-        const minRms = options.minRms !== undefined ? options.minRms : 0.008;
-        const minClarity = options.minClarity !== undefined ? options.minClarity : 0.85;
+        const minRms = options.minRms !== undefined ? options.minRms : 0.0005;
+        // 0.80 accommodates real acoustic instruments (inharmonicity, body resonance, decay) while rejecting noise
+        const minClarity = options.minClarity !== undefined ? options.minClarity : 0.8;
         const cutoff = options.cutoff !== undefined ? options.cutoff : 0.9;
+        const useDirect = !!options.direct;
 
         const len = buffer.length;
-        let energy = 0;
-        for (let i = 0; i < len; i++) {
-            const s = buffer[i];
-            energy += s * s;
-        }
-        const rms = Math.sqrt(energy / len);
-        if (rms < minRms) return null;
+        const { rms, peak, energy } = computeRmsAndPeak(buffer);
+        if (rms < minRms || peak === 0) return null;
 
         const minLag = Math.max(2, Math.floor(sampleRate / maxFreq));
         const maxLag = Math.min(len - 3, Math.ceil(sampleRate / minFreq));
         if (maxLag <= minLag) return null;
 
-        // Compute NSDF from lag 0..maxLag+1 using incremental m(tau)
         const searchEnd = Math.min(len - 2, maxLag + 1);
-        const nsdf = new Float64Array(searchEnd + 1);
-        let m = 2 * energy;
+        const invPeak = 1 / peak;
+        const invPeakSq = invPeak * invPeak;
+
+        const fftSize = nextPow2(len * 2);
+        const ws = getFftWorkspace(fftSize);
+        const nsdf = ws.nsdf;
         nsdf[0] = 1;
 
-        for (let tau = 1; tau <= searchEnd; tau++) {
-            const prev = buffer[tau - 1];
-            const tail = buffer[len - tau];
-            m -= prev * prev + tail * tail;
-            if (m <= 0) {
-                nsdf[tau] = 0;
-                continue;
+        if (useDirect) {
+            let m = 2 * energy * invPeakSq;
+            for (let tau = 1; tau <= searchEnd; tau++) {
+                const prev = buffer[tau - 1] * invPeak;
+                const tail = buffer[len - tau] * invPeak;
+                m -= prev * prev + tail * tail;
+                if (m <= 0) {
+                    nsdf[tau] = 0;
+                    continue;
+                }
+                let acf = 0;
+                const limit = len - tau;
+                for (let j = 0; j < limit; j++) {
+                    acf += (buffer[j] * invPeak) * (buffer[j + tau] * invPeak);
+                }
+                nsdf[tau] = (2 * acf) / m;
             }
-            let acf = 0;
-            const limit = len - tau;
-            for (let j = 0; j < limit; j++) {
-                acf += buffer[j] * buffer[j + tau];
+        } else {
+            const { re, im } = ws;
+            for (let i = 0; i < len; i++) {
+                re[i] = buffer[i] * invPeak;
+                im[i] = 0;
             }
-            nsdf[tau] = (2 * acf) / m;
+            for (let i = len; i < fftSize; i++) {
+                re[i] = 0;
+                im[i] = 0;
+            }
+
+            fftInPlace(ws);
+
+            for (let k = 0; k < fftSize; k++) {
+                re[k] = re[k] * re[k] + im[k] * im[k];
+                im[k] = 0;
+            }
+
+            // |X|^2 is real and even, so forward FFT / fftSize yields the exact inverse FFT
+            fftInPlace(ws);
+
+            const invFftSize = 1 / fftSize;
+            let m = 2 * energy * invPeakSq;
+            for (let tau = 1; tau <= searchEnd; tau++) {
+                const prev = buffer[tau - 1] * invPeak;
+                const tail = buffer[len - tau] * invPeak;
+                m -= prev * prev + tail * tail;
+                if (m <= 0) {
+                    nsdf[tau] = 0;
+                    continue;
+                }
+                const acf = re[tau] * invFftSize;
+                nsdf[tau] = (2 * acf) / m;
+            }
         }
 
         // Collect key maxima (highest peak in each positive lobe after initial zero crossing)
@@ -129,7 +254,7 @@
         const freq = sampleRate / trueTau;
         if (freq < minFreq || freq > maxFreq) return null;
 
-        return { freq, clarity };
+        return { freq, clarity, rms };
     }
 
     function medianOf(arr) {
@@ -169,7 +294,6 @@
                         if (outlierCount < outlierStrikes) {
                             return smoothedCents;
                         }
-                        // 3 consecutive outliers -> new note/string
                         history = [rawCents];
                         outlierCount = 0;
                         smoothedCents = rawCents;
@@ -192,6 +316,15 @@
         };
     }
 
+    function isTunerDebugEnabled() {
+        if (typeof window === 'undefined' || !window.location) return false;
+        try {
+            return new URLSearchParams(window.location.search).get('tunerDebug') === '1';
+        } catch (_) {
+            return false;
+        }
+    }
+
     const ChromaticTuner = {
         isRunning: false,
         audioCtx: null,
@@ -202,18 +335,21 @@
         detectPitch: detectPitch,
         createPitchSmoother: createPitchSmoother,
 
-        // ✨ Smoothing & Hysteresis State
+        // ✨ Smoothing, Noise Gate & Hysteresis State
         smoother: createPitchSmoother(),
-        analysisIntervalMs: 40, // ~25 analyses/sec
+        baseAnalysisIntervalMs: 40, // ~25 analyses/sec
+        analysisIntervalMs: 40,
         silenceTimeoutMs: 400,
         lastAnalysisTime: 0,
         lastValidTime: 0,
+        noiseFloorRms: 0,
         isSilentState: true,
         displayedMidi: null,
         perfectSince: null,
         inPerfectZone: false,
         inWarningZone: false,
         timeBuffer: null,
+        elDebug: null,
 
         // ✨ Λεξικό Ορίων & Στόχων Συχνοτήτων ανά Όργανο (Μαγνητικό Κλείδωμα)
         currentInstrument: 'chromatic',
@@ -270,6 +406,16 @@
             if (this.elBar) {
                 this.elBar.style.transition = 'width 80ms linear, background-color 120ms ease';
             }
+            if (isTunerDebugEnabled() && this.elStatus && !this.elDebug) {
+                let dbg = document.getElementById('tunerDebugLine');
+                if (!dbg) {
+                    dbg = document.createElement('div');
+                    dbg.id = 'tunerDebugLine';
+                    dbg.style.cssText = 'font-size:11px;color:var(--text-muted);margin-top:4px;font-family:monospace;opacity:0.85;';
+                    this.elStatus.insertAdjacentElement('afterend', dbg);
+                }
+                this.elDebug = dbg;
+            }
         },
 
         setInstrument: function(inst) {
@@ -325,6 +471,8 @@
 
                 this.isRunning = true;
                 this.resetTrackingState();
+                this.analysisIntervalMs = this.baseAnalysisIntervalMs;
+                this.noiseFloorRms = 0;
                 this.lastAnalysisTime = 0;
                 this.lastValidTime = performance.now();
                 this.isSilentState = true;
@@ -361,6 +509,7 @@
             this.elBar.style.width = "0%";
             this.elStatus.innerText = "Ανενεργό";
             this.elStatus.style.color = "var(--text-muted)";
+            if (this.elDebug) this.elDebug.innerText = "";
         },
 
         detect: function() {
@@ -374,12 +523,28 @@
                 }
                 this.analyser.getFloatTimeDomainData(this.timeBuffer);
                 const rangeParams = this.RANGES[this.currentInstrument] || this.RANGES.chromatic;
+
+                const t0 = performance.now();
+                const { rms } = computeRmsAndPeak(this.timeBuffer);
                 const result = detectPitch(this.timeBuffer, this.audioCtx.sampleRate, {
                     min: rangeParams.min,
                     max: rangeParams.max
                 });
+                const dt = performance.now() - t0;
 
-                if (result && result.clarity >= 0.85) {
+                // Δικλίδα CPU: αν η ανάλυση ξεπεράσει τα 25 ms, επιβράδυνε το διάστημα (έως 120 ms)
+                if (dt > 25) {
+                    this.analysisIntervalMs = Math.min(120, Math.round(this.analysisIntervalMs * 1.5));
+                }
+
+                if (this.elDebug) {
+                    const cl = result ? result.clarity.toFixed(2) : '-';
+                    this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${cl} | ${dt.toFixed(1)} ms`;
+                }
+
+                const aboveNoiseFloor = this.noiseFloorRms === 0 || rms > 3 * this.noiseFloorRms;
+
+                if (result && result.clarity >= 0.8 && aboveNoiseFloor) {
                     this.lastValidTime = now;
                     this.isSilentState = false;
 
@@ -439,18 +604,27 @@
                             this.updateUI(noteName, activeFreq, cents, false, now);
                         }
                     }
-                } else if (!this.isSilentState && (now - this.lastValidTime > this.silenceTimeoutMs)) {
-                    // Σιωπή > 400 ms -> καθαρισμός ιστορικού & "Ακούω..."
-                    this.isSilentState = true;
-                    this.resetTrackingState();
-                    this.elStatus.innerText = "Ακούω...";
-                    this.elStatus.style.color = "var(--text-muted)";
-                    this.elNote.innerText = "-";
-                    this.elNote.style.color = "var(--text-muted)";
-                    this.elHz.innerText = "0.0 Hz";
-                    this.elHz.style.color = "var(--text-muted)";
-                    this.elBar.style.width = "0%";
-                    this.elBar.style.backgroundColor = "var(--text-muted)";
+                } else {
+                    // Ενημέρωση κινητού μέσου θορύβου μόνο στα παράθυρα χωρίς τόνο
+                    if (!result && rms > 0) {
+                        const alpha = rms < this.noiseFloorRms ? 0.2 : 0.05;
+                        this.noiseFloorRms = this.noiseFloorRms === 0
+                            ? rms
+                            : this.noiseFloorRms + alpha * (rms - this.noiseFloorRms);
+                    }
+                    if (!this.isSilentState && (now - this.lastValidTime > this.silenceTimeoutMs)) {
+                        // Σιωπή > 400 ms -> καθαρισμός ιστορικού & "Ακούω..."
+                        this.isSilentState = true;
+                        this.resetTrackingState();
+                        this.elStatus.innerText = "Ακούω...";
+                        this.elStatus.style.color = "var(--text-muted)";
+                        this.elNote.innerText = "-";
+                        this.elNote.style.color = "var(--text-muted)";
+                        this.elHz.innerText = "0.0 Hz";
+                        this.elHz.style.color = "var(--text-muted)";
+                        this.elBar.style.width = "0%";
+                        this.elBar.style.backgroundColor = "var(--text-muted)";
+                    }
                 }
             }
 
