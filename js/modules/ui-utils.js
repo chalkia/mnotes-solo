@@ -1296,4 +1296,131 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         }
     };
 
+    const DEFAULT_TOOLS_ORDER = ['drawerVideo', 'drawerRhythms', 'drawerVisuals', 'drawerAudioHub', 'drawerTunerChords'];
+    const TOOLS_ORDER_KEY = 'mnotes_tools_order';
+
+    function getToolsPanel() {
+        return document.querySelector('#rhythmTools > .tool-panel');
+    }
+
+    function getToolSectionId(el) {
+        if (!el) return '';
+        if (el.id === 'video-sidebar-container') return 'drawerVideo';
+        return el.id || '';
+    }
+
+    function getToolSectionElement(panel, id) {
+        if (!panel || !id) return null;
+        if (id === 'drawerVideo') {
+            const wrap = document.getElementById('video-sidebar-container');
+            if (wrap && wrap.parentNode === panel) return wrap;
+        }
+        const el = document.getElementById(id);
+        return (el && el.parentNode === panel) ? el : null;
+    }
+
+    function resolveToolsOrder(savedIds, availableIds, defaultOrder) {
+        const availSet = new Set(availableIds);
+        const result = [];
+        const seen = new Set();
+
+        if (Array.isArray(savedIds)) {
+            for (const id of savedIds) {
+                if (typeof id === 'string' && availSet.has(id) && !seen.has(id)) {
+                    result.push(id);
+                    seen.add(id);
+                }
+            }
+        }
+
+        const fullDefault = defaultOrder.filter(id => availSet.has(id));
+        for (const id of availableIds) {
+            if (!fullDefault.includes(id)) fullDefault.push(id);
+        }
+
+        for (let i = 0; i < fullDefault.length; i++) {
+            const id = fullDefault[i];
+            if (seen.has(id)) continue;
+            let insertAt = result.length;
+            for (let j = i + 1; j < fullDefault.length; j++) {
+                const nextIdx = result.indexOf(fullDefault[j]);
+                if (nextIdx !== -1) {
+                    insertAt = nextIdx;
+                    break;
+                }
+            }
+            result.splice(insertAt, 0, id);
+            seen.add(id);
+        }
+        return result;
+    }
+
+    function applyToolsOrder(savedIds) {
+        const panel = getToolsPanel();
+        if (!panel) return;
+        const availableIds = Array.from(panel.children).map(getToolSectionId).filter(Boolean);
+        const finalOrder = resolveToolsOrder(savedIds, availableIds, DEFAULT_TOOLS_ORDER);
+        for (const id of finalOrder) {
+            const el = getToolSectionElement(panel, id);
+            if (el) panel.appendChild(el);
+        }
+    }
+
+    function saveToolsOrder() {
+        const panel = getToolsPanel();
+        if (!panel) return;
+        const order = Array.from(panel.children).map(getToolSectionId).filter(Boolean);
+        try {
+            localStorage.setItem(TOOLS_ORDER_KEY, JSON.stringify(order));
+        } catch (_) {}
+    }
+
+    window.resetToolsOrder = function() {
+        try {
+            localStorage.removeItem(TOOLS_ORDER_KEY);
+        } catch (_) {}
+        applyToolsOrder(DEFAULT_TOOLS_ORDER);
+        if (typeof showToast === 'function') {
+            const msg = typeof t === 'function' ? t('msg_tools_order_reset', 'Tools order restored to default.') : 'Tools order restored to default.';
+            showToast(msg, 'success');
+        }
+    };
+
+    window.applyToolsOrder = applyToolsOrder;
+    window.saveToolsOrder = saveToolsOrder;
+
+    function initToolsOrder() {
+        const panel = getToolsPanel();
+        if (!panel) return;
+
+        let saved = null;
+        try {
+            const raw = localStorage.getItem(TOOLS_ORDER_KEY);
+            if (raw) saved = JSON.parse(raw);
+        } catch (_) {
+            saved = null;
+        }
+        applyToolsOrder(saved);
+
+        if (typeof Sortable !== 'undefined' && !panel._toolsSortable) {
+            panel._toolsSortable = Sortable.create(panel, {
+                handle: '.tool-drag-handle',
+                draggable: '#video-sidebar-container, details.tool-group',
+                animation: 150,
+                delay: 250,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 5,
+                ghostClass: 'tool-group-ghost',
+                chosenClass: 'tool-group-chosen',
+                onEnd: function() {
+                    saveToolsOrder();
+                }
+            });
+        }
+    }
+
+    if (typeof document !== 'undefined') {
+        document.addEventListener('DOMContentLoaded', initToolsOrder);
+    }
+
 })(window.mNotes.ui.utils);

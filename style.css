@@ -3791,6 +3791,39 @@ body.theme-light.play-armed #stagePlayBtn::after {
     min-height: 20px;
 }
 
+/* Tools Drawer Reordering */
+.drawer-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.tool-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    opacity: 0.65;
+    border-radius: 4px;
+}
+.tool-drag-handle:hover,
+.tool-drag-handle:active {
+    opacity: 1;
+    color: var(--text-main);
+}
+.tool-group-ghost {
+    opacity: 0.45;
+}
+.tool-group-chosen {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
 /* Tuner Big Display Overlay (E2) */
 .tuner-big-overlay {
     position: fixed;
@@ -3799,11 +3832,45 @@ body.theme-light.play-armed #stagePlayBtn::after {
     background: var(--bg-main);
     color: var(--text-main);
     display: flex;
+    align-items: stretch;
+    justify-content: center;
+    box-sizing: border-box;
+}
+.tuner-big-card {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-main);
+    color: var(--text-main);
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px calc(28px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
+}
+@media (min-width: 768px) {
+    .tuner-big-overlay {
+        align-items: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    body.theme-light .tuner-big-overlay {
+        background: rgba(15, 23, 42, 0.35);
+    }
+    .tuner-big-card {
+        width: min(720px, 90vw);
+        height: auto;
+        max-height: 90dvh;
+        overflow-y: auto;
+        gap: 20px;
+        padding: 24px 28px 28px;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-panel);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
 }
 .tuner-big-header {
     width: 100%;

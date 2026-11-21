@@ -642,43 +642,19 @@
             }
         },
 
-        applyRunningLayout: function(running) {
+        scrollTunerIntoView: function() {
             if (typeof document === 'undefined') return;
             const drawer = document.getElementById('drawerTunerChords');
-            const chordsGroup = document.getElementById('guitarChordsGroup');
-            const chordsSep = document.getElementById('guitarChordsSep');
+            if (drawer) drawer.open = true;
+            if (this.elGroup && typeof this.elGroup.scrollIntoView === 'function') {
+                this.elGroup.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        },
 
-            if (running) {
-                if (!this._savedLayout) {
-                    this._savedLayout = {
-                        drawerParent: drawer ? drawer.parentNode : null,
-                        drawerNext: drawer ? drawer.nextSibling : null,
-                        drawerOpen: drawer ? drawer.open : true,
-                        chordsDisplay: chordsGroup ? chordsGroup.style.display : '',
-                        sepDisplay: chordsSep ? chordsSep.style.display : ''
-                    };
-                }
-                if (drawer) {
-                    drawer.open = true;
-                    if (drawer.parentNode && drawer.parentNode.firstElementChild !== drawer) {
-                        drawer.parentNode.insertBefore(drawer, drawer.parentNode.firstElementChild);
-                    }
-                }
-                if (chordsGroup) chordsGroup.style.display = 'none';
-                if (chordsSep) chordsSep.style.display = 'none';
-            } else if (this._savedLayout) {
-                const saved = this._savedLayout;
-                this._savedLayout = null;
-                if (chordsGroup) chordsGroup.style.display = saved.chordsDisplay;
-                if (chordsSep) chordsSep.style.display = saved.sepDisplay;
-                if (drawer && saved.drawerParent) {
-                    if (saved.drawerNext && saved.drawerNext.parentNode === saved.drawerParent) {
-                        saved.drawerParent.insertBefore(drawer, saved.drawerNext);
-                    } else {
-                        saved.drawerParent.appendChild(drawer);
-                    }
-                    drawer.open = saved.drawerOpen;
-                }
+        onBigOverlayClick: function(e) {
+            if (!this.isBigViewOpen || !e) return;
+            if (e.target === this.elBigOverlay && typeof window !== 'undefined' && window.innerWidth >= 768) {
+                this.closeBigView();
             }
         },
 
@@ -868,7 +844,7 @@
                     this.elBtnLabel.innerText = tr('tuner_stop', '');
                 }
                 this.setNeutralDisplay(tr('tuner_listening', ''));
-                this.applyRunningLayout(true);
+                this.scrollTunerIntoView();
 
                 console.log(`[Tuner] Started with A4 = ${this.refFreq}Hz`);
                 this.detect();
@@ -907,7 +883,6 @@
             if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
 
             this.closeBigView();
-            this.applyRunningLayout(false);
             this.resetTrackingState();
             this.timeBuffer = null;
 

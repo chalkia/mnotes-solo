@@ -397,7 +397,7 @@
                         <summary class="drawer-header">
                             <span><i class="fab fa-youtube" style="color:#ff0000;"></i> <span
                                     data-i18n="title_video">VIDEO LINK</span></span>
-                            <i class="fas fa-chevron-down toggle-icon"></i>
+                            <span class="drawer-header-actions"><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                         </summary>
                         <div class="group-content drawer-content" style="padding:0;">
                             <div id="video-embed-box" class="video-responsive"
@@ -411,7 +411,7 @@
                     <summary class="drawer-header">
                         <span><i class="fas fa-microphone-alt" style="color:var(--accent);"></i> <span
                                 data-i18n="title_audio_hub">AUDIO HUB</span></span>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <span class="drawer-header-actions"><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                     </summary>
                     <div class="group-content drawer-content">
 
@@ -553,7 +553,7 @@
                     <summary class="drawer-header">
                         <span><i class="fas fa-file-image" style="color:var(--accent);"></i> <span
                                 data-i18n="sum_visuals">IMAGES & SCORES</span></span>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <span class="drawer-header-actions"><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                     </summary>
                     <div class="group-content drawer-content">
                         <div id="list-visuals" class="file-list compact" style="margin-bottom: 10px;">
@@ -573,7 +573,7 @@
                     <summary class="drawer-header">
                         <span><i class="fas fa-drum"></i> <span data-i18n="sum_rhythms">RHYTHMS &
                                 METRONOME</span></span>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <span class="drawer-header-actions"><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                     </summary>
                     <div class="group-content drawer-content">
                         <div
@@ -665,7 +665,7 @@
                     <summary class="drawer-header">
                         <span><i class="fas fa-guitar" style="color:var(--accent);"></i> <span
                                 data-i18n="sum_tuner_chords">TUNER & CHORDS</span></span>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
+                        <span class="drawer-header-actions"><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                     </summary>
                     <div class="group-content drawer-content" style="display: flex; flex-direction: column; gap: 15px;">
                         <!-- Tuner Integrated -->
@@ -1036,7 +1036,13 @@
 
                     <div id="failedSyncSection" data-pro-only style="display:none; margin-top:20px; border-top:1px solid rgba(255,80,80,0.35); padding-top:15px;"></div>
 
-                    <div data-pro-only style="margin-top:25px; text-align:center;">
+                    <div style="margin-top:20px; text-align:center;">
+                        <button id="btnResetToolsOrder" type="button" onclick="window.resetToolsOrder()" class="modal-btn" style="width:100%; padding: 10px; background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); cursor: pointer; border-radius: 6px;">
+                            <i class="fas fa-undo"></i> <span data-i18n="btn_reset_tools_order">Επαναφορά αρχικής σειράς Βοηθημάτων</span>
+                        </button>
+                    </div>
+
+                    <div data-pro-only style="margin-top:12px; text-align:center;">
                         <button onclick="redeemGiftCode()" class="modal-btn" style="width:100%; padding: 10px; background:var(--bg-panel); border:1px dashed var(--accent); color:var(--accent); cursor: pointer; border-radius: 6px;">
                             <i class="fas fa-gift"></i> <span data-i18n="btn_gift_or_band_code">Κωδικός δώρου ή μπάντας</span>
                         </button>
@@ -1803,58 +1809,58 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.7.7T.211126"></script>
-        <script src="js/config.js?v=2.7.7T.211126"></script>
+        <script src="js/edition.js?v=2.7.8T.211126"></script>
+        <script src="js/config.js?v=2.7.8T.211126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.7.7T.211126"></script>
-        <script src="js/translations.js?v=2.7.7T.211126"></script>
-        <script src="js/storage.js?v=2.7.7T.211126"></script>
+        <script src="js/data.js?v=2.7.8T.211126"></script>
+        <script src="js/translations.js?v=2.7.8T.211126"></script>
+        <script src="js/storage.js?v=2.7.8T.211126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.7.7T.211126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.7.7T.211126"></script>
-        <script src="js/custom-kits.js?v=2.7.7T.211126"></script>
-        <script src="js/drum-machine.js?v=2.7.7T.211126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.7.7T.211126"></script>
+        <script src="js/sample-kit-data.js?v=2.7.8T.211126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.7.8T.211126"></script>
+        <script src="js/custom-kits.js?v=2.7.8T.211126"></script>
+        <script src="js/drum-machine.js?v=2.7.8T.211126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.7.8T.211126"></script>
 
-        <script src="js/modules/utils.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/assets.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/played-set.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/player.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/editor.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/library.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/settings.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/ui-utils.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/rhythm.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/theory.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/visuals.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/band.js?v=2.7.7T.211126"></script>
-        <script src="js/modules/export.js?v=2.7.7T.211126"></script>
+        <script src="js/modules/utils.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/assets.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/played-set.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/player.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/editor.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/library.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/settings.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/ui-utils.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/rhythm.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/theory.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/visuals.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/band.js?v=2.7.8T.211126"></script>
+        <script src="js/modules/export.js?v=2.7.8T.211126"></script>
 
-        <script src="js/auth.js?v=2.7.7T.211126"></script>
-        <script src="js/basicmetronome.js?v=2.7.7T.211126"></script>
-        <script src="js/permissions.js?v=2.7.7T.211126"></script>
-        <script src="libs/fflate.min.js?v=2.7.7T.211126-0995c94"></script>
-        <script src="js/modules/package.js?v=2.7.7T.211126-0995c94"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.7.7T.211126-0995c94"></script>
-        <script src="js/solo/local-assets.js?v=2.7.7T.211126-0995c94"></script>
-        <script src="js/solo/backup.js?v=2.7.7T.211126-0995c94"></script>
-        <script src="js/logic.js?v=2.7.7T.211126"></script>
-        <script src="js/floating-tools.js?v=2.7.7T.211126"></script>
-        <script src="js/tuner.js?v=2.7.7T.211126"></script>
-        <script src="js/ui.js?v=2.7.7T.211126"></script>
-        <script src="js/release-notes.js?v=2.7.7T.211126"></script>
-        <script src="js/chord-player.js?v=2.7.7T.211126"></script>
-        <script src="js/chords.js?v=2.7.7T.211126"></script>
+        <script src="js/auth.js?v=2.7.8T.211126"></script>
+        <script src="js/basicmetronome.js?v=2.7.8T.211126"></script>
+        <script src="js/permissions.js?v=2.7.8T.211126"></script>
+        <script src="libs/fflate.min.js?v=2.7.8T.211126-b48003f"></script>
+        <script src="js/modules/package.js?v=2.7.8T.211126-b48003f"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.7.8T.211126-b48003f"></script>
+        <script src="js/solo/local-assets.js?v=2.7.8T.211126-b48003f"></script>
+        <script src="js/solo/backup.js?v=2.7.8T.211126-b48003f"></script>
+        <script src="js/logic.js?v=2.7.8T.211126"></script>
+        <script src="js/floating-tools.js?v=2.7.8T.211126"></script>
+        <script src="js/tuner.js?v=2.7.8T.211126"></script>
+        <script src="js/ui.js?v=2.7.8T.211126"></script>
+        <script src="js/release-notes.js?v=2.7.8T.211126"></script>
+        <script src="js/chord-player.js?v=2.7.8T.211126"></script>
+        <script src="js/chords.js?v=2.7.8T.211126"></script>
 
-        <script src="js/app.js?v=2.7.7T.211126"></script>
+        <script src="js/app.js?v=2.7.8T.211126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.7.7T.211126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.7.8T.211126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>
@@ -2006,44 +2012,47 @@
 
         <!-- Tuner Big Display Overlay (E2) -->
         <div id="tunerBigOverlay" class="tuner-big-overlay" style="display: none;" role="dialog" aria-modal="true"
+            onclick="ChromaticTuner.onBigOverlayClick(event)"
             data-i18n-aria="tuner_big_title" aria-label="Κουρδιστήρι — Μεγάλη Ένδειξη">
-            <div class="tuner-big-header">
-                <span id="tunerBigInstrument" class="tuner-big-inst"></span>
-                <button id="btnCloseTunerBig" type="button" class="tuner-big-close" onclick="ChromaticTuner.closeBigView()"
-                    data-i18n-aria="tuner_big_close" aria-label="Κλείσιμο μεγάλης ένδειξης">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div id="tunerBigStringsRow" class="tuner-strings-row tuner-big-strings" style="display: none;"></div>
-            <div class="tuner-big-center">
-                <div id="tunerBigNote" class="tuner-big-note">-</div>
-                <div class="tuner-big-meta">
-                    <span id="tunerBigCents" class="tuner-big-cents">0c</span>
-                    <span id="tunerBigHz" class="tuner-big-hz">0.0 Hz</span>
+            <div id="tunerBigCard" class="tuner-big-card" onclick="event.stopPropagation()">
+                <div class="tuner-big-header">
+                    <span id="tunerBigInstrument" class="tuner-big-inst"></span>
+                    <button id="btnCloseTunerBig" type="button" class="tuner-big-close" onclick="ChromaticTuner.closeBigView()"
+                        data-i18n-aria="tuner_big_close" aria-label="Κλείσιμο μεγάλης ένδειξης">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-            </div>
-            <div id="tunerBigScale" class="tuner-scale tuner-big-scale">
-                <div class="tuner-target-zone"></div>
-                <div class="tuner-ticks">
-                    <span class="tuner-tick" style="left:0%" data-label="-50"></span>
-                    <span class="tuner-tick minor" style="left:10%"></span>
-                    <span class="tuner-tick minor" style="left:20%"></span>
-                    <span class="tuner-tick major" style="left:25%" data-label="-25"></span>
-                    <span class="tuner-tick minor" style="left:30%"></span>
-                    <span class="tuner-tick minor" style="left:40%"></span>
-                    <span class="tuner-tick center" style="left:50%" data-label="0"></span>
-                    <span class="tuner-tick minor" style="left:60%"></span>
-                    <span class="tuner-tick minor" style="left:70%"></span>
-                    <span class="tuner-tick major" style="left:75%" data-label="+25"></span>
-                    <span class="tuner-tick minor" style="left:80%"></span>
-                    <span class="tuner-tick minor" style="left:90%"></span>
-                    <span class="tuner-tick" style="left:100%" data-label="+50"></span>
+                <div id="tunerBigStringsRow" class="tuner-strings-row tuner-big-strings" style="display: none;"></div>
+                <div class="tuner-big-center">
+                    <div id="tunerBigNote" class="tuner-big-note">-</div>
+                    <div class="tuner-big-meta">
+                        <span id="tunerBigCents" class="tuner-big-cents">0c</span>
+                        <span id="tunerBigHz" class="tuner-big-hz">0.0 Hz</span>
+                    </div>
                 </div>
-                <span id="tunerBigOverflowLeft" class="tuner-overflow-arrow left">◀</span>
-                <span id="tunerBigOverflowRight" class="tuner-overflow-arrow right">▶</span>
-                <div id="tunerBigIndicator" class="tuner-needle"></div>
+                <div id="tunerBigScale" class="tuner-scale tuner-big-scale">
+                    <div class="tuner-target-zone"></div>
+                    <div class="tuner-ticks">
+                        <span class="tuner-tick" style="left:0%" data-label="-50"></span>
+                        <span class="tuner-tick minor" style="left:10%"></span>
+                        <span class="tuner-tick minor" style="left:20%"></span>
+                        <span class="tuner-tick major" style="left:25%" data-label="-25"></span>
+                        <span class="tuner-tick minor" style="left:30%"></span>
+                        <span class="tuner-tick minor" style="left:40%"></span>
+                        <span class="tuner-tick center" style="left:50%" data-label="0"></span>
+                        <span class="tuner-tick minor" style="left:60%"></span>
+                        <span class="tuner-tick minor" style="left:70%"></span>
+                        <span class="tuner-tick major" style="left:75%" data-label="+25"></span>
+                        <span class="tuner-tick minor" style="left:80%"></span>
+                        <span class="tuner-tick minor" style="left:90%"></span>
+                        <span class="tuner-tick" style="left:100%" data-label="+50"></span>
+                    </div>
+                    <span id="tunerBigOverflowLeft" class="tuner-overflow-arrow left">◀</span>
+                    <span id="tunerBigOverflowRight" class="tuner-overflow-arrow right">▶</span>
+                    <div id="tunerBigIndicator" class="tuner-needle"></div>
+                </div>
+                <div id="tunerBigStatus" class="tuner-big-status"></div>
             </div>
-            <div id="tunerBigStatus" class="tuner-big-status"></div>
         </div>
 </body>
 
