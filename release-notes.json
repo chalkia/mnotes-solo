@@ -2,11 +2,49 @@
   "_comment": "Σημειώσεις έκδοσης, ΟΡΑΤΕΣ ΣΤΟΝ ΧΡΗΣΤΗ / User-facing Release Notes. Νεότερη έκδοση πρώτη / Newest first. type: new | fix | improved",
   "releases": [
     {
+      "version": "2.7.8",
+      "date": "2026-11-21",
+      "title": {
+        "el": "Κουρδιστήρι & Βοηθήματα",
+        "en": "Tuner & Tools"
+      },
+      "items": [
+        {
+          "type": "improved",
+          "text": {
+            "el": "Κουρδιστήρι: σταθερή και γρήγορη ένδειξη, ακόμη και σε σιγανό όργανο.",
+            "en": "Tuner: steady and responsive display, even on a quiet instrument."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Νέα ένδειξη με βελόνα, τις χορδές του οργάνου σου και οδηγία \"σφίξε / χαλάρωσε\". Πάτα τη νότα για μεγάλη ένδειξη.",
+            "en": "New needle gauge with your instrument's strings and \"tighten / loosen\" guidance. Tap the note for a large display."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Προστέθηκαν Μαντολίνο και Ούτι στο κουρδιστήρι.",
+            "en": "Added Mandolin and Oud to the tuner."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Βάλε τις ενότητες των Βοηθημάτων στη σειρά που θέλεις: σύρε τη λαβή ⠿. Επαναφορά από τις Ρυθμίσεις.",
+            "en": "Arrange the Tools sections in any order you like: drag the ⠿ handle. Reset anytime from Settings."
+          }
+        }
+      ]
+    },
+    {
       "version": "2.7.3",
       "date": "2026-11-20",
       "title": {
-        "el": "Βελτιώσεις Σκηνής, «Τι νέο» & Κωδικών Δώρου",
-        "en": "Stage, What's New & Gift Code Improvements"
+        "el": "Τι νέο & κωδικοί δώρου",
+        "en": "What's New & Gift Codes"
       },
       "items": [
         {
