@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-solo-v2.7.8.211126-d01b8eb';
+const CACHE_NAME = 'mnotes-solo-v2.7.8.211126-e59fc43';
 
 /* ΚΡΙΣΙΜΑ: χωρίς αυτά το mNotes δεν ανοίγει offline.
    Αν έστω ένα αποτύχει, η εγκατάσταση του SW ΑΠΟΤΥΓΧΑΝΕΙ και ο browser
@@ -24,6 +24,9 @@ const CORE_ASSETS = [
     'js/solo/local-storage-policy.js',
     'js/solo/local-assets.js',
     'js/solo/backup.js',
+    'js/solo/messages.js',
+    'js/solo/account.js',
+    'messages-solo.json',
     'js/logic.js',
     'js/floating-tools.js',
     'js/tuner.js',

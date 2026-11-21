@@ -1069,6 +1069,8 @@
                             <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
                                 <button type="button" id="btnSoloExportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="if(window.SoloBackup&&SoloBackup.openExportDialog){SoloBackup.openExportDialog();}else if(typeof exportJSON==='function'){exportJSON();}" data-i18n="solo_btn_export_lib">Εξαγωγή βιβλιοθήκης</button>
                                 <button type="button" id="btnSoloImportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="document.getElementById('hiddenFileInput')?.click()" data-i18n="solo_btn_import_lib">Εισαγωγή</button>
+                                <button type="button" id="btnSoloMessages" class="modal-btn" style="padding:7px 12px; font-size:0.78rem; display:inline-flex; align-items:center; gap:6px;" onclick="if(window.SoloMessages&&SoloMessages.openDialog){SoloMessages.openDialog();}"><span data-i18n="solo_btn_messages">Μηνύματα</span><span id="soloMessagesDot" style="display:none; width:7px; height:7px; border-radius:50%; background:var(--accent);"></span></button>
+                                <button type="button" id="soloGiftBtn" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="if(window.SoloAccount&&SoloAccount.openGiftDialog){SoloAccount.openGiftDialog();}" data-i18n="solo_btn_gift_code">Κωδικός δώρου</button>
                             </div>
                         </div>
                     </div>
@@ -1845,11 +1847,13 @@
         <script src="js/auth.js?v=2.7.8.211126"></script>
         <script src="js/basicmetronome.js?v=2.7.8.211126"></script>
         <script src="js/permissions.js?v=2.7.8.211126"></script>
-        <script src="libs/fflate.min.js?v=2.7.8.211126-d01b8eb"></script>
-        <script src="js/modules/package.js?v=2.7.8.211126-d01b8eb"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.7.8.211126-d01b8eb"></script>
-        <script src="js/solo/local-assets.js?v=2.7.8.211126-d01b8eb"></script>
-        <script src="js/solo/backup.js?v=2.7.8.211126-d01b8eb"></script>
+        <script src="libs/fflate.min.js?v=2.7.8.211126-e59fc43"></script>
+        <script src="js/modules/package.js?v=2.7.8.211126-e59fc43"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.7.8.211126-e59fc43"></script>
+        <script src="js/solo/local-assets.js?v=2.7.8.211126-e59fc43"></script>
+        <script src="js/solo/backup.js?v=2.7.8.211126-e59fc43"></script>
+        <script src="js/solo/messages.js?v=2.7.8.211126-e59fc43"></script>
+        <script src="js/solo/account.js?v=2.7.8.211126-e59fc43"></script>
         <script src="js/logic.js?v=2.7.8.211126"></script>
         <script src="js/floating-tools.js?v=2.7.8.211126"></script>
         <script src="js/tuner.js?v=2.7.8.211126"></script>

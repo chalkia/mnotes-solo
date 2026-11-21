@@ -399,8 +399,11 @@
         document.body.setAttribute('data-solo-tier', isPaid ? 'paid' : 'free');
         const lineEl = document.getElementById('soloEditionLine');
         if (lineEl) {
-            const key = isPaid ? 'solo_tier_paid' : 'solo_tier_free';
-            const fallback = isPaid ? 'mNotes Solo · Πλήρης έκδοση' : 'mNotes Solo · Δωρεάν (έως 20 τραγούδια)';
+            const hasGift = Boolean(global.SoloAccount && typeof global.SoloAccount.getActiveGiftLicense === 'function' && global.SoloAccount.getActiveGiftLicense());
+            const key = isPaid ? (hasGift ? 'solo_tier_paid_gift' : 'solo_tier_paid') : 'solo_tier_free';
+            const fallback = isPaid
+                ? (hasGift ? 'mNotes Solo · Πλήρης έκδοση (δώρο)' : 'mNotes Solo · Πλήρης έκδοση')
+                : 'mNotes Solo · Δωρεάν (έως 20 τραγούδια)';
             lineEl.setAttribute('data-i18n', key);
             lineEl.textContent = typeof global.t === 'function' ? global.t(key, fallback) : fallback;
         }

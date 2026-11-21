@@ -48,6 +48,29 @@
         return (data && data.releases && data.releases.length) ? data.releases[0].version : null;
     }
 
+    function filterReleaseItems(items, edition) {
+        if (!Array.isArray(items)) return [];
+        const ed = edition || (typeof window !== 'undefined' && window.MNOTES_EDITION) || 'pro';
+        if (ed !== 'solo') return items;
+        return items.filter(function (it) {
+            return !(it && Array.isArray(it.editions) && it.editions.indexOf('solo') === -1);
+        });
+    }
+
+    function filterReleasesForEdition(releases, edition) {
+        if (!Array.isArray(releases)) return [];
+        var out = [];
+        for (var i = 0; i < releases.length; i++) {
+            var rel = releases[i];
+            if (!rel) continue;
+            var filtered = filterReleaseItems(rel.items, edition);
+            if (filtered.length > 0) {
+                out.push({ version: rel.version, date: rel.date, title: rel.title, items: filtered });
+            }
+        }
+        return out;
+    }
+
     function renderItem(it, lang) {
         var meta = TYPE_META[it && it.type] || { label: {}, color: 'var(--text-muted)' };
         var lblText = localize(meta.label, lang);
@@ -117,7 +140,8 @@
                 return r.json();
             })
             .then(function (data) {
-                var list = (data && Array.isArray(data.releases)) ? data.releases : [];
+                var rawList = (data && Array.isArray(data.releases)) ? data.releases : [];
+                var list = filterReleasesForEdition(rawList);
                 if (!list.length) {
                     box.innerHTML = message('fa-inbox', lang === 'en'
                         ? 'No release notes available.'
@@ -154,7 +178,8 @@
                 return r.json();
             })
             .then(function (data) {
-                var list = (data && Array.isArray(data.releases)) ? data.releases : [];
+                var rawList = (data && Array.isArray(data.releases)) ? data.releases : [];
+                var list = filterReleasesForEdition(rawList);
                 if (!list.length) {
                     listEl.innerHTML = '<li style="color:var(--text-muted);">' +
                         esc(lang === 'en' ? 'No release notes available.' : 'Δεν υπάρχουν σημειώσεις έκδοσης.') + '</li>';
@@ -181,9 +206,14 @@
             });
     };
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', markNavIfUnseen);
-    } else {
-        markNavIfUnseen();
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', markNavIfUnseen);
+        } else {
+            markNavIfUnseen();
+        }
+    }
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = { filterReleaseItems: filterReleaseItems, filterReleasesForEdition: filterReleasesForEdition };
     }
 })();

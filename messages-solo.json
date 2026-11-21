@@ -1,0 +1,43 @@
+{
+  "messages": [
+    {
+      "id": "welcome-solo-2026",
+      "date": "2026-11-21",
+      "type": "info",
+      "title": {
+        "el": "Καλωσήρθες στο mNotes Solo",
+        "en": "Welcome to mNotes Solo"
+      },
+      "body": {
+        "el": "Το mNotes Solo διατίθεται δωρεάν για ατομική μελέτη και ζωντανό παίξιμο. Όλα τα τραγούδια, οι παρτιτούρες και οι ρυθμοί σου αποθηκεύονται τοπικά στη συσκευή σου — χωρίς λογαριασμό και χωρίς σύνδεση στο διαδίκτυο.",
+        "en": "mNotes Solo is free for individual practice and live performance. All your songs, sheet music, and rhythms stay locally on your device — no account and no internet connection required."
+      }
+    },
+    {
+      "id": "getting-started-solo",
+      "date": "2026-11-21",
+      "type": "tip",
+      "title": {
+        "el": "Πώς να ξεκινήσεις",
+        "en": "How to get started"
+      },
+      "body": {
+        "el": "Πάτησε «+» για να γράψεις το πρώτο σου τραγούδι, φόρτωσε τα δοκιμαστικά τραγούδια ή εισήγαγε αρχεία .mnote / .mnotezip. Στα Βοηθήματα θα βρεις το κουρδιστήρι με βελόνα, τη μηχανή ρυθμών και τις συγχορδίες.",
+        "en": "Tap \"+\" to create your first song, load the sample songs, or import .mnote / .mnotezip files. In the Tools drawer you'll find the needle tuner, drum machine, and chord charts."
+      }
+    },
+    {
+      "id": "backup-and-pro-solo",
+      "date": "2026-11-21",
+      "type": "promo",
+      "title": {
+        "el": "Αντίγραφο ασφαλείας & mNotes Pro για μπάντες",
+        "en": "Backups & mNotes Pro for bands"
+      },
+      "body": {
+        "el": "Επειδή τα δεδομένα σου μένουν μόνο στη συσκευή, κράτα τακτικά ένα αντίγραφο (.mnotezip) από τις Ρυθμίσεις. Αν παίζεις σε μπάντα και θέλεις συγχρονισμό Cloud, κοινές λίστες και mStudio, δες το mNotes Pro στο mnotes.gr.",
+        "en": "Because your data lives only on this device, export a backup (.mnotezip) regularly from Settings. If you play in a band and need Cloud sync, shared setlists, and mStudio, check out mNotes Pro at mnotes.gr."
+      }
+    }
+  ]
+}
