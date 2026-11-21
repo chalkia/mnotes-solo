@@ -435,8 +435,12 @@
     }
 
     function tr(key, fallback) {
-        if (typeof t === 'function') return t(key, fallback);
-        return fallback;
+        if (typeof t === 'function') return t(key, fallback || '');
+        if (typeof TRANSLATIONS !== 'undefined' && typeof currentLang !== 'undefined') {
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.el || TRANSLATIONS.en;
+            if (dict && dict[key]) return dict[key];
+        }
+        return fallback || '';
     }
 
     function isTunerDebugEnabled() {
@@ -472,6 +476,12 @@
         displayedMidi: null,
         timeBuffer: null,
         elDebug: null,
+        isBigViewOpen: false,
+        _lastUiState: null,
+        _savedLayout: null,
+        _hooksInstalled: false,
+        _escHandler: null,
+        _popHandler: null,
 
         // ✨ Λεξικό Ορίων & Στόχων Συχνοτήτων ανά Όργανο (Μαγνητικό Κλείδωμα)
         currentInstrument: 'chromatic',
@@ -496,11 +506,29 @@
         NOTES: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
 
         // UI Elements Cache
+        elGroup: null,
+        elInstrument: null,
+        elStringsRow: null,
         elNote: null,
+        elCents: null,
         elHz: null,
         elBar: null,
+        elOverflowLeft: null,
+        elOverflowRight: null,
         elStatus: null,
         elBtn: null,
+        elBtnLabel: null,
+        // Big Display Elements Cache (E2)
+        elBigOverlay: null,
+        elBigInst: null,
+        elBigStringsRow: null,
+        elBigNote: null,
+        elBigCents: null,
+        elBigHz: null,
+        elBigBar: null,
+        elBigOverflowLeft: null,
+        elBigOverflowRight: null,
+        elBigStatus: null,
 
         getFftSize: function(inst, sampleRate) {
             const range = ChromaticTuner.RANGES[inst] || ChromaticTuner.RANGES.chromatic;
@@ -511,21 +539,241 @@
             return Math.min(8192, Math.max(4096, size));
         },
 
+        midiToParts: function(midi) {
+            const idx = ((midi % 12) + 12) % 12;
+            const oct = Math.floor(midi / 12) - 1;
+            return { letter: this.NOTES[idx], octave: oct, label: `${this.NOTES[idx]}${oct}` };
+        },
+
+        renderNoteHtml: function(letter, octave) {
+            if (!letter || letter === '-') return '-';
+            if (octave === undefined || octave === null || octave === '') return letter;
+            return `${letter}<span class="tuner-octave">${octave}</span>`;
+        },
+
+        renderStringsRow: function(activeMidi, zone) {
+            const range = this.RANGES[this.currentInstrument];
+            const targets = range && range.targets ? range.targets : null;
+            const containers = [this.elStringsRow, this.elBigStringsRow].filter(Boolean);
+            for (const row of containers) {
+                if (!targets || targets.length === 0) {
+                    row.style.display = 'none';
+                    row.innerHTML = '';
+                    continue;
+                }
+                row.style.display = 'flex';
+                row.innerHTML = targets.map(midi => {
+                    const parts = this.midiToParts(midi);
+                    const isActive = activeMidi === midi;
+                    let cls = 'tuner-string-pill';
+                    if (isActive) {
+                        cls += ' is-active';
+                        if (zone === 'perfect') cls += ' is-perfect';
+                        else if (zone === 'almost' || zone === 'warn') cls += ' is-warning';
+                    }
+                    return `<span class="${cls}" data-midi="${midi}">${parts.label}</span>`;
+                }).join('');
+            }
+        },
+
+        refreshTranslations: function() {
+            if (!this.elNote) this.initUI();
+            if (this.elInstrument) {
+                this.elInstrument.setAttribute('aria-label', tr('tuner_instrument_aria', ''));
+            }
+            if (this.elBtn) {
+                this.elBtn.setAttribute('aria-label', tr('tuner_toggle_aria', ''));
+            }
+            if (this.elBtnLabel) {
+                this.elBtnLabel.innerText = this.isRunning ? tr('tuner_stop', '') : tr('tuner_start', '');
+            }
+            const openTitle = tr('tuner_big_open_title', '');
+            const readout = document.getElementById('tunerReadout');
+            const scale = document.getElementById('tunerScale');
+            if (readout && openTitle) readout.setAttribute('title', openTitle);
+            if (scale && openTitle) scale.setAttribute('title', openTitle);
+            if (this.elBigOverlay) {
+                this.elBigOverlay.setAttribute('aria-label', tr('tuner_big_title', ''));
+            }
+            const closeBtn = document.getElementById('btnCloseTunerBig');
+            if (closeBtn) {
+                closeBtn.setAttribute('aria-label', tr('tuner_big_close', ''));
+            }
+            if (this.elBigInst && this.elInstrument) {
+                const opt = this.elInstrument.options[this.elInstrument.selectedIndex];
+                if (opt) this.elBigInst.innerText = opt.innerText;
+            }
+
+            if (!this.isRunning) {
+                if (this.elStatus) this.elStatus.innerText = tr('tuner_inactive', '');
+                if (this.elBigStatus) this.elBigStatus.innerText = tr('tuner_inactive', '');
+            } else if (this.isSilentState || !this._lastUiState) {
+                if (this.elStatus) this.elStatus.innerText = tr('tuner_listening', '');
+                if (this.elBigStatus) this.elBigStatus.innerText = tr('tuner_listening', '');
+            } else {
+                const s = this._lastUiState;
+                this.updateUI(s.note, s.hz, s.cents, s.outOfRange, s.now, s.targetMidi);
+            }
+        },
+
+        installHooks: function() {
+            if (typeof window === 'undefined') return;
+
+            if (typeof window.applyTranslations === 'function' && !window.applyTranslations.__tunerWrapped) {
+                const origApply = window.applyTranslations;
+                const wrapped = () => {
+                    origApply();
+                    this.refreshTranslations();
+                };
+                wrapped.__tunerWrapped = true;
+                window.applyTranslations = wrapped;
+            }
+
+            if (this._hooksInstalled) return;
+            this._hooksInstalled = true;
+
+            if (typeof MutationObserver !== 'undefined' && document.body) {
+                const obs = new MutationObserver(() => {
+                    if (document.body.classList.contains('play-mode') && this.isBigViewOpen) {
+                        this.closeBigView();
+                    }
+                });
+                obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+            }
+        },
+
+        applyRunningLayout: function(running) {
+            if (typeof document === 'undefined') return;
+            const drawer = document.getElementById('drawerTunerChords');
+            const chordsGroup = document.getElementById('guitarChordsGroup');
+            const chordsSep = document.getElementById('guitarChordsSep');
+
+            if (running) {
+                if (!this._savedLayout) {
+                    this._savedLayout = {
+                        drawerParent: drawer ? drawer.parentNode : null,
+                        drawerNext: drawer ? drawer.nextSibling : null,
+                        drawerOpen: drawer ? drawer.open : true,
+                        chordsDisplay: chordsGroup ? chordsGroup.style.display : '',
+                        sepDisplay: chordsSep ? chordsSep.style.display : ''
+                    };
+                }
+                if (drawer) {
+                    drawer.open = true;
+                    if (drawer.parentNode && drawer.parentNode.firstElementChild !== drawer) {
+                        drawer.parentNode.insertBefore(drawer, drawer.parentNode.firstElementChild);
+                    }
+                }
+                if (chordsGroup) chordsGroup.style.display = 'none';
+                if (chordsSep) chordsSep.style.display = 'none';
+            } else if (this._savedLayout) {
+                const saved = this._savedLayout;
+                this._savedLayout = null;
+                if (chordsGroup) chordsGroup.style.display = saved.chordsDisplay;
+                if (chordsSep) chordsSep.style.display = saved.sepDisplay;
+                if (drawer && saved.drawerParent) {
+                    if (saved.drawerNext && saved.drawerNext.parentNode === saved.drawerParent) {
+                        saved.drawerParent.insertBefore(drawer, saved.drawerNext);
+                    } else {
+                        saved.drawerParent.appendChild(drawer);
+                    }
+                    drawer.open = saved.drawerOpen;
+                }
+            }
+        },
+
+        openBigView: function() {
+            if (!this.isRunning) return;
+            if (typeof document !== 'undefined' && document.body && document.body.classList.contains('play-mode')) return;
+            if (!this.elNote) this.initUI();
+            if (!this.elBigOverlay) return;
+
+            this.isBigViewOpen = true;
+            this.elBigOverlay.style.display = 'flex';
+            if (this.elBigInst && this.elInstrument) {
+                const opt = this.elInstrument.options[this.elInstrument.selectedIndex];
+                if (opt) this.elBigInst.innerText = opt.innerText;
+            }
+            this.refreshTranslations();
+
+            if (!this._escHandler) {
+                this._escHandler = (e) => {
+                    if (e.key === 'Escape' && this.isBigViewOpen) {
+                        this.closeBigView();
+                    }
+                };
+                document.addEventListener('keydown', this._escHandler);
+            }
+            if (!this._popHandler) {
+                this._popHandler = () => {
+                    if (this.isBigViewOpen) {
+                        this.closeBigView(true);
+                    }
+                };
+                window.addEventListener('popstate', this._popHandler);
+            }
+            try {
+                if (!window.history.state || !window.history.state.tunerBig) {
+                    window.history.pushState({ ...(window.history.state || {}), tunerBig: true }, '');
+                }
+            } catch (_) {}
+        },
+
+        closeBigView: function(fromPopState) {
+            if (!this.isBigViewOpen) return;
+            this.isBigViewOpen = false;
+            if (this.elBigOverlay) {
+                this.elBigOverlay.style.display = 'none';
+            }
+            if (this._escHandler) {
+                document.removeEventListener('keydown', this._escHandler);
+                this._escHandler = null;
+            }
+            if (this._popHandler) {
+                window.removeEventListener('popstate', this._popHandler);
+                this._popHandler = null;
+            }
+            if (!fromPopState) {
+                try {
+                    if (window.history.state && window.history.state.tunerBig) {
+                        window.history.back();
+                    }
+                } catch (_) {}
+            }
+        },
+
         resetTrackingState: function() {
             this.smoother.reset();
             this.stateMachine.reset();
             this.displayedMidi = null;
+            this._lastUiState = null;
         },
 
         initUI: function() {
+            this.elGroup = document.getElementById('tunerGroup');
+            this.elInstrument = document.getElementById('tunerInstrument');
+            this.elStringsRow = document.getElementById('tunerStringsRow');
             this.elNote = document.getElementById('tunerNote');
+            this.elCents = document.getElementById('tunerCents');
             this.elHz = document.getElementById('tunerHz');
             this.elBar = document.getElementById('tunerIndicator');
+            this.elOverflowLeft = document.getElementById('tunerOverflowLeft');
+            this.elOverflowRight = document.getElementById('tunerOverflowRight');
             this.elStatus = document.getElementById('tunerStatus');
             this.elBtn = document.getElementById('btnToggleTuner');
-            if (this.elBar) {
-                this.elBar.style.transition = 'width 80ms linear, background-color 120ms ease';
-            }
+            this.elBtnLabel = document.getElementById('btnToggleTunerLabel');
+
+            this.elBigOverlay = document.getElementById('tunerBigOverlay');
+            this.elBigInst = document.getElementById('tunerBigInstrument');
+            this.elBigStringsRow = document.getElementById('tunerBigStringsRow');
+            this.elBigNote = document.getElementById('tunerBigNote');
+            this.elBigCents = document.getElementById('tunerBigCents');
+            this.elBigHz = document.getElementById('tunerBigHz');
+            this.elBigBar = document.getElementById('tunerBigIndicator');
+            this.elBigOverflowLeft = document.getElementById('tunerBigOverflowLeft');
+            this.elBigOverflowRight = document.getElementById('tunerBigOverflowRight');
+            this.elBigStatus = document.getElementById('tunerBigStatus');
+
             if (isTunerDebugEnabled() && this.elStatus && !this.elDebug) {
                 let dbg = document.getElementById('tunerDebugLine');
                 if (!dbg) {
@@ -536,12 +784,20 @@
                 }
                 this.elDebug = dbg;
             }
+            this.installHooks();
+            this.renderStringsRow(null, null);
         },
 
         setInstrument: function(inst) {
             if (this.RANGES[inst]) {
                 this.currentInstrument = inst;
                 this.resetTrackingState();
+                if (!this.elNote) this.initUI();
+                this.renderStringsRow(null, null);
+                if (this.elBigInst && this.elInstrument) {
+                    const opt = this.elInstrument.options[this.elInstrument.selectedIndex];
+                    if (opt) this.elBigInst.innerText = opt.innerText;
+                }
                 if (this.analyser && this.audioCtx) {
                     const nextSize = this.getFftSize(inst, this.audioCtx.sampleRate);
                     if (this.analyser.fftSize !== nextSize) {
@@ -559,6 +815,7 @@
         },
 
         start: async function() {
+            if (!this.elNote) this.initUI();
             try {
                 // Φόρτωση του A4 από τις γενικές ρυθμίσεις του mNotes
                 const settings = JSON.parse(localStorage.getItem('mnotes_settings') || "{}");
@@ -597,17 +854,50 @@
                 this.lastValidTime = performance.now();
                 this.isSilentState = true;
 
-                this.elBtn.innerHTML = `<i class="fas fa-stop"></i>`;
-                this.elBtn.style.color = "var(--danger)";
-                this.elBtn.style.borderColor = "var(--danger)";
-                this.elStatus.innerText = tr('tuner_listening', "Ακούω...");
+                if (this.elGroup) {
+                    this.elGroup.classList.add('is-running');
+                    this.elGroup.classList.remove('is-perfect');
+                }
+                if (this.elBtn) {
+                    this.elBtn.classList.add('is-running');
+                    const icon = this.elBtn.querySelector('i');
+                    if (icon) icon.className = 'fas fa-stop';
+                }
+                if (this.elBtnLabel) {
+                    this.elBtnLabel.setAttribute('data-i18n', 'tuner_stop');
+                    this.elBtnLabel.innerText = tr('tuner_stop', '');
+                }
+                this.setNeutralDisplay(tr('tuner_listening', ''));
+                this.applyRunningLayout(true);
 
                 console.log(`[Tuner] Started with A4 = ${this.refFreq}Hz`);
                 this.detect();
             } catch (e) {
                 console.error("Tuner Mic Error:", e);
-                if (typeof showToast === 'function') showToast(tr('msg_mic_denied', "Δεν δόθηκε άδεια για το μικρόφωνο."), "error");
+                if (typeof showToast === 'function') showToast(tr('tuner_mic_denied', ''), "error");
             }
+        },
+
+        setNeutralDisplay: function(statusText) {
+            const noteEls = [this.elNote, this.elBigNote].filter(Boolean);
+            const centsEls = [this.elCents, this.elBigCents].filter(Boolean);
+            const hzEls = [this.elHz, this.elBigHz].filter(Boolean);
+            const barEls = [this.elBar, this.elBigBar].filter(Boolean);
+            const statusEls = [this.elStatus, this.elBigStatus].filter(Boolean);
+            const arrowEls = [this.elOverflowLeft, this.elOverflowRight, this.elBigOverflowLeft, this.elBigOverflowRight].filter(Boolean);
+
+            for (const el of noteEls) { el.innerHTML = '-'; el.style.color = 'var(--text-muted)'; }
+            for (const el of centsEls) { el.innerText = '0c'; el.style.color = 'var(--text-muted)'; }
+            for (const el of hzEls) { el.innerText = '0.0 Hz'; el.style.color = 'var(--text-muted)'; }
+            for (const el of barEls) {
+                el.style.left = '50%';
+                el.style.backgroundColor = 'var(--text-muted)';
+                el.style.color = 'var(--text-muted)';
+            }
+            for (const el of statusEls) { el.innerText = statusText; el.style.color = 'var(--text-muted)'; }
+            for (const el of arrowEls) el.classList.remove('is-visible');
+            if (this.elGroup) this.elGroup.classList.remove('is-perfect');
+            this.renderStringsRow(null, null);
         },
 
         stop: function() {
@@ -616,19 +906,24 @@
             if (this.audioCtx) this.audioCtx.close();
             if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
 
+            this.closeBigView();
+            this.applyRunningLayout(false);
             this.resetTrackingState();
             this.timeBuffer = null;
 
-            this.elBtn.innerHTML = `<i class="fas fa-power-off"></i>`;
-            this.elBtn.style.color = "var(--accent)";
-            this.elBtn.style.borderColor = "var(--accent)";
-            this.elNote.innerText = "-";
-            this.elNote.style.color = "var(--text-muted)";
-            this.elHz.innerText = "0.0 Hz";
-            this.elHz.style.color = "var(--text-muted)";
-            this.elBar.style.width = "0%";
-            this.elStatus.innerText = tr('tuner_inactive', "Ανενεργό");
-            this.elStatus.style.color = "var(--text-muted)";
+            if (this.elGroup) {
+                this.elGroup.classList.remove('is-running', 'is-perfect');
+            }
+            if (this.elBtn) {
+                this.elBtn.classList.remove('is-running');
+                const icon = this.elBtn.querySelector('i');
+                if (icon) icon.className = 'fas fa-power-off';
+            }
+            if (this.elBtnLabel) {
+                this.elBtnLabel.setAttribute('data-i18n', 'tuner_start');
+                this.elBtnLabel.innerText = tr('tuner_start', '');
+            }
+            this.setNeutralDisplay(tr('tuner_inactive', ''));
             if (this.elDebug) this.elDebug.innerText = "";
         },
 
@@ -691,7 +986,7 @@
                         if (isOutOfRange) {
                             this.displayedMidi = null;
                             this.stateMachine.reset();
-                            this.updateUI("-", activeFreq, 0, true, now);
+                            this.updateUI("-", activeFreq, 0, true, now, null);
                             if (this.elDebug) {
                                 this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${result.clarity.toFixed(2)} | ${dt.toFixed(1)} ms | out`;
                             }
@@ -705,18 +1000,15 @@
                                 targetMidi = this.displayedMidi;
                             }
 
-                            const noteIndex = ((targetMidi % 12) + 12) % 12;
-                            const octave = Math.floor(targetMidi / 12) - 1;
-                            const noteName = `${this.NOTES[noteIndex]}${octave}`;
-
+                            const parts = this.midiToParts(targetMidi);
                             const expected = this.refFreq * Math.pow(2, (targetMidi - 69) / 12);
                             const cents = 1200 * Math.log2(activeFreq / expected);
                             const rawNoteCents = 1200 * Math.log2(result.freq / expected);
 
-                            this.updateUI(noteName, activeFreq, cents, false, now);
+                            this.updateUI(parts, activeFreq, cents, false, now, targetMidi);
 
                             if (this.elDebug) {
-                                const modeLabel = this.smoother.getMode() === 'moving' ? 'κίνηση' : 'σταθερό';
+                                const modeLabel = this.smoother.getMode() === 'moving' ? 'moving' : 'stable';
                                 this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${result.clarity.toFixed(2)} | ${dt.toFixed(1)} ms | raw ${rawNoteCents >= 0 ? '+' : ''}${rawNoteCents.toFixed(1)}c | sm ${cents >= 0 ? '+' : ''}${cents.toFixed(1)}c | ${modeLabel}`;
                             }
                         }
@@ -724,7 +1016,7 @@
                 } else {
                     if (this.elDebug) {
                         const cl = result ? result.clarity.toFixed(2) : '-';
-                        this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${cl} | ${dt.toFixed(1)} ms | σιωπή`;
+                        this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${cl} | ${dt.toFixed(1)} ms | -`;
                     }
                     if (!result && rms > 0) {
                         const alpha = rms < this.noiseFloorRms ? 0.2 : 0.05;
@@ -735,14 +1027,7 @@
                     if (!this.isSilentState && (now - this.lastValidTime > this.silenceTimeoutMs)) {
                         this.isSilentState = true;
                         this.resetTrackingState();
-                        this.elStatus.innerText = tr('tuner_listening', "Ακούω...");
-                        this.elStatus.style.color = "var(--text-muted)";
-                        this.elNote.innerText = "-";
-                        this.elNote.style.color = "var(--text-muted)";
-                        this.elHz.innerText = "0.0 Hz";
-                        this.elHz.style.color = "var(--text-muted)";
-                        this.elBar.style.width = "0%";
-                        this.elBar.style.backgroundColor = "var(--text-muted)";
+                        this.setNeutralDisplay(tr('tuner_listening', ''));
                     }
                 }
             }
@@ -750,62 +1035,112 @@
             this.rafId = requestAnimationFrame(this.detect.bind(this));
         },
 
-        updateUI: function(note, hz, cents, outOfRange, nowTs) {
+        updateUI: function(note, hz, cents, outOfRange, nowTs, targetMidi) {
             const now = nowTs || performance.now();
+            this._lastUiState = { note, hz, cents, outOfRange, now, targetMidi };
+
+            const noteEls = [this.elNote, this.elBigNote].filter(Boolean);
+            const centsEls = [this.elCents, this.elBigCents].filter(Boolean);
+            const hzEls = [this.elHz, this.elBigHz].filter(Boolean);
+            const barEls = [this.elBar, this.elBigBar].filter(Boolean);
+            const statusEls = [this.elStatus, this.elBigStatus].filter(Boolean);
+            const leftArrows = [this.elOverflowLeft, this.elBigOverflowLeft].filter(Boolean);
+            const rightArrows = [this.elOverflowRight, this.elBigOverflowRight].filter(Boolean);
 
             if (outOfRange) {
-                this.elNote.innerText = "-";
-                this.elHz.innerText = hz.toFixed(1) + " Hz";
-                this.elBar.style.width = "50%";
-                this.elBar.style.backgroundColor = "var(--text-muted)";
-                this.elNote.style.color = "var(--text-muted)";
-                this.elHz.style.color = "var(--text-muted)";
-                this.elStatus.innerText = tr('tuner_out_of_range', "Εκτός Κλίμακας");
-                this.elStatus.style.color = "var(--text-muted)";
+                for (const el of noteEls) { el.innerHTML = '-'; el.style.color = 'var(--text-muted)'; }
+                for (const el of centsEls) { el.innerText = '0c'; el.style.color = 'var(--text-muted)'; }
+                for (const el of hzEls) { el.innerText = hz.toFixed(1) + ' Hz'; el.style.color = 'var(--text-muted)'; }
+                for (const el of barEls) {
+                    el.style.left = '50%';
+                    el.style.backgroundColor = 'var(--text-muted)';
+                    el.style.color = 'var(--text-muted)';
+                }
+                for (const el of statusEls) { el.innerText = tr('tuner_out_of_range', ''); el.style.color = 'var(--text-muted)'; }
+                for (const el of leftArrows) el.classList.remove('is-visible');
+                for (const el of rightArrows) el.classList.remove('is-visible');
+                if (this.elGroup) this.elGroup.classList.remove('is-perfect');
+                this.renderStringsRow(null, null);
                 return;
             }
 
-            this.elNote.innerText = note;
-            this.elHz.innerText = hz.toFixed(1) + " Hz";
+            const noteHtml = typeof note === 'string'
+                ? note
+                : this.renderNoteHtml(note.letter, note.octave);
+            const roundedCents = Math.round(cents);
+            const centsText = (roundedCents > 0 ? '+' : '') + roundedCents + 'c';
+            const hzText = hz.toFixed(1) + ' Hz';
 
-            const fill = Math.max(0, Math.min(100, cents + 50));
-            this.elBar.style.width = fill + "%";
+            for (const el of noteEls) el.innerHTML = noteHtml;
+            for (const el of centsEls) el.innerText = centsText;
+            for (const el of hzEls) el.innerText = hzText;
+
+            const pct = Math.max(2, Math.min(98, 50 + Math.max(-50, Math.min(50, cents))));
+            for (const el of barEls) el.style.left = pct + '%';
+
+            for (const el of leftArrows) el.classList.toggle('is-visible', cents < -50);
+            for (const el of rightArrows) el.classList.toggle('is-visible', cents > 50);
 
             const zone = this.stateMachine.evaluate(cents, now);
+            this.renderStringsRow(targetMidi !== undefined ? targetMidi : this.displayedMidi, zone);
+
+            let needleColor = 'var(--text-muted)';
+            let readoutColor = 'var(--text-main)';
+            let statusColor = 'var(--text-muted)';
+            let statusText = '';
 
             if (zone === 'perfect') {
-                this.elBar.style.backgroundColor = "var(--tuner-perfect)";
-                this.elNote.style.color = "var(--tuner-perfect)";
-                this.elHz.style.color = "var(--tuner-perfect)";
-                this.elStatus.innerText = tr('tuner_perfect', "Τέλεια!");
-                this.elStatus.style.color = "var(--tuner-perfect)";
-            } else if (zone === 'almost') {
-                this.elBar.style.backgroundColor = "var(--tuner-warning)";
-                this.elNote.style.color = "var(--text-main)";
-                this.elHz.style.color = "var(--text-main)";
-                this.elStatus.innerText = cents < 0
-                    ? tr('tuner_almost_low', "Σχεδόν — λίγο πιο ψηλά")
-                    : tr('tuner_almost_high', "Σχεδόν — λίγο πιο χαμηλά");
-                this.elStatus.style.color = "var(--tuner-warning)";
-            } else if (zone === 'warn') {
-                this.elBar.style.backgroundColor = "var(--tuner-warning)";
-                this.elNote.style.color = "var(--text-main)";
-                this.elHz.style.color = "var(--text-main)";
-                this.elStatus.innerText = cents < 0
-                    ? tr('tuner_low', "Χαμηλή (Σφίξε)")
-                    : tr('tuner_high', "Υψηλή (Χαλάρωσε)");
-                this.elStatus.style.color = "var(--tuner-warning)";
+                needleColor = 'var(--tuner-perfect)';
+                readoutColor = 'var(--tuner-perfect)';
+                statusColor = 'var(--tuner-perfect)';
+                statusText = tr('tuner_perfect', '');
+                if (this.elGroup) this.elGroup.classList.add('is-perfect');
             } else {
-                this.elBar.style.backgroundColor = "var(--tuner-danger)";
-                this.elNote.style.color = "var(--tuner-danger)";
-                this.elHz.style.color = "var(--tuner-danger)";
-                this.elStatus.innerText = cents < 0
-                    ? tr('tuner_very_low', "Πολύ Χαμηλή")
-                    : tr('tuner_very_high', "Πολύ Υψηλή");
-                this.elStatus.style.color = "var(--tuner-danger)";
+                if (this.elGroup) this.elGroup.classList.remove('is-perfect');
+                if (zone === 'almost') {
+                    needleColor = 'var(--tuner-warning)';
+                    readoutColor = 'var(--tuner-warning)';
+                    statusColor = 'var(--tuner-warning)';
+                    statusText = cents < 0 ? tr('tuner_almost_low', '') : tr('tuner_almost_high', '');
+                } else if (zone === 'warn') {
+                    needleColor = 'var(--tuner-warning)';
+                    readoutColor = 'var(--tuner-warning)';
+                    statusColor = 'var(--tuner-warning)';
+                    statusText = cents < 0 ? tr('tuner_low', '') : tr('tuner_high', '');
+                } else {
+                    needleColor = 'var(--text-muted)';
+                    readoutColor = 'var(--text-main)';
+                    statusColor = 'var(--text-muted)';
+                    statusText = cents < 0 ? tr('tuner_very_low', '') : tr('tuner_very_high', '');
+                }
+            }
+
+            for (const el of barEls) {
+                el.style.backgroundColor = needleColor;
+                el.style.color = needleColor;
+            }
+            for (const el of noteEls) el.style.color = readoutColor;
+            for (const el of centsEls) el.style.color = readoutColor;
+            for (const el of hzEls) el.style.color = 'var(--text-muted)';
+            for (const el of statusEls) {
+                el.innerText = statusText;
+                el.style.color = statusColor;
             }
         }
     };
+
+    if (typeof document !== 'undefined') {
+        document.addEventListener('DOMContentLoaded', () => {
+            ChromaticTuner.initUI();
+            ChromaticTuner.refreshTranslations();
+        });
+    }
+    if (typeof window !== 'undefined') {
+        window.addEventListener('load', () => {
+            ChromaticTuner.installHooks();
+            ChromaticTuner.refreshTranslations();
+        });
+    }
 
     if (globalScope) {
         globalScope.ChromaticTuner = ChromaticTuner;
