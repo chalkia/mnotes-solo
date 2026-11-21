@@ -90,6 +90,24 @@
         return { rms: Math.sqrt(energy / len), peak, energy };
     }
 
+    function parabolicPeak(arr, idx, maxIdx) {
+        let trueIdx = idx;
+        let val = arr[idx];
+        if (idx > 0 && idx < maxIdx) {
+            const y1 = arr[idx - 1];
+            const y2 = arr[idx];
+            const y3 = arr[idx + 1];
+            const a = (y1 + y3 - 2 * y2) / 2;
+            const b = (y3 - y1) / 2;
+            if (a < 0) {
+                const delta = Math.max(-1, Math.min(1, -b / (2 * a)));
+                trueIdx = idx + delta;
+                val = Math.min(1, y2 - (b * b) / (4 * a));
+            }
+        }
+        return { idx: trueIdx, val };
+    }
+
     /**
      * McLeod Pitch Method (NSDF + key maxima + parabolic interpolation).
      * Uses O(N log N) FFT-based autocorrelation with reusable buffers and peak normalization.
@@ -233,22 +251,9 @@
         }
         if (!best) return null;
 
-        // Parabolic interpolation around best.tau
-        const t = best.tau;
-        let trueTau = t;
-        let clarity = best.val;
-        if (t > 0 && t < searchEnd) {
-            const y1 = nsdf[t - 1];
-            const y2 = nsdf[t];
-            const y3 = nsdf[t + 1];
-            const a = (y1 + y3 - 2 * y2) / 2;
-            const b = (y3 - y1) / 2;
-            if (a < 0) {
-                const delta = Math.max(-1, Math.min(1, -b / (2 * a)));
-                trueTau = t + delta;
-                clarity = Math.min(1, y2 - (b * b) / (4 * a));
-            }
-        }
+        const p1 = parabolicPeak(nsdf, best.tau, searchEnd);
+        const trueTau = p1.idx;
+        const clarity = p1.val;
 
         if (clarity < minClarity || trueTau <= 0) return null;
         const freq = sampleRate / trueTau;
@@ -264,28 +269,67 @@
     }
 
     /**
-     * Cents-domain pitch smoother: median(5) + 50-cent outlier gate (3-strike switch) + EMA (alpha=0.3).
+     * Adaptive cents-domain pitch smoother:
+     * - Moving (3 consecutive measurements in same direction totaling > 4 cents, or 3 same-sign steps > 4 cents): median(3), alpha=0.7
+     * - Stable (span < 2 cents over last 3 measurements): median(5), alpha=0.25
+     * - Outlier gate: rejects > 50 cent jumps unless persisting 3 consecutive times
      */
     function createPitchSmoother(opts) {
         const options = opts || {};
-        const windowSize = options.windowSize || 5;
+        const stableWindow = options.windowSize || 5;
+        const movingWindow = options.movingWindow || 3;
         const outlierCents = options.outlierCents || 50;
         const outlierStrikes = options.outlierStrikes || 3;
-        const alpha = options.alpha || 0.3;
+        const movingAlpha = options.movingAlpha || 0.7;
+        const stableAlpha = options.stableAlpha || 0.25;
 
         let history = [];
         let outlierCount = 0;
         let smoothedCents = null;
+        let lastRawCents = null;
+        let mode = 'stable';
+
+        function updateMode() {
+            const len = history.length;
+            if (len >= 3) {
+                const a = history[len - 3];
+                const b = history[len - 2];
+                const c = history[len - 1];
+                const d1 = b - a;
+                const d2 = c - b;
+                const sameDir3 = (d1 > 0 && d2 > 0) || (d1 < 0 && d2 < 0);
+                if (sameDir3 && Math.abs(c - a) > 4) {
+                    mode = 'moving';
+                    return;
+                }
+                if (len >= 4) {
+                    const p = history[len - 4];
+                    const d0 = a - p;
+                    const sameDir4 = (d0 > 0 && d1 > 0 && d2 > 0) || (d0 < 0 && d1 < 0 && d2 < 0);
+                    if (sameDir4 && Math.abs(c - p) > 4) {
+                        mode = 'moving';
+                        return;
+                    }
+                }
+                const span = Math.max(a, b, c) - Math.min(a, b, c);
+                if (span < 2) {
+                    mode = 'stable';
+                }
+            }
+        }
 
         return {
             reset: function() {
                 history = [];
                 outlierCount = 0;
                 smoothedCents = null;
+                lastRawCents = null;
+                mode = 'stable';
             },
             push: function(freq, refFreq) {
                 const ref = refFreq || 440;
                 const rawCents = 1200 * Math.log2(freq / ref);
+                lastRawCents = rawCents;
 
                 if (history.length > 0) {
                     const med = medianOf(history);
@@ -296,6 +340,7 @@
                         }
                         history = [rawCents];
                         outlierCount = 0;
+                        mode = 'stable';
                         smoothedCents = rawCents;
                         return smoothedCents;
                     }
@@ -303,17 +348,95 @@
                 }
 
                 history.push(rawCents);
-                if (history.length > windowSize) history.shift();
-                const medAfter = medianOf(history);
+                if (history.length > stableWindow) history.shift();
+
+                updateMode();
+
+                const activeSlice = mode === 'moving' ? history.slice(-movingWindow) : history;
+                const activeAlpha = mode === 'moving' ? movingAlpha : stableAlpha;
+                const medAfter = medianOf(activeSlice);
+
                 smoothedCents = smoothedCents === null
                     ? medAfter
-                    : smoothedCents + alpha * (medAfter - smoothedCents);
+                    : smoothedCents + activeAlpha * (medAfter - smoothedCents);
                 return smoothedCents;
             },
             getCents: function() {
                 return smoothedCents;
+            },
+            getRawCents: function() {
+                return lastRawCents;
+            },
+            getMode: function() {
+                return mode;
             }
         };
+    }
+
+    /**
+     * Hysteresis state machine for tuning zones:
+     * - perfect: enter |cents| <= 5 for >= 150ms, exit |cents| > 7
+     * - almost:  5 < |cents| <= 10 (exit > 12)
+     * - warn:    10 < |cents| <= 25 (exit > 27)
+     * - far:     |cents| > 25 (exit <= 25)
+     */
+    function createTuningStateMachine() {
+        let zone = 'warn';
+        let perfectSince = null;
+
+        return {
+            reset: function() {
+                zone = 'warn';
+                perfectSince = null;
+            },
+            evaluate: function(cents, nowMs) {
+                const now = nowMs !== undefined ? nowMs : 0;
+                const abs = Math.abs(cents);
+
+                // Perfect hysteresis: enter <= 5 for >= 150ms, exit > 7
+                if (zone === 'perfect') {
+                    if (abs <= 7) {
+                        return 'perfect';
+                    }
+                    perfectSince = null;
+                } else if (abs <= 5) {
+                    if (perfectSince === null) perfectSince = now;
+                    if (now - perfectSince >= 150) {
+                        zone = 'perfect';
+                        return zone;
+                    }
+                } else {
+                    perfectSince = null;
+                }
+
+                // Almost (5..10, exit > 12), Warn (10..25, exit > 27), Far (> 25)
+                if (zone === 'almost') {
+                    if (abs <= 12) return 'almost';
+                    zone = abs <= 25 ? 'warn' : 'far';
+                } else if (zone === 'warn') {
+                    if (abs <= 10) zone = 'almost';
+                    else if (abs > 27) zone = 'far';
+                } else if (zone === 'far') {
+                    if (abs <= 10) zone = 'almost';
+                    else if (abs <= 25) zone = 'warn';
+                } else {
+                    // Coming out of 'perfect' (> 7)
+                    if (abs <= 12) zone = 'almost';
+                    else if (abs <= 25) zone = 'warn';
+                    else zone = 'far';
+                }
+
+                return zone;
+            },
+            getZone: function() {
+                return zone;
+            }
+        };
+    }
+
+    function tr(key, fallback) {
+        if (typeof t === 'function') return t(key, fallback);
+        return fallback;
     }
 
     function isTunerDebugEnabled() {
@@ -334,9 +457,11 @@
         refFreq: 440,
         detectPitch: detectPitch,
         createPitchSmoother: createPitchSmoother,
+        createTuningStateMachine: createTuningStateMachine,
 
         // ✨ Smoothing, Noise Gate & Hysteresis State
         smoother: createPitchSmoother(),
+        stateMachine: createTuningStateMachine(),
         baseAnalysisIntervalMs: 40, // ~25 analyses/sec
         analysisIntervalMs: 40,
         silenceTimeoutMs: 400,
@@ -345,9 +470,6 @@
         noiseFloorRms: 0,
         isSilentState: true,
         displayedMidi: null,
-        perfectSince: null,
-        inPerfectZone: false,
-        inWarningZone: false,
         timeBuffer: null,
         elDebug: null,
 
@@ -391,10 +513,8 @@
 
         resetTrackingState: function() {
             this.smoother.reset();
+            this.stateMachine.reset();
             this.displayedMidi = null;
-            this.perfectSince = null;
-            this.inPerfectZone = false;
-            this.inWarningZone = false;
         },
 
         initUI: function() {
@@ -480,13 +600,13 @@
                 this.elBtn.innerHTML = `<i class="fas fa-stop"></i>`;
                 this.elBtn.style.color = "var(--danger)";
                 this.elBtn.style.borderColor = "var(--danger)";
-                this.elStatus.innerText = "Ακούω...";
+                this.elStatus.innerText = tr('tuner_listening', "Ακούω...");
 
                 console.log(`[Tuner] Started with A4 = ${this.refFreq}Hz`);
                 this.detect();
             } catch (e) {
                 console.error("Tuner Mic Error:", e);
-                if (typeof showToast === 'function') showToast(t('msg_mic_denied', "Δεν δόθηκε άδεια για το μικρόφωνο."), "error");
+                if (typeof showToast === 'function') showToast(tr('msg_mic_denied', "Δεν δόθηκε άδεια για το μικρόφωνο."), "error");
             }
         },
 
@@ -507,7 +627,7 @@
             this.elHz.innerText = "0.0 Hz";
             this.elHz.style.color = "var(--text-muted)";
             this.elBar.style.width = "0%";
-            this.elStatus.innerText = "Ανενεργό";
+            this.elStatus.innerText = tr('tuner_inactive', "Ανενεργό");
             this.elStatus.style.color = "var(--text-muted)";
             if (this.elDebug) this.elDebug.innerText = "";
         },
@@ -532,14 +652,8 @@
                 });
                 const dt = performance.now() - t0;
 
-                // Δικλίδα CPU: αν η ανάλυση ξεπεράσει τα 25 ms, επιβράδυνε το διάστημα (έως 120 ms)
                 if (dt > 25) {
                     this.analysisIntervalMs = Math.min(120, Math.round(this.analysisIntervalMs * 1.5));
-                }
-
-                if (this.elDebug) {
-                    const cl = result ? result.clarity.toFixed(2) : '-';
-                    this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${cl} | ${dt.toFixed(1)} ms`;
                 }
 
                 const aboveNoiseFloor = this.noiseFloorRms === 0 || rms > 3 * this.noiseFloorRms;
@@ -555,7 +669,6 @@
                         let targetMidi = Math.round(n);
                         let isOutOfRange = false;
 
-                        // ✨ ΕΞΥΠΝΟ ΚΛΕΙΔΩΜΑ ΣΤΙΣ ΑΝΟΙΧΤΕΣ ΧΟΡΔΕΣ
                         if (rangeParams.targets) {
                             let closestString = rangeParams.targets[0];
                             let minDiff = Math.abs(n - closestString);
@@ -577,18 +690,16 @@
 
                         if (isOutOfRange) {
                             this.displayedMidi = null;
-                            this.perfectSince = null;
-                            this.inPerfectZone = false;
-                            this.inWarningZone = false;
+                            this.stateMachine.reset();
                             this.updateUI("-", activeFreq, 0, true, now);
+                            if (this.elDebug) {
+                                this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${result.clarity.toFixed(2)} | ${dt.toFixed(1)} ms | out`;
+                            }
                         } else {
-                            // Υστέρηση αλλαγής νότας (> 0.6 ημιτόνιο)
                             if (this.displayedMidi === null || Math.abs(n - this.displayedMidi) > 0.6) {
                                 if (this.displayedMidi !== targetMidi) {
                                     this.displayedMidi = targetMidi;
-                                    this.perfectSince = null;
-                                    this.inPerfectZone = false;
-                                    this.inWarningZone = false;
+                                    this.stateMachine.reset();
                                 }
                             } else {
                                 targetMidi = this.displayedMidi;
@@ -600,12 +711,21 @@
 
                             const expected = this.refFreq * Math.pow(2, (targetMidi - 69) / 12);
                             const cents = 1200 * Math.log2(activeFreq / expected);
+                            const rawNoteCents = 1200 * Math.log2(result.freq / expected);
 
                             this.updateUI(noteName, activeFreq, cents, false, now);
+
+                            if (this.elDebug) {
+                                const modeLabel = this.smoother.getMode() === 'moving' ? 'κίνηση' : 'σταθερό';
+                                this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${result.clarity.toFixed(2)} | ${dt.toFixed(1)} ms | raw ${rawNoteCents >= 0 ? '+' : ''}${rawNoteCents.toFixed(1)}c | sm ${cents >= 0 ? '+' : ''}${cents.toFixed(1)}c | ${modeLabel}`;
+                            }
                         }
                     }
                 } else {
-                    // Ενημέρωση κινητού μέσου θορύβου μόνο στα παράθυρα χωρίς τόνο
+                    if (this.elDebug) {
+                        const cl = result ? result.clarity.toFixed(2) : '-';
+                        this.elDebug.innerText = `rms ${rms.toFixed(4)} | cl ${cl} | ${dt.toFixed(1)} ms | σιωπή`;
+                    }
                     if (!result && rms > 0) {
                         const alpha = rms < this.noiseFloorRms ? 0.2 : 0.05;
                         this.noiseFloorRms = this.noiseFloorRms === 0
@@ -613,10 +733,9 @@
                             : this.noiseFloorRms + alpha * (rms - this.noiseFloorRms);
                     }
                     if (!this.isSilentState && (now - this.lastValidTime > this.silenceTimeoutMs)) {
-                        // Σιωπή > 400 ms -> καθαρισμός ιστορικού & "Ακούω..."
                         this.isSilentState = true;
                         this.resetTrackingState();
-                        this.elStatus.innerText = "Ακούω...";
+                        this.elStatus.innerText = tr('tuner_listening', "Ακούω...");
                         this.elStatus.style.color = "var(--text-muted)";
                         this.elNote.innerText = "-";
                         this.elNote.style.color = "var(--text-muted)";
@@ -634,7 +753,6 @@
         updateUI: function(note, hz, cents, outOfRange, nowTs) {
             const now = nowTs || performance.now();
 
-            // ✨ Ένδειξη Εκτός Κλίμακας (Γκριζάρισμα)
             if (outOfRange) {
                 this.elNote.innerText = "-";
                 this.elHz.innerText = hz.toFixed(1) + " Hz";
@@ -642,7 +760,7 @@
                 this.elBar.style.backgroundColor = "var(--text-muted)";
                 this.elNote.style.color = "var(--text-muted)";
                 this.elHz.style.color = "var(--text-muted)";
-                this.elStatus.innerText = "Εκτός Κλίμακας";
+                this.elStatus.innerText = tr('tuner_out_of_range', "Εκτός Κλίμακας");
                 this.elStatus.style.color = "var(--text-muted)";
                 return;
             }
@@ -650,54 +768,40 @@
             this.elNote.innerText = note;
             this.elHz.innerText = hz.toFixed(1) + " Hz";
 
-            // Bar Width: Left (Flat) to Right (Sharp) | 50% = Perfect
             const fill = Math.max(0, Math.min(100, cents + 50));
             this.elBar.style.width = fill + "%";
 
-            const absCents = Math.abs(cents);
+            const zone = this.stateMachine.evaluate(cents, now);
 
-            // Υστέρηση «Τέλεια»: μπαίνει με |cents| <= 3 για >= 300ms, βγαίνει μόνο με |cents| > 5
-            if (this.inPerfectZone) {
-                if (absCents > 5) {
-                    this.inPerfectZone = false;
-                    this.perfectSince = null;
-                }
-            } else if (absCents <= 3) {
-                if (this.perfectSince === null) {
-                    this.perfectSince = now;
-                }
-                if (now - this.perfectSince >= 300) {
-                    this.inPerfectZone = true;
-                }
-            } else {
-                this.perfectSince = null;
-            }
-
-            if (this.inPerfectZone) {
-                this.inWarningZone = true;
+            if (zone === 'perfect') {
                 this.elBar.style.backgroundColor = "var(--tuner-perfect)";
                 this.elNote.style.color = "var(--tuner-perfect)";
                 this.elHz.style.color = "var(--tuner-perfect)";
-                this.elStatus.innerText = "Τέλεια!";
+                this.elStatus.innerText = tr('tuner_perfect', "Τέλεια!");
                 this.elStatus.style.color = "var(--tuner-perfect)";
-                return;
-            }
-
-            // Υστέρηση «Χαμηλή / Υψηλή»: μπαίνει <= 15, βγαίνει > 18
-            const warnLimit = this.inWarningZone ? 18 : 15;
-            if (absCents <= warnLimit) {
-                this.inWarningZone = true;
+            } else if (zone === 'almost') {
                 this.elBar.style.backgroundColor = "var(--tuner-warning)";
                 this.elNote.style.color = "var(--text-main)";
                 this.elHz.style.color = "var(--text-main)";
-                this.elStatus.innerText = cents < 0 ? "Χαμηλή (Σφίξε)" : "Υψηλή (Χαλάρωσε)";
+                this.elStatus.innerText = cents < 0
+                    ? tr('tuner_almost_low', "Σχεδόν — λίγο πιο ψηλά")
+                    : tr('tuner_almost_high', "Σχεδόν — λίγο πιο χαμηλά");
+                this.elStatus.style.color = "var(--tuner-warning)";
+            } else if (zone === 'warn') {
+                this.elBar.style.backgroundColor = "var(--tuner-warning)";
+                this.elNote.style.color = "var(--text-main)";
+                this.elHz.style.color = "var(--text-main)";
+                this.elStatus.innerText = cents < 0
+                    ? tr('tuner_low', "Χαμηλή (Σφίξε)")
+                    : tr('tuner_high', "Υψηλή (Χαλάρωσε)");
                 this.elStatus.style.color = "var(--tuner-warning)";
             } else {
-                this.inWarningZone = false;
                 this.elBar.style.backgroundColor = "var(--tuner-danger)";
                 this.elNote.style.color = "var(--tuner-danger)";
                 this.elHz.style.color = "var(--tuner-danger)";
-                this.elStatus.innerText = cents < 0 ? "Πολύ Χαμηλή" : "Πολύ Υψηλή";
+                this.elStatus.innerText = cents < 0
+                    ? tr('tuner_very_low', "Πολύ Χαμηλή")
+                    : tr('tuner_very_high', "Πολύ Υψηλή");
                 this.elStatus.style.color = "var(--tuner-danger)";
             }
         }
