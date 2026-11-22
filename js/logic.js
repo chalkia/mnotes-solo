@@ -441,6 +441,7 @@ async function switchContext(targetId) {
     }
 
     currentGroupId = targetId;
+    if (typeof syncWorkspaceChrome === 'function') syncWorkspaceChrome();
 
     if (targetId === 'personal') {
         currentRole = 'owner';
@@ -2269,6 +2270,68 @@ function parseSongLogic(song) {
     });
 }
 
+function syncWorkspaceChrome() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    const isSolo = (typeof window.currentEdition === 'function' ? window.currentEdition() === 'solo' : window.MNOTES_EDITION === 'solo');
+    const groups = (!isSolo && typeof myGroups !== 'undefined' && Array.isArray(myGroups)) ? myGroups : [];
+    const hasBands = groups.length >= 1;
+    const isBandCtx = !isSolo && currentGroupId !== 'personal';
+
+    sidebar.classList.toggle('has-bands', hasBands);
+    sidebar.classList.toggle('is-band-context', isBandCtx);
+    document.documentElement.style.setProperty('--nav-width', hasBands ? '404px' : '300px');
+
+    const rail = document.getElementById('workspaceRail');
+    if (!rail) return;
+    rail.innerHTML = '';
+    if (!hasBands) return;
+
+    let isStrictViewer = false;
+    if (typeof userLimits !== 'undefined' && userLimits.tierKey === 'solo_free') {
+        if (groups.every(g => g.role === 'viewer')) isStrictViewer = true;
+    }
+
+    const addRailBtn = (id, iconClass, titleText, roleText, isActive) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'workspace-rail-btn' + (isActive ? ' is-active' : '');
+        btn.dataset.groupId = id;
+        btn.onclick = () => switchContext(id);
+        const top = document.createElement('span');
+        top.className = 'workspace-rail-name';
+        top.innerHTML = `<i class="${iconClass}"></i> `;
+        top.appendChild(document.createTextNode(titleText));
+        btn.appendChild(top);
+        if (roleText) {
+            const sub = document.createElement('span');
+            sub.className = 'workspace-rail-role';
+            sub.textContent = roleText;
+            btn.appendChild(sub);
+        }
+        rail.appendChild(btn);
+    };
+
+    if (!isStrictViewer) {
+        addRailBtn(
+            'personal',
+            'fas fa-user',
+            typeof t === 'function' ? t('lbl_personal', 'Προσωπική') : 'Προσωπική',
+            '',
+            currentGroupId === 'personal'
+        );
+    }
+
+    groups.forEach(g => {
+        const bandName = g.groups?.name || (typeof t === 'function' ? t('lbl_unknown_band', 'Άγνωστη μπάντα') : 'Άγνωστη μπάντα');
+        const roleKey = g.role === 'maestro' || g.role === 'owner' || g.role === 'leader'
+            ? 'role_maestro'
+            : (g.role === 'viewer' ? 'role_viewer' : 'role_member');
+        const roleLabel = typeof t === 'function' ? t(roleKey, g.role) : g.role;
+        addRailBtn(g.group_id, 'fas fa-users', bandName, roleLabel, currentGroupId === g.group_id);
+    });
+}
+
 function updateGroupDropdown() {
     const sel = document.getElementById('selGroup');
     if (!sel) return;
@@ -2296,6 +2359,7 @@ function updateGroupDropdown() {
     });
 
     sel.value = currentGroupId;
+    syncWorkspaceChrome();
 }
 
 // --- OFFLINE SYNC SYSTEM ---

@@ -213,6 +213,16 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
             if (txt && hiding) txt.innerText = `🔍 ${shown} από ${total}`;
         }
 
+        if (window.visiblePlaylist.length === 0 && !library.some(s => s && !s.is_deleted)) {
+            const emptyLi = document.createElement('li');
+            emptyLi.className = 'empty-library-card';
+            const titleTxt = typeof t === 'function' ? t('empty_lib_title', 'Η βιβλιοθήκη σας είναι άδεια') : 'Η βιβλιοθήκη σας είναι άδεια';
+            const newTxt = typeof t === 'function' ? t('btn_new_song', 'Νέο Τραγούδι') : 'Νέο Τραγούδι';
+            const demoTxt = typeof t === 'function' ? t('btn_load_demo', 'Φόρτωση Δοκιμαστικών') : 'Φόρτωση Δοκιμαστικών';
+            emptyLi.innerHTML = `<div class="empty-library-card-title">${titleTxt}</div><div class="empty-library-card-actions"><button type="button" class="mbtn mbtn-primary" onclick="if(typeof createNewSong==='function') createNewSong()"><i class="fas fa-plus"></i> ${newTxt}</button><button type="button" class="mbtn mbtn-secondary" onclick="if(typeof loadSampleSongs==='function') loadSampleSongs()">${demoTxt}</button></div>`;
+            list.appendChild(emptyLi);
+        }
+
         if (window.visiblePlaylist.length === 0 && (rawTxt.trim() !== '' || tag !== '') && library.some(s => s && !s.is_deleted)) {
             const filterLi = document.createElement('li');
             filterLi.className = 'empty-filter-notice';
@@ -426,25 +436,20 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
                 </span>`;
             }
 
-            let tagsDisplay = "";
-            if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
-                let displayTags = s.tags.slice(0, 3).join(', '); 
-                let extra = s.tags.length > 3 ? "..." : "";
-                tagsDisplay = `<div style="font-size:0.7rem; color:var(--accent); margin-top:4px; font-style:italic;">${displayTags}${extra}</div>`;
-            }
+            const playedDot = isPlayed ? '<span class="played-dot" aria-hidden="true">✓</span>' : '';
 
             li.innerHTML = `
                 <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
                 <div class="song-info">
                     <div class="song-title" style="display:flex; align-items:center;">
-                         <span style="flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${seqNumBadge}${displayTitle}</span>
+                         ${playedDot}<span style="flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${seqNumBadge}${displayTitle}</span>
                          <span style="white-space:nowrap;">${badgesHTML}</span>
                     </div>
                     <div class="song-meta-row">
                         <span class="song-artist">${s.artist || "-"}</span>
                         <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
                     </div>
-                    ${tagsDisplay} </div>
+                </div>
                 ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle" ${isSetlistLocked ? 'style="opacity:0.1; cursor:not-allowed;"' : ''}></i>` : ``}
             `;
             list.appendChild(li);  
@@ -719,12 +724,27 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
     window.toViewer = libraryMod.toViewer;
     window.switchDrawerTab = libraryMod.switchDrawerTab;
 
+    window.toggleClearSearchBtn = function () {
+        const inp = document.getElementById('searchInp');
+        const btn = document.getElementById('btnClearSearch');
+        if (!btn) return;
+        btn.style.display = (inp && inp.value.length > 0) ? 'inline-flex' : 'none';
+    };
+
+    window.clearSearchInput = function () {
+        const inp = document.getElementById('searchInp');
+        if (inp) inp.value = '';
+        window.toggleClearSearchBtn();
+        if (typeof applyFilters === 'function') applyFilters();
+    };
+
     /* Καθαρίζει ΚΑΘΕ φίλτρο και ξαναζωγραφίζει. Καλείται από το ✕ της
        ένδειξης, που είναι ο μόνος τρόπος να ξεμπλοκάρει ο χρήστης όσο τα
        χειριστήρια είναι κρυμμένα στην καρτέλα Setlist. (05/09/2026) */
     window.clearSetlistFilter = function () {
         const inp = document.getElementById('searchInp');
         if (inp) inp.value = '';
+        window.toggleClearSearchBtn();
         const tag = document.getElementById('tagFilter');
         if (tag) tag.value = '';
         if (typeof applyFilters === 'function') applyFilters();

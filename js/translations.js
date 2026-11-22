@@ -492,6 +492,11 @@ const TRANSLATIONS = {
         // ==========================================
         btn_add_song_title: "Add Song",
         tab_library: "Library",
+        btn_clear_search: "Clear search",
+        ctx_switch_library: "Select library",
+        lbl_songs_short: "songs",
+        role_maestro: "Maestro",
+        lbl_band_context: "Band library",
         "tab_audio": "Audio",
         tab_rhythm: "Rhythm",
         tab_score: "Scores",
@@ -1567,6 +1572,11 @@ const TRANSLATIONS = {
         // ==========================================
         btn_add_song_title: "Προσθήκη Τραγουδιού",
         tab_library: "Βιβλιοθήκη",
+        btn_clear_search: "Καθαρισμός αναζήτησης",
+        ctx_switch_library: "Επιλογή βιβλιοθήκης",
+        lbl_songs_short: "τρ.",
+        role_maestro: "Maestro",
+        lbl_band_context: "Βιβλιοθήκη μπάντας",
         "tab_audio": "Ήχος",
         tab_rhythm: "Ρυθμός",
         tab_score: "Παρτιτούρες",

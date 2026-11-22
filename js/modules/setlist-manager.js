@@ -131,7 +131,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         }
     };
 
-    logic.create = function() {
+    logic.create = async function() {
         const isBandViewer = (currentGroupId !== 'personal' && !roleCan('CREATE_BAND_SETLIST'));
         if (isBandViewer) {
             showToast(t('msg_err_create_list_band'), "error");
@@ -142,26 +142,44 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             const customListsCount = Object.keys(allSetlists).length - 1; 
             if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_SETLIST', customListsCount)) {
                 if (typeof promptUpgrade === 'function') promptUpgrade(t('msg_create_multi_lists'));
+                else if (window.mDialog) await window.mDialog.alert({ message: t('msg_err_max_lists'), tone: 'warning' });
                 else alert(t('msg_err_max_lists'));
                 return; 
             }
         }
 
-        const name = prompt(t('msg_new_setlist_name'));
+        const rawName = window.mDialog
+            ? await window.mDialog.prompt({
+                title: t('btn_new_list_title', 'Νέα Λίστα'),
+                message: t('msg_new_setlist_name'),
+                defaultValue: '',
+                okText: t('btn_save', 'Αποθήκευση')
+            })
+            : prompt(t('msg_new_setlist_name'));
+        const name = rawName ? rawName.trim() : '';
         if (name && !allSetlists[name]) {
             allSetlists[name] = { type: 'local', songs: [] }; 
             liveSetlist = []; 
             ui.switch(name);
             logic.save(name);
             ui.updateDropdown();
-        } else if (allSetlists[name]) {
-            alert(t('msg_err_list_exists'));
+        } else if (name && allSetlists[name]) {
+            showToast(t('msg_err_list_exists'), 'warning');
         }
     };
 
-    logic.rename = function() {
+    logic.rename = async function() {
         var currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
-        const newName = prompt(t('msg_rename_setlist_prompt'), currentSetlistName);
+        const rawNewName = window.mDialog
+            ? await window.mDialog.prompt({
+                title: t('btn_rename_title', 'Μετονομασία Λίστας'),
+                message: t('msg_rename_setlist_prompt'),
+                defaultValue: currentSetlistName || '',
+                selectOnOpen: true,
+                okText: t('btn_save', 'Αποθήκευση')
+            })
+            : prompt(t('msg_rename_setlist_prompt'), currentSetlistName);
+        const newName = rawNewName ? rawNewName.trim() : '';
         if (newName && newName !== currentSetlistName && !allSetlists[newName]) {
             allSetlists[newName] = allSetlists[currentSetlistName]; 
             delete allSetlists[currentSetlistName];
@@ -171,13 +189,21 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         }
     };
 
-    logic.delete = function() {
+    logic.delete = async function() {
         var currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
         if (Object.keys(allSetlists).length <= 1) { 
             showToast(t('msg_err_delete_last_list')); 
             return; 
         }
-        if (confirm(t('msg_confirm_delete_list').replace('{name}', currentSetlistName))) {
+        const msg = t('msg_confirm_delete_list').replace('{name}', currentSetlistName);
+        const confirmed = window.mDialog
+            ? await window.mDialog.dangerConfirm({
+                title: t('btn_delete_title', 'Διαγραφή Λίστας'),
+                message: msg,
+                dangerText: t('btn_delete', 'Διαγραφή')
+            })
+            : confirm(msg);
+        if (confirmed) {
             delete allSetlists[currentSetlistName]; 
             const fallbackName = Object.keys(allSetlists)[0];
             ui.switch(fallbackName); 

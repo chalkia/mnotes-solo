@@ -30,69 +30,62 @@
     <div class="app-container">
 
         <aside class="col-nav mobile-view-active" id="sidebar">
-            <div class="sidebar-header">
-                <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; min-width: 0;">
-                            <span class="logo-text">mNotes <span id="editionBadge" class="edition-badge"></span> <span id="songCount"
-                                    style="font-size:1.05rem; font-weight:bold; opacity:0.9; margin-left:4px;">0</span></span>
-                            <span id="offlineBadge" class="net-badge" style="display:none;"></span>
+            <div class="band-context-bar" aria-hidden="true"></div>
+            <div class="sidebar-layout">
+                <nav id="workspaceRail" class="workspace-rail" aria-label="Libraries"></nav>
+                <div class="sidebar-main">
+                    <div class="sidebar-header">
+                        <div class="sidebar-header-top">
+                            <div class="sidebar-brand-group">
+                                <span class="logo-text">mNotes</span>
+                                <span id="editionBadge" class="edition-badge"></span>
+                                <select id="selGroup" data-pro-only class="context-pill-select" onchange="switchContext(this.value)"
+                                    data-i18n-title="ctx_switch_library" title="Επιλογή βιβλιοθήκης">
+                                    <option value="personal" data-i18n="opt_personal_lib"><span data-i18n="idx_auto_135">🏠 Προσωπική Βιβλιοθήκη</span></option>
+                                </select>
+                                <span id="songCount" class="song-count-pill">0</span>
+                                <span id="offlineBadge" class="net-badge" style="display:none;"></span>
+                            </div>
+                            <div class="sidebar-actions">
+                                <button id="btnAuth" data-pro-only onclick="document.getElementById('authModal').style.display='flex'"
+                                    class="action-btn" title="Login">
+                                    <i class="fas fa-user"></i>
+                                </button>
+                                <button id="btnAddSong" onclick="createNewSong()" class="action-btn"
+                                    title="Add Song / Προσθήκη" data-i18n-title="idx_auto_137">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="sidebar-actions">
-                            <button id="btnAuth" data-pro-only onclick="document.getElementById('authModal').style.display='flex'"
-                                class="action-btn" title="Login">
-                                <i class="fas fa-user"></i>
+                        <div id="userDisplayName"></div>
+                        <div class="sidebar-tabs">
+                            <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')"
+                                data-i18n="tab_library">
+                                <i class="fas fa-list"></i> Library
                             </button>
-                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn"
-                                title="Add Song / Προσθήκη" data-i18n-title="idx_auto_137">
-                                <i class="fas fa-plus"></i>
+                            <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')"
+                                data-i18n="tab_setlist">
+                                <i class="fas fa-clipboard-list"></i> Setlist
                             </button>
                         </div>
                     </div>
-                    <div id="userDisplayName"
-                        style="font-size: 0.8rem; color: var(--accent); font-weight: bold; min-height: 1.2em; margin-left: 2px;">
-                    </div>
-                    <div class="sidebar-tabs">
-                        <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')"
-                            data-i18n="tab_library">
-                            <i class="fas fa-list"></i> Library
-                        </button>
-                        <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')"
-                            data-i18n="tab_setlist">
-                            <i class="fas fa-clipboard-list"></i> Setlist
-                        </button>
-                    </div>
+            <div id="library-controls" class="sidebar-search library-controls-row">
+                <div class="search-input-wrap">
+                    <input id="searchInp" type="text" data-i18n="search_ph"
+                        oninput="applyFilters(); window.toggleClearSearchBtn && window.toggleClearSearchBtn()">
+                    <button id="btnClearSearch" type="button" class="clear-search-btn"
+                        onclick="window.clearSearchInput && window.clearSearchInput()"
+                        data-i18n-title="btn_clear_search" title="Καθαρισμός αναζήτησης" style="display:none;">✕</button>
                 </div>
-            </div>
-            <div class="sidebar-workspace" data-pro-only
-                style="padding: 15px; background: var(--bg-panel); border-bottom: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span
-                        style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">
-                        <i class="fas fa-layer-group"></i> <span data-i18n="lbl_workspace"><span data-i18n="idx_auto_136">Χώρος Εργασίας</span></span>
-                    </span>
-                </div>
-
-                <select id="selGroup" class="set-control" onchange="switchContext(this.value)"
-                    style="width: 100%; font-weight: bold; font-size: 0.95rem; padding: 8px; border-radius: 6px;">
-                    <option value="personal" data-i18n="opt_personal_lib"><span data-i18n="idx_auto_135">🏠 Προσωπική Βιβλιοθήκη</span></option>
+                <select id="tagFilter" onchange="applyFilters()">
+                    <option value="" data-i18n="opt_all_tags">All Tags</option>
                 </select>
-            </div>
-            <div id="library-controls" class="sidebar-search" style="display:flex; flex-direction:column; gap:8px;">
-
-                <input id="searchInp" type="text" data-i18n="search_ph" oninput="applyFilters()" style="width: 100%;">
-
-                <div style="display:flex; gap:5px;">
-                    <select id="tagFilter" onchange="applyFilters()" style="flex:1;">
-                        <option value="" data-i18n="opt_all_tags">All Tags</option>
-                    </select>
-                    <select id="sortFilter" onchange="applySortAndRender()" class="sort-select-v2" style="flex:1;">
-                        <option value="alpha" data-i18n="sort_alpha"><span data-i18n="idx_auto_134">🔤 Αλφαβητικά</span></option>
-                        <option value="created" data-i18n="sort_newest"><span data-i18n="idx_auto_133">✨ Νεότερα</span></option>
-                        <option value="modified" data-i18n="sort_modified"><span data-i18n="idx_auto_132">✏️ Πρόσφατα Επεξεργασμένα</span></option>
-                        <option value="viewed" data-i18n="sort_viewed"><span data-i18n="idx_auto_131">🕒 Πρόσφατα Προβληθέντα</span></option>
-                    </select>
-                </div>
+                <select id="sortFilter" onchange="applySortAndRender()" class="sort-select-v2">
+                    <option value="alpha" data-i18n="sort_alpha"><span data-i18n="idx_auto_134">🔤 Αλφαβητικά</span></option>
+                    <option value="created" data-i18n="sort_newest"><span data-i18n="idx_auto_133">✨ Νεότερα</span></option>
+                    <option value="modified" data-i18n="sort_modified"><span data-i18n="idx_auto_132">✏️ Πρόσφατα Επεξεργασμένα</span></option>
+                    <option value="viewed" data-i18n="sort_viewed"><span data-i18n="idx_auto_131">🕒 Πρόσφατα Προβληθέντα</span></option>
+                </select>
             </div>
 
             <div id="setlist-controls" class="sidebar-search"
@@ -149,15 +142,17 @@
                     <i class="fas fa-globe"></i>
                 </button>
                 <button onclick="document.getElementById('importChoiceModal').style.display='flex'" class="footer-btn">
-                    <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
+                    <i class="fas fa-file-upload"></i> <span data-i18n="btn_import">Import</span>
                 </button>
                 <button onclick="exportJSON()" class="footer-btn icon-only" title="Export / Εξαγωγή" data-i18n-title="idx_auto_128">
-                    <i class="fas fa-file-export"></i>
+                    <i class="fas fa-download"></i>
                 </button>
                 <button id="btnEmptyTrash" onclick="emptyTrashSetlist()" class="footer-btn icon-only danger"
                     style="display: none;" title="Εκκαθάριση Κάδου / Απόσυρση" data-i18n-title="idx_auto_127">
                     <i class="fas fa-trash-alt"></i>
                 </button>
+            </div>
+                </div>
             </div>
         </aside>
 
@@ -1720,6 +1715,19 @@
             </div>
         </div>
 
+        <!-- UNIFIED DIALOG OVERLAY (2.8 / Variant C) -->
+        <div id="mDialogOverlay" class="mdialog-overlay" style="display:none;" role="dialog" aria-modal="true">
+            <div class="mdialog-card">
+                <div class="mdialog-header">
+                    <span class="mdialog-icon"></span>
+                    <h3 class="mdialog-title"></h3>
+                </div>
+                <p class="mdialog-msg"></p>
+                <div class="mdialog-body"></div>
+                <div class="mdialog-actions"></div>
+            </div>
+        </div>
+
         <!-- CUSTOM CONFIRM MODAL -->
         <div id="mConfirmModal" class="modal" style="display:none; z-index: 5000;">
             <div class="modal-content" style="max-width: 450px; text-align: center;">
@@ -1811,60 +1819,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.7.9T.221126"></script>
-        <script src="js/config.js?v=2.7.9T.221126"></script>
+        <script src="js/edition.js?v=2.8.0T.221126"></script>
+        <script src="js/config.js?v=2.8.0T.221126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.7.9T.221126"></script>
-        <script src="js/translations.js?v=2.7.9T.221126"></script>
-        <script src="js/storage.js?v=2.7.9T.221126"></script>
+        <script src="js/data.js?v=2.8.0T.221126"></script>
+        <script src="js/translations.js?v=2.8.0T.221126"></script>
+        <script src="js/storage.js?v=2.8.0T.221126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.7.9T.221126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.7.9T.221126"></script>
-        <script src="js/custom-kits.js?v=2.7.9T.221126"></script>
-        <script src="js/drum-machine.js?v=2.7.9T.221126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.7.9T.221126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.0T.221126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.0T.221126"></script>
+        <script src="js/custom-kits.js?v=2.8.0T.221126"></script>
+        <script src="js/drum-machine.js?v=2.8.0T.221126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.0T.221126"></script>
 
-        <script src="js/modules/utils.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/assets.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/played-set.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/player.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/editor.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/library.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/settings.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/ui-utils.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/rhythm.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/theory.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/visuals.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/band.js?v=2.7.9T.221126"></script>
-        <script src="js/modules/export.js?v=2.7.9T.221126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/utils.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/assets.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/played-set.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/player.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/editor.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/library.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/settings.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/theory.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/visuals.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/band.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/export.js?v=2.8.0T.221126"></script>
 
-        <script src="js/auth.js?v=2.7.9T.221126"></script>
-        <script src="js/basicmetronome.js?v=2.7.9T.221126"></script>
-        <script src="js/permissions.js?v=2.7.9T.221126"></script>
-        <script src="libs/fflate.min.js?v=2.7.9T.221126-caddd7c"></script>
-        <script src="js/modules/package.js?v=2.7.9T.221126-caddd7c"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.7.9T.221126-caddd7c"></script>
-        <script src="js/solo/local-assets.js?v=2.7.9T.221126-caddd7c"></script>
-        <script src="js/solo/backup.js?v=2.7.9T.221126-caddd7c"></script>
-        <script src="js/solo/messages.js?v=2.7.9T.221126-caddd7c"></script>
-        <script src="js/solo/account.js?v=2.7.9T.221126-caddd7c"></script>
-        <script src="js/logic.js?v=2.7.9T.221126"></script>
-        <script src="js/floating-tools.js?v=2.7.9T.221126"></script>
-        <script src="js/tuner.js?v=2.7.9T.221126"></script>
-        <script src="js/ui.js?v=2.7.9T.221126"></script>
-        <script src="js/release-notes.js?v=2.7.9T.221126"></script>
-        <script src="js/chord-player.js?v=2.7.9T.221126"></script>
-        <script src="js/chords.js?v=2.7.9T.221126"></script>
+        <script src="js/auth.js?v=2.8.0T.221126"></script>
+        <script src="js/basicmetronome.js?v=2.8.0T.221126"></script>
+        <script src="js/permissions.js?v=2.8.0T.221126"></script>
+        <script src="libs/fflate.min.js?v=2.8.0T.221126-240e091"></script>
+        <script src="js/modules/package.js?v=2.8.0T.221126-240e091"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.0T.221126-240e091"></script>
+        <script src="js/solo/local-assets.js?v=2.8.0T.221126-240e091"></script>
+        <script src="js/solo/backup.js?v=2.8.0T.221126-240e091"></script>
+        <script src="js/solo/messages.js?v=2.8.0T.221126-240e091"></script>
+        <script src="js/solo/account.js?v=2.8.0T.221126-240e091"></script>
+        <script src="js/logic.js?v=2.8.0T.221126"></script>
+        <script src="js/floating-tools.js?v=2.8.0T.221126"></script>
+        <script src="js/tuner.js?v=2.8.0T.221126"></script>
+        <script src="js/ui.js?v=2.8.0T.221126"></script>
+        <script src="js/release-notes.js?v=2.8.0T.221126"></script>
+        <script src="js/chord-player.js?v=2.8.0T.221126"></script>
+        <script src="js/chords.js?v=2.8.0T.221126"></script>
 
-        <script src="js/app.js?v=2.7.9T.221126"></script>
+        <script src="js/app.js?v=2.8.0T.221126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.7.9T.221126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.0T.221126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

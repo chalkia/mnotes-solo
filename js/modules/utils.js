@@ -19,6 +19,9 @@ window.mNotes.ui = window.mNotes.ui || {};
      * Εμφάνιση Toast μηνύματος (προαιρετικά με action button & διάρκεια)
      */
     utils.showToast = function(msg, type = 'info', opts = {}) {
+        if (window.mToast && typeof window.mToast.show === 'function') {
+            return window.mToast.show(msg, type, opts);
+        }
         if (activeToast && activeToast.parentNode) {
             clearTimeout(activeToastTimer);
             activeToast.parentNode.removeChild(activeToast);
@@ -107,6 +110,9 @@ window.mNotes.ui = window.mNotes.ui || {};
      * Custom Confirm Modal
      */
     utils.mConfirm = function(msg, isDanger = false) {
+        if (window.mDialog && typeof window.mDialog.confirm === 'function') {
+            return isDanger ? window.mDialog.dangerConfirm({ message: msg }) : window.mDialog.confirm({ message: msg });
+        }
         return new Promise((resolve) => {
             const modal = document.getElementById('mConfirmModal');
             if (!modal) { resolve(confirm(msg)); return; }
@@ -150,6 +156,13 @@ window.mNotes.ui = window.mNotes.ui || {};
      * Custom Prompt Modal
      */
     utils.mPrompt = function(msg, defaultVal = "", checkboxOpts = null) {
+        if (window.mDialog && typeof window.mDialog.prompt === 'function') {
+            return window.mDialog.prompt({
+                message: msg,
+                defaultValue: defaultVal,
+                checkbox: checkboxOpts
+            });
+        }
         return new Promise((resolve) => {
             const modal = document.getElementById('mPromptModal');
             if (!modal) { resolve(prompt(msg, defaultVal)); return; }
