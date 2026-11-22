@@ -437,20 +437,22 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
             }
 
             const playedDot = isPlayed ? '<span class="played-dot" aria-hidden="true">✓</span>' : '';
+            const setlistHandle = viewMode === 'setlist'
+                ? `<i class="fas fa-grip-vertical song-handle" ${isSetlistLocked ? 'style="opacity:0.15; cursor:not-allowed;"' : ''}></i>`
+                : '';
 
             li.innerHTML = `
                 <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
                 <div class="song-info">
-                    <div class="song-title" style="display:flex; align-items:center;">
+                    <div class="song-title" style="display:flex; align-items:center; gap:4px;">
                          ${playedDot}<span style="flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${seqNumBadge}${displayTitle}</span>
-                         <span style="white-space:nowrap;">${badgesHTML}</span>
+                         <span style="white-space:nowrap;">${badgesHTML}</span>${setlistHandle}
                     </div>
                     <div class="song-meta-row">
                         <span class="song-artist">${s.artist || "-"}</span>
                         <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
                     </div>
                 </div>
-                ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle" ${isSetlistLocked ? 'style="opacity:0.1; cursor:not-allowed;"' : ''}></i>` : ``}
             `;
             list.appendChild(li);  
         });
