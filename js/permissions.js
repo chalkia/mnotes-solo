@@ -239,6 +239,7 @@ const ACTIONS = {
     MSTUDIO_BAND_MGR:     { axes: ['account'], minAccount: 'pro' },
     MSTUDIO_DRUM_MACHINE: { axes: ['account'], minAccount: 'pro' },
     MSTUDIO_ABC:          { axes: ['account'], minAccount: 'pro' },
+    CREATE_ABC_SCORE:     { axes: ['edition'], edition: 'pro' },
     ADVANCED_DRUMS:       { axes: ['account'], minAccount: 'pro' },
     USE_RHYTHMS:          { axes: ['account'], minAccount: 'pro' },
     MANAGE_BANDS:         { axes: ['account'], minAccount: 'pro' },
@@ -394,6 +395,14 @@ function can(action, ctx = {}) {
     }
 
     // 1. ACCESS_BAND (Έλεγχος πρόσβασης σε μπάντα - Φάση Β2)
+    if (def.axes.includes('edition')) {
+        const ed = (typeof window !== 'undefined' && typeof window.currentEdition === 'function')
+            ? window.currentEdition()
+            : ((typeof window !== 'undefined' && window.MNOTES_EDITION) || 'pro');
+        if (ed !== def.edition) return false;
+        if (def.axes.length === 1) return true;
+    }
+
     if (action === 'ACCESS_BAND') {
         // Συνεργατική μπάντα: μηδέν προπληρωμένες θέσεις, μπαίνει μόνο ο Pro.
         if (ctx.plan === null) return ctx.account === 'pro';

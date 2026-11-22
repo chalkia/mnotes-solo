@@ -169,6 +169,7 @@
         var lang = getLang();
         listEl.style.listStyle = 'none';
         listEl.style.paddingLeft = '0';
+        listEl.dataset.loaded = 'false';
         listEl.innerHTML = '<li style="color:var(--text-muted); text-align:center; padding:12px 0;">' +
             esc(lang === 'en' ? 'Loading…' : 'Φόρτωση…') + '</li>';
 
@@ -198,11 +199,13 @@
                     ? rel.items.map(function (it) { return renderItem(it, lang); }).join('')
                     : '';
                 listEl.innerHTML = html;
+                listEl.dataset.loaded = 'true';
             })
             .catch(function (err) {
                 console.warn('[ReleaseNotes] Αποτυχία φόρτωσης What\'s New:', err);
                 listEl.innerHTML = '<li style="color:var(--text-muted);">' +
                     esc(lang === 'en' ? 'Could not load release notes.' : 'Δεν ήταν δυνατή η φόρτωση των σημειώσεων.') + '</li>';
+                listEl.dataset.loaded = 'true';
             });
     };
 

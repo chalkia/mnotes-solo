@@ -152,33 +152,59 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 
         let tagsHtml = "";
         if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
-            tagsHtml = s.tags.map(tagVal => `
-                <span onclick="filterByTag(event, '${tagVal}')" 
-                      title="${t('title_filter_tag')}${tagVal}"
-                      style="cursor:pointer; background:var(--accent); color:#000; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold; margin-right:5px; display:inline-block; margin-top:5px; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:transform 0.1s;" 
-                      onmouseover="this.style.transform='scale(1.05)'" 
-                      onmouseout="this.style.transform='scale(1)'">
-                    #${tagVal}
-                </span>`).join('');
+            tagsHtml = `<div class="stage-tags-row">` + s.tags.map(tagVal => `
+                <span class="stage-tag-btn" onclick="filterByTag(event, '${tagVal}')" title="${t('title_filter_tag')}${tagVal}">#${tagVal}</span>`).join('') + `</div>`;
         }
 
-        let versionBadgeHtml = '';
+        const isSolo = (typeof window.currentEdition === 'function' ? window.currentEdition() === 'solo' : window.MNOTES_EDITION === 'solo');
+        const isBandCtx = !isSolo && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal';
+        const activeGroup = isBandCtx && typeof myGroups !== 'undefined' && Array.isArray(myGroups)
+            ? myGroups.find(g => String(g.id) === String(currentGroupId))
+            : null;
+        const bandBadgeHtml = (isBandCtx && activeGroup && activeGroup.name)
+            ? `<span class="stage-band-badge" title="${t('lbl_band_context', 'Βιβλιοθήκη μπάντας')}">👥 ${activeGroup.name}</span>`
+            : '';
+
+        let versionClusterParts = [];
         if (typeof window.getVersionGroup === 'function') {
             const vGroup = window.getVersionGroup(s.id);
-            if (vGroup.length > 1) {
-                const vIdx = vGroup.findIndex(v => v.id === s.id) + 1;
+            if (vGroup.length > 1 || (!isSolo && s.is_clone)) {
                 const isMaster = !s.parent_id && !s.is_clone;
-                const label = isMaster ? `<span style="color:var(--accent);font-weight:900;">★ Master</span>` : `v${vIdx}`;
-                const ts = window.getCreationTimeFromId(s.id);
-                const dateStr = ts ? new Date(ts).toLocaleDateString('el-GR', {day:'2-digit', month:'short'}) : '';
-                versionBadgeHtml = `
-                    <span style="display:inline-flex;align-items:center;gap:0;margin-left:8px;vertical-align:middle;">
-                        <button onclick="window.switchVersion(-1)" style="background:none;border:1px solid rgba(255,255,255,0.25);border-right:none;color:var(--text-muted);border-radius:4px 0 0 4px;padding:1px 5px;cursor:pointer;font-size:0.65rem;line-height:1.6;" title="Προηγούμενη">◀</button>
-                        <span title="${dateStr}" style="background:${isMaster ? 'rgba(255,152,0,0.2)' : 'rgba(255,255,255,0.07)'};border:1px solid ${isMaster ? 'rgba(255,152,0,0.5)' : 'rgba(255,255,255,0.2)'};border-left:none;border-right:none;padding:1px 7px;font-size:0.65rem;font-weight:bold;color:${isMaster ? 'var(--accent)' : 'var(--text-muted)'};white-space:nowrap;cursor:default;line-height:1.6;">${isMaster ? '★ Master' : `v${vIdx}/${vGroup.length}`}</span>
-                        <button onclick="window.switchVersion(1)" style="background:none;border:1px solid rgba(255,255,255,0.25);border-left:none;color:var(--text-muted);border-radius:0 4px 4px 0;padding:1px 5px;cursor:pointer;font-size:0.65rem;line-height:1.6;" title="Επόμενη">▶</button>
-                    </span>`;
+                const extraCount = Math.max(0, vGroup.length - 1);
+                const ts = typeof window.getCreationTimeFromId === 'function' ? window.getCreationTimeFromId(s.id) : 0;
+                const dateStr = ts ? new Date(ts).toLocaleDateString('el-GR', { day: '2-digit', month: 'short' }) : '';
+                const verTip = s.is_clone
+                    ? t('title_personal_clone', 'Προσωπική έκδοση')
+                    : `${vGroup.length} ${t('lbl_versions', 'εκδόσεις')}${dateStr ? ' · ' + dateStr : ''}`;
+                const starTxt = isMaster ? '★' : '';
+                const countTxt = extraCount > 0 ? `+${extraCount}` : '';
+                const cloneTxt = s.is_clone ? '✎' : '';
+                const pillLabel = [starTxt, t('lbl_my_version', 'Η έκδοσή μου'), countTxt, cloneTxt].filter(Boolean).join(' ');
+                if (vGroup.length > 1) {
+                    versionClusterParts.push(`
+                        <span class="ver-switch-pill" title="${verTip}">
+                            <button type="button" class="ver-nav-btn" onclick="window.switchVersion(-1)" title="${t('btn_prev', 'Προηγούμενη')}">◀</button>
+                            <span class="ver-label" onclick="window.switchVersion(1)">${pillLabel}</span>
+                            <button type="button" class="ver-nav-btn" onclick="window.switchVersion(1)" title="${t('btn_next', 'Επόμενη')}">▶</button>
+                        </span>`);
+                } else {
+                    versionClusterParts.push(`<span class="ver-switch-pill" title="${verTip}"><span class="ver-label">${pillLabel}</span></span>`);
+                }
             }
         }
+        const hasTwinDiff = !isSolo && ((s._diverged_bands && s._diverged_bands.length > 0) || s._personal_twin === 'diff');
+        const hasTwinSame = !isSolo && !hasTwinDiff && s._personal_twin === 'same';
+        if (hasTwinDiff) {
+            const diffTip = (s._diverged_bands && s._diverged_bands.length > 1)
+                ? t('title_diverged_many', `Αποκλίνει από ${s._diverged_bands.length} μπάντες`).replace('${bandCount}', s._diverged_bands.length)
+                : t('title_diverged_one', 'Αποκλίνει από τη μπάντα — η έκδοσή σας διαφέρει');
+            versionClusterParts.push(`<span class="badge-twin-stage diff" title="${diffTip}">📖 ${t('lbl_twin_diff', '! Διαφέρει')}</span>`);
+        } else if (hasTwinSame) {
+            versionClusterParts.push(`<span class="badge-twin-stage same" title="${t('title_twin_same', 'Ίδια έκδοση με τα προσωπικά σας')}">📖 ${t('lbl_twin_same', 'Ίδιο στα προσωπικά')}</span>`);
+        }
+        const versionClusterHtml = versionClusterParts.length > 0
+            ? `<span id="stageVersionCluster" class="stage-version-cluster">${versionClusterParts.join('')}</span>`
+            : '';
 
         const headerContainer = document.querySelector('.player-header-container');
         if (headerContainer) {
@@ -199,9 +225,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             <div class="player-header" style="position: relative;">
                 <div id="stagePlayedBookmark" class="stage-played-bookmark ${isPlayed ? 'active' : ''}" title="${typeof t === 'function' ? t('lbl_song_highlight', 'Επισήμανση τραγουδιού (Μαρκάρισμα)') : 'Επισήμανση τραγουδιού (Μαρκάρισμα)'}" onclick="if(window.PlayedSet && typeof currentSongId !== 'undefined') { window.PlayedSet.toggle(currentSongId); if(navigator.vibrate) navigator.vibrate(40); }"></div>
                 <div class="header-main-content">
-                    <div class="stage-header-top-row" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 5px;">
-                        <h2 id="mainAppTitle" class="${isPlayed ? 'title-marked' : ''}" style="margin:0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; flex:1; min-width:0;">
-                             <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}${versionBadgeHtml}</span>
+                    <div class="stage-header-top-row" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 3px;">
+                        <h2 id="mainAppTitle" class="${isPlayed ? 'title-marked' : ''}" style="margin:0; color:var(--text-main); display:flex; align-items:center; flex-wrap:nowrap; flex:1; min-width:0; overflow:hidden;">
+                             <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
                              ${noteBtnHtml}
                         </h2>
                         <div class="stage-nav-buttons" style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; z-index: 10;">
@@ -213,17 +239,29 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                             <button onclick="navSetlist(1)" class="round-btn" title="Επόμενο" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-forward"></i></button>
                         </div>
                     </div>
-                     <div style="margin-bottom: 8px;">${tagsHtml}</div>
-                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                         <div style="display:flex; align-items:center; gap: 10px;">
-                            <button class="key-badge" onclick="transUp()" title="${t('title_change_key')}" style="color: var(--accent); font-size: 1.8rem; font-weight: 900; text-shadow: 0 2px 5px rgba(0,0,0,0.4); border: 2px solid var(--accent); padding: 4px 12px; border-radius: 8px; background: rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s; display: inline-flex; align-items: center; justify-content: center; line-height: 1;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}</button>
+                     ${tagsHtml}
+                     <div class="stage-header-meta-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+                         <div class="stage-key-cluster" style="display:flex; align-items:center; gap: 8px;">
+                            <button class="key-badge" onclick="transUp()" title="${t('title_change_key')}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}</button>
                              <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
                              <button id="btnToggleView" onclick="toggleViewMode()"></button>
+                             ${bandBadgeHtml}
+                             ${versionClusterHtml}
                          </div>
                     </div>
                 </div>
             </div>`;
 
+            const compactBand = document.getElementById('compactBarBand');
+            if (compactBand) {
+                compactBand.textContent = (isBandCtx && activeGroup && activeGroup.name) ? `👥 ${activeGroup.name}` : '';
+                compactBand.style.display = (isBandCtx && activeGroup && activeGroup.name) ? 'inline-flex' : 'none';
+            }
+            const compactTwinWarn = document.getElementById('compactBarTwinWarn');
+            if (compactTwinWarn) {
+                compactTwinWarn.style.display = hasTwinDiff ? 'inline-flex' : 'none';
+                if (hasTwinDiff) compactTwinWarn.title = t('title_diverged_one', 'Αποκλίνει από τη μπάντα — η έκδοσή σας διαφέρει');
+            }
             const compactTitle = document.getElementById('compactBarTitle');
             if (compactTitle) compactTitle.textContent = s.title || '';
             const compactKey = document.getElementById('compactBarKey');
@@ -444,6 +482,58 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         });
 
         text = text.replace(/___STRUM_\d+___!/g, match => match.slice(0, -1));
+
+        // 3. Inline ABC Scores: !score Name @id !/
+        const escHtml = (str) => String(str == null ? '' : str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const atts = (song && Array.isArray(song.attachments)) ? song.attachments : [];
+        const abcInlineEnabled = (typeof userSettings === 'undefined' || userSettings.abcInline !== false);
+
+        text = text.replace(/!score\s+([\s\S]*?)\s*!\//gi, function(match, innerRaw) {
+            const raw = (innerRaw || '').trim();
+            if (!raw) return '';
+            const atMatch = raw.match(/^(.*?)\s+@([^\s@]+)$/);
+            const scoreName = (atMatch ? atMatch[1] : raw).trim();
+            const scoreId = atMatch ? atMatch[2].trim() : '';
+
+            let matched = null;
+            if (scoreId) {
+                matched = atts.find(a => a && String(a.id || '') === scoreId);
+            }
+            if (!matched && scoreName) {
+                const targetLower = scoreName.toLowerCase();
+                matched = atts.find(a => {
+                    if (!a || !a.name) return false;
+                    const n = String(a.name).trim().toLowerCase();
+                    return n === targetLower || n.replace(/\.abc$/i, '') === targetLower;
+                });
+            }
+
+            let finalHtml = '';
+            if (!matched) {
+                const disp = scoreName || scoreId || 'ABC';
+                const missingMsg = (typeof t === 'function')
+                    ? t('msg_missing_score', 'Λείπει η παρτιτούρα «{name}»').replace('{name}', escHtml(disp))
+                    : `Λείπει η παρτιτούρα «${escHtml(disp)}»`;
+                finalHtml = `<div class="stage-inline-abc stage-inline-abc-missing"><i class="fas fa-exclamation-triangle"></i> <span>${missingMsg}</span></div>`;
+            } else if (!abcInlineEnabled) {
+                const dispName = escHtml(String(matched.name || scoreName || 'ABC').replace(/\.abc$/i, ''));
+                const safeUrl = String(matched.url || '').replace(/'/g, "\\'");
+                const safeTitle = String(matched.name || scoreName || 'ABC').replace(/'/g, "\\'");
+                finalHtml = `<button type="button" class="stage-inline-abc stage-inline-abc-link" onclick="if(typeof showScoreInLayer==='function') showScoreInLayer('${safeUrl}','${safeTitle}')"><i class="fas fa-music"></i> <span>${dispName}</span></button>`;
+            } else {
+                const dispName = escHtml(String(matched.name || scoreName || 'ABC').replace(/\.abc$/i, ''));
+                const safeUrl = escHtml(matched.url || '');
+                const safeId = escHtml(matched.id || scoreId || '');
+                const inlineAttr = matched.content ? ` data-abc-inline="${escHtml(matched.content)}"` : '';
+                finalHtml = `<div class="stage-inline-abc" data-abc-url="${safeUrl}" data-abc-id="${safeId}"${inlineAttr}><div class="stage-inline-abc-title"><i class="fas fa-music"></i> <span>${dispName}</span></div><div class="stage-inline-abc-paper"></div></div>`;
+            }
+
+            const placeholderId = `___SCORE_${markupCounter++}___`;
+            markupDictionary[placeholderId] = finalHtml;
+            return placeholderId + (match.endsWith('\n') ? '\n' : ' ');
+        });
+
         return text;
     };
 
@@ -658,6 +748,60 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             finalHtmlContent = finalHtmlContent.replace(placeholder, markupDictionary[placeholder]);
         });
         container.innerHTML = finalHtmlContent;
+        if (typeof player.renderInlineAbcScores === 'function') {
+            player.renderInlineAbcScores(container);
+        }
+    };
+
+    const _inlineAbcTextCache = {};
+    player.renderInlineAbcScores = function(container) {
+        if (!container || typeof container.querySelectorAll !== 'function') return;
+        const nodes = container.querySelectorAll('.stage-inline-abc[data-abc-url], .stage-inline-abc[data-abc-inline]');
+        if (!nodes.length) return;
+        const vt = (typeof state !== 'undefined' && state) ? ((state.t || 0) - (state.c || 0)) : 0;
+
+        nodes.forEach((el, idx) => {
+            const paper = el.querySelector('.stage-inline-abc-paper');
+            if (!paper) return;
+            if (!paper.id) paper.id = `stage-inline-abc-paper-${Date.now()}-${idx}`;
+            const inlineText = el.getAttribute('data-abc-inline');
+            const url = el.getAttribute('data-abc-url') || '';
+
+            const paintAbc = (abcText) => {
+                if (typeof ABCJS !== 'undefined') {
+                    ABCJS.renderAbc(paper.id, abcText, {
+                        responsive: 'resize',
+                        add_classes: true,
+                        staffwidth: 680,
+                        visualTranspose: vt
+                    });
+                } else {
+                    paper.textContent = abcText;
+                }
+            };
+
+            if (inlineText) {
+                paintAbc(inlineText);
+            } else if (url) {
+                if (_inlineAbcTextCache[url]) {
+                    paintAbc(_inlineAbcTextCache[url]);
+                } else if (url.startsWith('local://') && typeof window.soloGetLocalAssetText === 'function') {
+                    window.soloGetLocalAssetText(url).then(txt => {
+                        if (txt) { _inlineAbcTextCache[url] = txt; paintAbc(txt); }
+                    }).catch(() => {});
+                } else {
+                    fetch(url).then(r => {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.text();
+                    }).then(txt => {
+                        _inlineAbcTextCache[url] = txt;
+                        paintAbc(txt);
+                    }).catch(err => {
+                        console.warn('[InlineABC] Failed to load score:', url, err);
+                    });
+                }
+            }
+        });
     };
 
     player.createToken = function(c, l, isChordsOnly) { 

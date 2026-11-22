@@ -139,12 +139,14 @@ const FloatingTools = {
                 .then(res => res.text())
                 .then(abcSource => {
                     if (typeof ABCJS !== 'undefined') {
+                        const vt = (typeof state !== 'undefined' && state) ? ((state.t || 0) - (state.c || 0)) : 0;
                         const renderOptions = {
                             responsive: "resize",
                             paddingleft: 0,
                             paddingright: 0,
                             add_classes: true,
-                            staffwidth: 400
+                            staffwidth: 400,
+                            visualTranspose: vt
                         };
 
                         // Check for custom mNotes tab directive (Format: %%mnotes-tab: instrument[:tuning])

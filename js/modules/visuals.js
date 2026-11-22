@@ -12,16 +12,28 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
     let zoomStep = 0;
     let lastTouchTs = 0;
 
+    visualsMod._savedScrollTop = 0;
+
     visualsMod.openLayer = function(contentHtml) {
         if (typeof isMobileView === 'function' && isMobileView() && typeof window.switchMobileTab === 'function') {
             window.switchMobileTab('stage');
         } else if (typeof window.switchView === 'function') {
             window.switchView('stage');
         }
+
+        const sc = document.getElementById('scroll-container');
+        if (sc && !window.isVisualLayerOpen) {
+            visualsMod._savedScrollTop = sc.scrollTop || 0;
+        }
         
         const layer = document.getElementById('stageVisualLayer');
         const content = document.getElementById('visualLayerContent');
+        const viewPlayer = document.getElementById('view-player');
         if (!layer || !content) return;
+
+        const isHalf = (typeof userSettings !== 'undefined' && userSettings && userSettings.scoreOpenMode === 'half');
+        layer.classList.toggle('half-screen', isHalf);
+        if (viewPlayer) viewPlayer.classList.toggle('score-half-open', isHalf);
         
         content.innerHTML = contentHtml;
 
@@ -38,8 +50,17 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
     visualsMod.closeLayer = function() {
         zoomStep = 0;   // επόμενη εικόνα ξεκινά πάντα στο 100%
         const layer = document.getElementById('stageVisualLayer');
-        if (layer) layer.style.display = 'none';
+        const viewPlayer = document.getElementById('view-player');
+        if (layer) {
+            layer.style.display = 'none';
+            layer.classList.remove('half-screen');
+        }
+        if (viewPlayer) viewPlayer.classList.remove('score-half-open');
         window.isVisualLayerOpen = false;
+        const sc = document.getElementById('scroll-container');
+        if (sc && typeof visualsMod._savedScrollTop === 'number') {
+            sc.scrollTop = visualsMod._savedScrollTop;
+        }
     };
 
     /* Ανάγνωση παρτιτούρας στη σκηνή.
@@ -173,10 +194,12 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
             
             fetch(url).then(r => r.text()).then(abcText => {
                 if (typeof ABCJS !== 'undefined') {
+                    const vt = (typeof state !== 'undefined' && state) ? ((state.t || 0) - (state.c || 0)) : 0;
                     ABCJS.renderAbc("stage-abc-paper", abcText, { 
                         responsive: "resize",
                         add_classes: true,
-                        staffwidth: 800
+                        staffwidth: 800,
+                        visualTranspose: vt
                     });
                 } else {
                     document.getElementById('stage-abc-paper').innerHTML = `<pre style="white-space:pre-wrap; font-family:monospace;">${abcText}</pre>`;
@@ -292,19 +315,33 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
 
             const info = document.getElementById('pdf-page-info');
             if (info) {
-                info.innerText = `Σελίδα ${visualsMod.currentPdfPage} / ${visualsMod.currentPdfObj.numPages}`;
+                const cur = visualsMod.currentPdfPage;
+                const total = visualsMod.currentPdfObj.numPages;
+                const isLast = cur >= total;
+                info.classList.toggle('at-exit', isLast);
+                info.innerText = isLast
+                    ? `${cur} / ${total} · ${typeof t === 'function' ? t('lbl_pdf_exit_hint', 'Επόμενο ↵ Στίχοι') : 'Επόμενο ↵ Στίχοι'}`
+                    : `${cur} / ${total}`;
             }
         });
     };
 
     visualsMod.nextPdfPage = function() {
-        if (!visualsMod.currentPdfObj || visualsMod.currentPdfPage >= visualsMod.currentPdfObj.numPages) return;
+        if (!visualsMod.currentPdfObj) return;
+        if (visualsMod.currentPdfPage >= visualsMod.currentPdfObj.numPages) {
+            visualsMod.closeLayer();
+            return;
+        }
         visualsMod.currentPdfPage++;
         visualsMod.renderPdfPage();
     };
 
     visualsMod.prevPdfPage = function() {
-        if (!visualsMod.currentPdfObj || visualsMod.currentPdfPage <= 1) return;
+        if (!visualsMod.currentPdfObj) return;
+        if (visualsMod.currentPdfPage <= 1) {
+            visualsMod.closeLayer();
+            return;
+        }
         visualsMod.currentPdfPage--;
         visualsMod.renderPdfPage();
     };

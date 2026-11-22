@@ -805,7 +805,47 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         let holdFired = false;
         let activeKey = null;
 
+        function handleVisualLayerPedal(dir) {
+            if (document.getElementById('stage-pdf-canvas')) {
+                if (dir > 0 && typeof window.nextPdfPage === 'function') window.nextPdfPage();
+                else if (dir < 0 && typeof window.prevPdfPage === 'function') window.prevPdfPage();
+                return;
+            }
+            const vc = document.getElementById('visualLayerContent');
+            if (!vc) {
+                if (typeof window.closeVisualLayer === 'function') window.closeVisualLayer();
+                return;
+            }
+            const atBottom = (vc.scrollTop + vc.clientHeight) >= (vc.scrollHeight - 4);
+            const atTop = vc.scrollTop <= 4;
+            if ((dir > 0 && atBottom) || (dir < 0 && atTop)) {
+                if (typeof window.closeVisualLayer === 'function') window.closeVisualLayer();
+            } else {
+                vc.scrollBy({ top: vc.clientHeight * 0.80 * dir, behavior: 'smooth' });
+            }
+        }
+
         function runPedalAction(action, dir) {
+            if (window.isVisualLayerOpen) {
+                handleVisualLayerPedal(dir);
+                return;
+            }
+            if (action === 'score') {
+                const song = (typeof library !== 'undefined' && typeof currentSongId !== 'undefined')
+                    ? library.find(s => s && s.id === currentSongId)
+                    : null;
+                const atts = (song && Array.isArray(song.attachments)) ? song.attachments : [];
+                const scoreAtt = atts.find(a => a && a.url && (a.category === 'score' || a.file_type === 'score' || a.category === 'visual' || /\.(pdf|png|jpg|jpeg|webp|abc)(\?|$)/i.test(a.url)));
+                if (scoreAtt) {
+                    const isPdf = /\.pdf(\?|$)/i.test(scoreAtt.url) || scoreAtt.file_type === 'application/pdf';
+                    if (isPdf && typeof window.showPdfInLayer === 'function') {
+                        window.showPdfInLayer(scoreAtt.url);
+                    } else if (typeof window.showScoreInLayer === 'function') {
+                        window.showScoreInLayer(scoreAtt.url, scoreAtt.name || 'Score');
+                    }
+                }
+                return;
+            }
             if (action === 'song') {
                 if (typeof navVisiblePlaylist === 'function') navVisiblePlaylist(dir);
                 return;
@@ -849,18 +889,6 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             e.preventDefault();
             const dir = isLeft ? -1 : 1;
 
-            // Visual layer (PDF or Image) override
-            if (window.isVisualLayerOpen) {
-                if (document.getElementById('stage-pdf-canvas')) {
-                    if (dir > 0 && typeof window.nextPdfPage === 'function') window.nextPdfPage();
-                    else if (dir < 0 && typeof window.prevPdfPage === 'function') window.prevPdfPage();
-                } else {
-                    const vc = document.getElementById('visualLayerContent');
-                    if (vc) vc.scrollBy({ top: vc.clientHeight * 0.80 * dir, behavior: 'smooth' });
-                }
-                return;
-            }
-
             const holdEnabled = (typeof userSettings !== 'undefined' && !!userSettings.pedalHoldForSong);
             const action = isLeft
                 ? ((typeof userSettings !== 'undefined' && userSettings.pedalLeftAction) || 'scroll')
@@ -879,6 +907,9 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             holdTimer = setTimeout(() => {
                 holdTimer = null;
                 holdFired = true;
+                if (window.isVisualLayerOpen && typeof window.closeVisualLayer === 'function') {
+                    window.closeVisualLayer();
+                }
                 if (typeof navVisiblePlaylist === 'function') navVisiblePlaylist(dir);
             }, holdMs);
         });

@@ -38,6 +38,7 @@ window.addEventListener('load', function() {
                 safeSetLocal('mnotes_last_version', appVer);
             }
         }
+        window.__mnotesVersionCheckDone = true;
     }, 1500);
 
     // 0. Handle Setlist Invites (Guest Singers)

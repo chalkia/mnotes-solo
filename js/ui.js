@@ -605,6 +605,14 @@ function formatHighlightsHTML(rawText, includeSections = true) {
             return id;
         });
 
+        // 3d-score. Inline ABC score tags: !score Name @id !/
+        text = text.replace(/(!score\s+[\s\S]*?\s*!\/)/gi, (match) => {
+            const id = `__SCORE_${counter++}__`;
+            const inner = match.replace(/(@[^\s@!]+)/g, '<span class="score-id-dim">$1</span>');
+            placeholders[id] = `<span class="score-tag-highlight">${inner}</span>`;
+            return id;
+        });
+
         // 3e. Universal Closer (!/)
         let closeTagCounter = 0;
         text = text.replace(/!\//g, (match) => {

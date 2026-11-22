@@ -220,9 +220,12 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 inputElement.value = ''; return; 
             }
         } else { 
-            const allowedVisuals = ['pdf', 'png', 'jpg', 'jpeg', 'abc', 'webp'];
+            const allowAbc = (typeof canUserPerform === 'function') ? canUserPerform('CREATE_ABC_SCORE') : true;
+            const allowedVisuals = allowAbc ? ['pdf', 'png', 'jpg', 'jpeg', 'abc', 'webp'] : ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
             if (!allowedVisuals.includes(fileExt)) {
-                showToast(t('msg_err_format_image_abc', "⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε Εικόνα ή ABC."), "error");
+                showToast(fileExt === 'abc'
+                    ? t('msg_err_abc_pro_only', "Η προσθήκη αρχείων .abc διατίθεται στο mNotes Pro.")
+                    : t('msg_err_format_image_abc', "⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε Εικόνα ή ABC."), "error");
                 inputElement.value = ''; return; 
             }
         }
@@ -1028,7 +1031,29 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         assets.setupAudioToolsListeners();
     }
 
+    assets.renameAttachment = function(songId, assetId, newName) {
+        if (!assetId || !newName) return false;
+        const cleanName = String(newName).trim();
+        if (!cleanName) return false;
+        if (typeof library !== 'undefined' && Array.isArray(library)) {
+            library.forEach(s => {
+                if (!s || (songId && s.id !== songId)) return;
+                if (Array.isArray(s.attachments)) {
+                    s.attachments.forEach(att => {
+                        if (att && String(att.id) === String(assetId)) att.name = cleanName;
+                    });
+                }
+            });
+        }
+        if (typeof window.syncScoreTagsOnAssetRename === 'function') {
+            window.syncScoreTagsOnAssetRename(assetId, cleanName);
+        }
+        if (typeof assets.renderAttachments === 'function') assets.renderAttachments();
+        return true;
+    };
+
     // --- Aliases ---
+    window.renameAttachment = assets.renameAttachment;
     window.openAssetManager = assets.openManager;
     window.closeAssetManager = assets.closeManager;
     window.switchAssetManagerTab = assets.switchTab;

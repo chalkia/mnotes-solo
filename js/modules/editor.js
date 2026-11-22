@@ -652,6 +652,62 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         let replacement = '';
         let newCursorPos = start;
 
+        if (type === 'score') {
+            if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_ABC_SCORE')) return;
+            const song = (typeof library !== 'undefined' && typeof currentSongId !== 'undefined')
+                ? library.find(s => s.id === currentSongId)
+                : null;
+            const atts = (song && Array.isArray(song.attachments)) ? song.attachments : [];
+            const abcList = atts.filter(a => a && (a.category === 'score' || a.file_type === 'score' || (a.url && (a.url.toLowerCase().includes('.abc?') || a.url.toLowerCase().endsWith('.abc'))) || (a.name && a.name.toLowerCase().endsWith('.abc'))));
+
+            const insertScoreTag = (att) => {
+                const name = String(att.name || 'Score').replace(/\.abc$/i, '').trim() || 'Score';
+                const idPart = att.id ? ` @${att.id}` : '';
+                const tag = `!score ${name}${idPart} !/`;
+                const curVal = inpBody.value;
+                const prefix = (start > 0 && curVal[start - 1] !== '\n') ? '\n' : '';
+                const suffix = (end < curVal.length && curVal[end] !== '\n') ? '\n' : '';
+                const rep = `${prefix}${tag}${suffix}`;
+                inpBody.value = curVal.substring(0, start) + rep + curVal.substring(end);
+                const pos = start + rep.length;
+                inpBody.focus();
+                inpBody.setSelectionRange(pos, pos);
+                inpBody.dispatchEvent(new Event('input'));
+                if (typeof window.updateHighlights === 'function') window.updateHighlights();
+                window.updateEditorFormatButtonState();
+            };
+
+            if (abcList.length === 0) {
+                const msg = (typeof t === 'function')
+                    ? t('msg_no_abc_attached', 'Δεν υπάρχει συνδεδεμένη παρτιτούρα ABC. Άνοιγμα Βιβλιοθήκης αρχείων;')
+                    : 'Δεν υπάρχει συνδεδεμένη παρτιτούρα ABC. Άνοιγμα Βιβλιοθήκης αρχείων;';
+                const goOpen = (window.mDialog && typeof window.mDialog.confirm === 'function')
+                    ? window.mDialog.confirm(msg)
+                    : Promise.resolve(typeof mConfirm === 'function' ? mConfirm(msg) : false);
+                Promise.resolve(goOpen).then(ok => {
+                    if (ok && typeof openAssetManager === 'function') openAssetManager('visuals');
+                });
+                return;
+            }
+            if (abcList.length === 1) {
+                insertScoreTag(abcList[0]);
+                return;
+            }
+            if (window.mDialog && typeof window.mDialog.choice === 'function') {
+                window.mDialog.choice({
+                    title: (typeof t === 'function') ? t('fmt_insert_score', 'Παρτιτούρα (ABC)') : 'Παρτιτούρα (ABC)',
+                    options: abcList.map(a => ({ label: a.name || a.id, value: a.id }))
+                }).then(chosenId => {
+                    if (!chosenId) return;
+                    const chosen = abcList.find(a => String(a.id) === String(chosenId));
+                    if (chosen) insertScoreTag(chosen);
+                });
+            } else {
+                insertScoreTag(abcList[0]);
+            }
+            return;
+        }
+
         if (type === 'close') {
             let prefix = (start > 0 && val[start - 1] !== '\n') ? '\n' : '';
             replacement = `${prefix}!/\n`;
@@ -690,6 +746,33 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         inpBody.dispatchEvent(new Event('input'));
         if (typeof window.updateHighlights === 'function') window.updateHighlights();
         window.updateEditorFormatButtonState();
+    };
+
+    window.syncScoreTagsOnAssetRename = function(assetId, newName) {
+        if (!assetId || !newName) return 0;
+        const cleanName = String(newName).replace(/\.abc$/i, '').trim() || String(newName).trim();
+        const escapedId = String(assetId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp(`!score\\s+[^\\n!]*?\\s+@${escapedId}\\s*!\\/`, 'gi');
+        const replacement = `!score ${cleanName} @${assetId} !/`;
+        let updatedCount = 0;
+
+        if (typeof library !== 'undefined' && Array.isArray(library)) {
+            library.forEach(song => {
+                if (song && typeof song.body === 'string' && rx.test(song.body)) {
+                    rx.lastIndex = 0;
+                    song.body = song.body.replace(rx, replacement);
+                    updatedCount++;
+                }
+            });
+        }
+        const inpBody = document.getElementById('inpBody');
+        if (inpBody && typeof inpBody.value === 'string' && rx.test(inpBody.value)) {
+            rx.lastIndex = 0;
+            inpBody.value = inpBody.value.replace(rx, replacement);
+            if (typeof window.updateHighlights === 'function') window.updateHighlights();
+        }
+        if (updatedCount > 0 && typeof saveData === 'function') saveData();
+        return updatedCount;
     };
 
     document.addEventListener('click', (e) => {

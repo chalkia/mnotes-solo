@@ -447,7 +447,54 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         settingsMod.applyLibraryTextSize(valid);
     };
 
+    settingsMod.syncScoreSettingsUI = function() {
+        if (typeof userSettings === 'undefined' || !userSettings) {
+            try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {}; }
+            catch (e) { userSettings = {}; }
+        }
+        const inlineOn = (userSettings.abcInline !== false);
+        const segInline = document.getElementById('setAbcInline');
+        if (segInline) {
+            segInline.querySelectorAll('.seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-val') === (inlineOn ? 'yes' : 'no'));
+            });
+        }
+        const openMode = (userSettings.scoreOpenMode === 'half') ? 'half' : 'full';
+        const segMode = document.getElementById('setScoreOpenMode');
+        if (segMode) {
+            segMode.querySelectorAll('.seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-mode') === openMode);
+            });
+        }
+    };
+
+    settingsMod.setAbcInline = function(enabled) {
+        if (typeof userSettings === 'undefined' || !userSettings) {
+            try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {}; }
+            catch (e) { userSettings = {}; }
+        }
+        userSettings.abcInline = !!enabled;
+        safeSetLocal('mnotes_settings', JSON.stringify(userSettings));
+        settingsMod.syncScoreSettingsUI();
+        if (typeof currentSongId !== 'undefined' && currentSongId && typeof loadSong === 'function') {
+            loadSong(currentSongId);
+        }
+    };
+
+    settingsMod.setScoreOpenMode = function(mode) {
+        if (typeof userSettings === 'undefined' || !userSettings) {
+            try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {}; }
+            catch (e) { userSettings = {}; }
+        }
+        userSettings.scoreOpenMode = (mode === 'half') ? 'half' : 'full';
+        safeSetLocal('mnotes_settings', JSON.stringify(userSettings));
+        settingsMod.syncScoreSettingsUI();
+    };
+
     // --- Aliases ---
+    window.setAbcInline = settingsMod.setAbcInline;
+    window.setScoreOpenMode = settingsMod.setScoreOpenMode;
+    window.syncScoreSettingsUI = settingsMod.syncScoreSettingsUI;
     window.openSettings = settingsMod.open;
     window.closeSettings = settingsMod.close;
     window.saveDeviceLockSetting = settingsMod.saveDeviceLock;
@@ -464,10 +511,12 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         document.addEventListener('DOMContentLoaded', () => {
             settingsMod.applyTheme();
             settingsMod.applyLibraryTextSize();
+            settingsMod.syncScoreSettingsUI();
         });
     } else {
         settingsMod.applyTheme();
         settingsMod.applyLibraryTextSize();
+        settingsMod.syncScoreSettingsUI();
     }
 
 })(window.mNotes.ui.settings);
