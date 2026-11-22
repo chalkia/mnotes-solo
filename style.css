@@ -4498,20 +4498,31 @@ body.theme-light .mbtn-primary {
     width: 22px;
     min-height: 22px;
     height: 22px;
-    font-size: 0.85rem;
+    font-size: 1rem;
+    line-height: 1;
     margin-left: 4px;
     flex-shrink: 0;
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    opacity: 0.75;
+}
+#songList .song-item .song-handle:hover,
+#songList .song-item .song-handle:active {
+    opacity: 1;
+    color: var(--text-main);
 }
 #songList .song-item .song-action::before {
     content: '';
     position: absolute;
     inset: -2px -5px;
 }
-#songList .song-item .song-handle::before {
+#songList .song-item .song-handle::after {
     content: '';
     position: absolute;
     inset: -11px -10px;

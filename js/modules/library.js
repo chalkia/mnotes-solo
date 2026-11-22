@@ -438,7 +438,7 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
 
             const playedDot = isPlayed ? '<span class="played-dot" aria-hidden="true">✓</span>' : '';
             const setlistHandle = viewMode === 'setlist'
-                ? `<i class="fas fa-grip-vertical song-handle" ${isSetlistLocked ? 'style="opacity:0.15; cursor:not-allowed;"' : ''}></i>`
+                ? `<span class="song-handle" aria-hidden="true"${isSetlistLocked ? ' style="opacity:0.15; cursor:not-allowed;"' : ''}>⠿</span>`
                 : '';
 
             li.innerHTML = `
