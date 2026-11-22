@@ -79,6 +79,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
             const el = document.getElementById(id);
             if (el) el.value = values[id];
         }
+        settingsMod.applyLibraryTextSize();
 
         /* Ετοιμότητα offline, με μια ματιά. Χωρίς αυτό ο χρήστης μαθαίνει
            ότι δεν είναι έτοιμος τη στιγμή που δεν έχει δίκτυο. (07/09/2026) */
@@ -150,6 +151,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         const modal = document.getElementById('settingsModal');
         if (modal) modal.style.display = 'none';
         settingsMod.applyTheme();
+        settingsMod.applyLibraryTextSize();
     };
 
     settingsMod.saveDeviceLock = function() {
@@ -216,6 +218,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         safeSetLocal('mnotes_settings', JSON.stringify(userSettings));
 
         settingsMod.applyTheme();
+        settingsMod.applyLibraryTextSize();
         if (typeof applyScrollBtnVisibility === 'function') applyScrollBtnVisibility();
         settingsMod.applyMobileForce();
         
@@ -409,21 +412,62 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         console.log('✅ openAccountModal: Set display=flex on accountModal', modal);
     };
 
+    settingsMod.applyLibraryTextSize = function(sizeOverride) {
+        if (typeof userSettings === 'undefined' || !userSettings) {
+            try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-slate', lang: 'el' }; }
+            catch (e) { userSettings = { theme: 'theme-slate', lang: 'el' }; }
+        }
+        const raw = sizeOverride || userSettings.libTextSize || 'md';
+        const valid = (raw === 'sm' || raw === 'md' || raw === 'lg') ? raw : 'md';
+        document.body.classList.remove('lib-text-sm', 'lib-text-md', 'lib-text-lg');
+        document.body.classList.add('lib-text-' + valid);
+        const list = document.getElementById('songList');
+        if (list) {
+            list.style.display = 'none';
+            void list.offsetHeight;
+            list.style.display = '';
+        }
+
+        const seg = document.getElementById('setLibTextSize');
+        if (seg) {
+            seg.querySelectorAll('.seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-size') === valid);
+            });
+        }
+    };
+
+    settingsMod.setLibraryTextSize = function(size) {
+        const valid = (size === 'sm' || size === 'md' || size === 'lg') ? size : 'md';
+        if (typeof userSettings === 'undefined' || !userSettings) {
+            try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {}; }
+            catch (e) { userSettings = {}; }
+        }
+        userSettings.libTextSize = valid;
+        safeSetLocal('mnotes_settings', JSON.stringify(userSettings));
+        settingsMod.applyLibraryTextSize(valid);
+    };
+
     // --- Aliases ---
     window.openSettings = settingsMod.open;
     window.closeSettings = settingsMod.close;
     window.saveDeviceLockSetting = settingsMod.saveDeviceLock;
     window.saveSettings = settingsMod.save;
     window.applyTheme = settingsMod.applyTheme;
+    window.applyLibraryTextSize = settingsMod.applyLibraryTextSize;
+    window.setLibraryTextSize = settingsMod.setLibraryTextSize;
     window.toggleLanguage = settingsMod.toggleLanguage;
     window.applyTranslations = settingsMod.applyTranslations;
     window.applyMobileForce = settingsMod.applyMobileForce;
 
-    // Εφαρμογή αποθηκευμένου θέματος στην εκκίνηση (μαζί με CSS variables)
+    // Εφαρμογή αποθηκευμένου θέματος & μεγέθους γραμμάτων βιβλιοθήκης στην εκκίνηση
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => settingsMod.applyTheme());
+        document.addEventListener('DOMContentLoaded', () => {
+            settingsMod.applyTheme();
+            settingsMod.applyLibraryTextSize();
+        });
     } else {
         settingsMod.applyTheme();
+        settingsMod.applyLibraryTextSize();
     }
 
 })(window.mNotes.ui.settings);

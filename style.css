@@ -4641,3 +4641,111 @@ body.theme-light .mbtn-primary {
         display: none;
     }
 }
+
+/* =========================================================
+   LIBRARY TEXT SIZE (2.8 / sm 48px | md 56px | lg 64px)
+   ========================================================= */
+:root,
+body.lib-text-md,
+body.lib-text-md #sidebar {
+    --lib-row-h: 56px;
+    --lib-title-size: 1.08rem;
+    --lib-meta-size: 0.88rem;
+    --lib-badge-size: 0.80rem;
+    --lib-icon-size: 1rem;
+    --lib-dot-size: 17px;
+    --lib-count-size: 0.78rem;
+}
+body.lib-text-sm,
+body.lib-text-sm #sidebar {
+    --lib-row-h: 48px;
+    --lib-title-size: 0.94rem;
+    --lib-meta-size: 0.76rem;
+    --lib-badge-size: 0.70rem;
+    --lib-icon-size: 0.9rem;
+    --lib-dot-size: 15px;
+    --lib-count-size: 0.72rem;
+}
+body.lib-text-lg,
+body.lib-text-lg #sidebar {
+    --lib-row-h: 64px;
+    --lib-title-size: 1.20rem;
+    --lib-meta-size: 0.98rem;
+    --lib-badge-size: 0.88rem;
+    --lib-icon-size: 1.1rem;
+    --lib-dot-size: 19px;
+    --lib-count-size: 0.86rem;
+}
+
+body.lib-text-sm #songList .song-item { --lib-row-h: 48px; }
+body.lib-text-md #songList .song-item { --lib-row-h: 56px; }
+body.lib-text-lg #songList .song-item { --lib-row-h: 64px; }
+
+#songList .song-item {
+    height: var(--lib-row-h);
+    min-height: var(--lib-row-h);
+    max-height: var(--lib-row-h);
+}
+#songList .song-info {
+    min-width: 0;
+    overflow: hidden;
+}
+#songList .song-item .song-title {
+    font-size: var(--lib-title-size);
+    line-height: 1.22;
+}
+#songList .song-item .song-meta-row {
+    font-size: var(--lib-meta-size);
+    line-height: 1.18;
+    gap: 6px;
+}
+#songList .song-item .song-artist {
+    font-size: var(--lib-meta-size) !important;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#songList .song-item .song-key-badge {
+    font-size: var(--lib-badge-size);
+    flex-shrink: 0;
+}
+#songList .song-item .song-action,
+#songList .song-item .song-handle {
+    font-size: var(--lib-icon-size);
+}
+#songList .played-dot {
+    width: var(--lib-dot-size);
+    height: var(--lib-dot-size);
+    font-size: calc(var(--lib-dot-size) * 0.44);
+}
+#sidebar .song-count-pill,
+#sidebar #setlistMarkedBadge {
+    font-size: var(--lib-count-size);
+}
+
+.segmented-control {
+    display: inline-flex;
+    background: var(--surface-ctl, var(--input-bg));
+    border: 1px solid var(--border-strong, var(--border-color));
+    border-radius: 10px;
+    padding: 2px;
+    gap: 2px;
+}
+.segmented-control .seg-btn {
+    min-height: 34px;
+    padding: 4px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.segmented-control .seg-btn.active {
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border-color: var(--border-strong, var(--border-color));
+}

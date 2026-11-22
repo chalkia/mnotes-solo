@@ -855,6 +855,15 @@
                             </select>
                         </label>
 
+                        <div class="setting-row-segmented" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <span data-i18n="lbl_lib_text_size">Μέγεθος γραμμάτων βιβλιοθήκης</span>
+                            <div id="setLibTextSize" class="segmented-control" role="group" aria-label="Library text size">
+                                <button type="button" class="seg-btn" data-size="sm" onclick="setLibraryTextSize('sm')" data-i18n="opt_size_sm">Μικρά</button>
+                                <button type="button" class="seg-btn active" data-size="md" onclick="setLibraryTextSize('md')" data-i18n="opt_size_md">Κανονικά</button>
+                                <button type="button" class="seg-btn" data-size="lg" onclick="setLibraryTextSize('lg')" data-i18n="opt_size_lg">Μεγάλα</button>
+                            </div>
+                        </div>
+
                         <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
                             <input type="checkbox" id="setDisableSplit">
                             <span data-i18n="opt_disable_split"><span data-i18n="idx_auto_104">Ενιαία προβολή κειμένου (Όχι Split)</span></span>
@@ -1819,61 +1828,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.8.0T.221126"></script>
-        <script src="js/config.js?v=2.8.0T.221126"></script>
+        <script src="js/edition.js?v=2.8.1T.221126"></script>
+        <script src="js/config.js?v=2.8.1T.221126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.8.0T.221126"></script>
-        <script src="js/translations.js?v=2.8.0T.221126"></script>
-        <script src="js/storage.js?v=2.8.0T.221126"></script>
+        <script src="js/data.js?v=2.8.1T.221126"></script>
+        <script src="js/translations.js?v=2.8.1T.221126"></script>
+        <script src="js/storage.js?v=2.8.1T.221126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.8.0T.221126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.8.0T.221126"></script>
-        <script src="js/custom-kits.js?v=2.8.0T.221126"></script>
-        <script src="js/drum-machine.js?v=2.8.0T.221126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.8.0T.221126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.1T.221126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.1T.221126"></script>
+        <script src="js/custom-kits.js?v=2.8.1T.221126"></script>
+        <script src="js/drum-machine.js?v=2.8.1T.221126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.1T.221126"></script>
 
-        <script src="js/modules/ui-dialogs.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/utils.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/assets.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/played-set.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/player.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/editor.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/library.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/settings.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/ui-utils.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/rhythm.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/theory.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/visuals.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/band.js?v=2.8.0T.221126"></script>
-        <script src="js/modules/export.js?v=2.8.0T.221126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/utils.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/assets.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/played-set.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/player.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/editor.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/library.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/settings.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/theory.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/visuals.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/band.js?v=2.8.1T.221126"></script>
+        <script src="js/modules/export.js?v=2.8.1T.221126"></script>
 
-        <script src="js/auth.js?v=2.8.0T.221126"></script>
-        <script src="js/basicmetronome.js?v=2.8.0T.221126"></script>
-        <script src="js/permissions.js?v=2.8.0T.221126"></script>
-        <script src="libs/fflate.min.js?v=2.8.0T.221126-240e091"></script>
-        <script src="js/modules/package.js?v=2.8.0T.221126-240e091"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.8.0T.221126-240e091"></script>
-        <script src="js/solo/local-assets.js?v=2.8.0T.221126-240e091"></script>
-        <script src="js/solo/backup.js?v=2.8.0T.221126-240e091"></script>
-        <script src="js/solo/messages.js?v=2.8.0T.221126-240e091"></script>
-        <script src="js/solo/account.js?v=2.8.0T.221126-240e091"></script>
-        <script src="js/logic.js?v=2.8.0T.221126"></script>
-        <script src="js/floating-tools.js?v=2.8.0T.221126"></script>
-        <script src="js/tuner.js?v=2.8.0T.221126"></script>
-        <script src="js/ui.js?v=2.8.0T.221126"></script>
-        <script src="js/release-notes.js?v=2.8.0T.221126"></script>
-        <script src="js/chord-player.js?v=2.8.0T.221126"></script>
-        <script src="js/chords.js?v=2.8.0T.221126"></script>
+        <script src="js/auth.js?v=2.8.1T.221126"></script>
+        <script src="js/basicmetronome.js?v=2.8.1T.221126"></script>
+        <script src="js/permissions.js?v=2.8.1T.221126"></script>
+        <script src="libs/fflate.min.js?v=2.8.1T.221126-7d8dbad"></script>
+        <script src="js/modules/package.js?v=2.8.1T.221126-7d8dbad"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.1T.221126-7d8dbad"></script>
+        <script src="js/solo/local-assets.js?v=2.8.1T.221126-7d8dbad"></script>
+        <script src="js/solo/backup.js?v=2.8.1T.221126-7d8dbad"></script>
+        <script src="js/solo/messages.js?v=2.8.1T.221126-7d8dbad"></script>
+        <script src="js/solo/account.js?v=2.8.1T.221126-7d8dbad"></script>
+        <script src="js/logic.js?v=2.8.1T.221126"></script>
+        <script src="js/floating-tools.js?v=2.8.1T.221126"></script>
+        <script src="js/tuner.js?v=2.8.1T.221126"></script>
+        <script src="js/ui.js?v=2.8.1T.221126"></script>
+        <script src="js/release-notes.js?v=2.8.1T.221126"></script>
+        <script src="js/chord-player.js?v=2.8.1T.221126"></script>
+        <script src="js/chords.js?v=2.8.1T.221126"></script>
 
-        <script src="js/app.js?v=2.8.0T.221126"></script>
+        <script src="js/app.js?v=2.8.1T.221126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.8.0T.221126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.1T.221126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>
