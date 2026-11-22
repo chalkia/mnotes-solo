@@ -144,6 +144,7 @@
             case 'expired': return tr('solo_gift_expired', '');
             case 'invalid_code': return tr('solo_gift_invalid', '');
             case 'rate_limited': return tr('solo_gift_rate_limited', '');
+            case 'wrong_edition': return tr('solo_gift_wrong_edition', '');
             default: return tr('solo_gift_error', '');
         }
     }
@@ -152,7 +153,7 @@
         const cleanCode = String(code || '').trim().toUpperCase();
         if (!cleanCode) return { ok: false, reason: 'empty_code' };
 
-        const { data, error } = await client.rpc('redeem_gift_code', { p_code: cleanCode });
+        const { data, error } = await client.rpc('redeem_gift_code_solo', { p_code: cleanCode });
         try {
             await client.auth.signOut();
         } catch (_) {}
@@ -286,6 +287,7 @@
         getActiveGiftLicense,
         isExpired,
         saveGiftLicense,
+        createGiftClient,
         openGiftDialog,
         redeemWithClient,
         handleStartup

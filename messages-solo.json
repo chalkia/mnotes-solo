@@ -5,7 +5,7 @@
       "date": "2026-11-21",
       "type": "info",
       "title": {
-        "el": "Καλωσήρθες στο mNotes Solo",
+        "el": "Καλώς ήρθες στο mNotes Solo",
         "en": "Welcome to mNotes Solo"
       },
       "body": {
@@ -22,8 +22,8 @@
         "en": "How to get started"
       },
       "body": {
-        "el": "Πάτησε «+» για να γράψεις το πρώτο σου τραγούδι, φόρτωσε τα δοκιμαστικά τραγούδια ή εισήγαγε αρχεία .mnote / .mnotezip. Στα Βοηθήματα θα βρεις το κουρδιστήρι με βελόνα, τη μηχανή ρυθμών και τις συγχορδίες.",
-        "en": "Tap \"+\" to create your first song, load the sample songs, or import .mnote / .mnotezip files. In the Tools drawer you'll find the needle tuner, drum machine, and chord charts."
+        "el": "Πάτησε «+» για να γράψεις το πρώτο σου τραγούδι, φόρτωσε τα δοκιμαστικά τραγούδια ή εισήγαγε αρχεία .mnote / .mnotezip. Στα Βοηθήματα θα βρεις το κουρδιστήρι με βελόνα, τους ρυθμούς και τον μετρονόμο και τις συγχορδίες.",
+        "en": "Tap \"+\" to create your first song, load the sample songs, or import .mnote / .mnotezip files. In the Tools drawer you'll find the needle tuner, rhythms and metronome, and chord charts."
       }
     },
     {

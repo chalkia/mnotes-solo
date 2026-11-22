@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-solo-v2.7.8.211126-e59fc43';
+const CACHE_NAME = 'mnotes-solo-v2.7.9T.221126-caddd7c';
 
 /* ΚΡΙΣΙΜΑ: χωρίς αυτά το mNotes δεν ανοίγει offline.
    Αν έστω ένα αποτύχει, η εγκατάσταση του SW ΑΠΟΤΥΓΧΑΝΕΙ και ο browser

@@ -3503,6 +3503,7 @@ body.theme-light.play-armed #stagePlayBtn::after {
 
 
 /* #whatsNewModal responsive layout (hotfix 20/11/2026) */
+#whatsNewModal { z-index: 4000; }
 #whatsNewModal .modal-content {
     max-width: 500px;
     width: 92%;

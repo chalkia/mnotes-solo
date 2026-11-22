@@ -8,9 +8,9 @@ const CONFIG = {
     GOOGLE_CLIENT_ID: "your-google-client-id.apps.googleusercontent.com"
 };
 
-window.MNOTES_VERSION = '2.7.8';
+window.MNOTES_VERSION = '2.7.9';
 if (typeof globalThis !== 'undefined') {
-    globalThis.MNOTES_VERSION = '2.7.8';
+    globalThis.MNOTES_VERSION = '2.7.9';
 }
 
 
@@ -36,3 +36,6 @@ window.safeSetLocal = function(key, value) {
         return false;
     }
 };
+
+window.SUPABASE_URL = CONFIG.SUPABASE_URL;
+window.SUPABASE_ANON_KEY = CONFIG.SUPABASE_KEY;

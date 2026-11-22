@@ -141,6 +141,7 @@ function mapTierKey(rawTier) {
         'pro': 'band_mate', 'member': 'band_mate', 'band_mate': 'band_mate', 'mate': 'band_mate',
         'owner': 'band_maestro', 'leader': 'band_maestro', 'band_leader': 'band_maestro', 'maestro': 'band_maestro', 'band_maestro': 'band_maestro',
         'ensemble': 'ensemble',
+        'edition_solo_free': 'edition_solo_free',
         'edition_solo_paid': 'edition_solo_paid'
     };
     return map[clean] || 'solo_free';
