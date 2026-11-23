@@ -246,18 +246,16 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
 
     logic.toggleLock = function() {
         isSetlistLocked = !isSetlistLocked;
-        const icon = document.getElementById('setlistLockIcon');
-        const btn = document.getElementById('btnLockSetlist');
+        const menuBtn = document.getElementById('btnSetlistMenu');
         
         if (isSetlistLocked) {
-            if (icon) icon.className = "fas fa-lock";
-            if (btn) btn.classList.add('active');
+            if (menuBtn) menuBtn.classList.add('is-locked');
             showToast(t('msg_setlist_locked_on'));
         } else {
-            if (icon) icon.className = "fas fa-lock-open";
-            if (btn) btn.classList.remove('active');
+            if (menuBtn) menuBtn.classList.remove('is-locked');
             showToast(t('msg_setlist_locked_off'));
         }
+        ui.updateButtons();
         renderSidebar();
     };
 
@@ -282,7 +280,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         let expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 48);
 
-        const btn = document.getElementById('btnShareSetlist');
+        const btn = document.getElementById('btnSetlistMenu');
         if (btn) btn.classList.add('pulse-anim');
 
         try {
@@ -365,45 +363,171 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         }
     };
 
-    ui.updateButtons = function() {
-        var currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
+    ui.getMenuItems = function() {
+        const currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
         const isTrash = (currentSetlistName === "🗑️ Κάδος");
-        const isBandViewer = (currentGroupId !== 'personal' && !roleCan('EDIT_BAND_SETLIST'));
-        const btnDel = document.getElementById('btnDelSetlist'); 
-        const btnRen = document.getElementById('btnRenSetlist');
-        const btnShare = document.getElementById('btnShareSetlist');
-        const btnTransfer = document.getElementById('btnTransferSetlist');
+        const isBand = (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal');
+        const isSolo = (typeof window.currentEdition === 'function'
+            ? window.currentEdition() === 'solo'
+            : window.MNOTES_EDITION === 'solo');
+        const canCreate = !isBand || (typeof roleCan === 'function' && roleCan('CREATE_BAND_SETLIST'));
+        const canEdit = !isBand || (typeof roleCan === 'function' && roleCan('EDIT_BAND_SETLIST'));
+        const canShare = typeof roleCan === 'function' ? roleCan('SHARE_SETLIST') : true;
 
-        if(btnDel) { 
-            btnDel.style.display = isTrash ? 'none' : 'inline-flex';
-            btnDel.disabled = isBandViewer; 
-            btnDel.style.opacity = isBandViewer ? '0.3' : '1'; 
-        }
-        if(btnRen) { 
-            btnRen.style.display = isTrash ? 'none' : 'inline-flex';
-            btnRen.disabled = isBandViewer; 
-            btnRen.style.opacity = isBandViewer ? '0.3' : '1'; 
-        }
-        if (btnShare) {
-            const canShare = roleCan('SHARE_SETLIST') && !isTrash;
-            btnShare.style.display = canShare ? 'inline-flex' : 'none';
-
-            if (btnTransfer) {
-                // To perfectly align the btnTransferSetlist (flex:0.5) with the trash button below (flex:0.5),
-                // we need to dynamically adjust selSetlistName's flex based on how many buttons are visible below.
-                // If canShare is true, there are 6 buttons below (5 * flex:1 + 1 * flex:0.5 = 5.5 total).
-                // If canShare is false, there are 5 buttons below (4 * flex:1 + 1 * flex:0.5 = 4.5 total).
-                const selSetlistName = document.getElementById('selSetlistName');
-                if (selSetlistName) {
-                    selSetlistName.style.flex = canShare ? '5' : '4';
-                }
+        const items = [
+            {
+                id: 'new',
+                icon: 'fas fa-plus',
+                label: t('menu_setlist_new', 'Νέα λίστα'),
+                disabled: !canCreate,
+                reason: !canCreate ? t('msg_err_create_list_band', 'Δεν έχετε δικαίωμα δημιουργίας λίστας στη μπάντα.') : '',
+                action: () => { if (typeof createSetlist === 'function') createSetlist(); }
+            },
+            {
+                id: 'rename',
+                icon: 'fas fa-edit',
+                label: t('menu_setlist_rename', 'Μετονομασία'),
+                hidden: isTrash,
+                disabled: !canEdit,
+                reason: !canEdit ? t('msg_err_edit_list_band', 'Δεν έχετε δικαίωμα επεξεργασίας λίστας στη μπάντα.') : '',
+                action: () => { if (typeof renameSetlist === 'function') renameSetlist(); }
+            },
+            {
+                id: 'lock',
+                icon: isSetlistLocked ? 'fas fa-lock' : 'fas fa-lock-open',
+                label: isSetlistLocked
+                    ? t('menu_setlist_unlock', 'Ξεκλείδωμα')
+                    : t('menu_setlist_lock', 'Κλείδωμα'),
+                action: () => { if (typeof toggleSetlistLock === 'function') toggleSetlistLock(); }
+            },
+            {
+                id: 'share',
+                icon: 'fas fa-share-alt',
+                label: t('menu_setlist_share', 'Κοινοποίηση'),
+                hidden: isSolo || isTrash,
+                disabled: !canShare,
+                reason: !canShare ? t('menu_setlist_no_perm', 'Δεν επιτρέπεται για τον τρέχοντα ρόλο σας') : '',
+                action: () => { if (typeof window.generateSetlistInvite === 'function') window.generateSetlistInvite(); }
+            },
+            {
+                id: 'pdf',
+                icon: 'fas fa-file-pdf',
+                label: t('menu_setlist_pdf', 'Εξαγωγή PDF'),
+                action: () => { if (typeof printSetlistPDF === 'function') printSetlistPDF(); }
+            },
+            {
+                id: 'transfer',
+                icon: 'fas fa-paper-plane',
+                label: isBand
+                    ? t('menu_setlist_to_personal', 'Αποστολή στα προσωπικά')
+                    : t('menu_setlist_to_band', 'Αποστολή στη μπάντα'),
+                hidden: isSolo || isTrash,
+                disabled: !canEdit,
+                reason: !canEdit ? t('msg_err_edit_list_band', 'Δεν έχετε δικαίωμα επεξεργασίας λίστας στη μπάντα.') : '',
+                action: () => { if (typeof showTransferSetlistModal === 'function') showTransferSetlistModal(); }
+            },
+            { divider: true, hidden: isTrash },
+            {
+                id: 'delete',
+                icon: 'fas fa-trash',
+                label: t('menu_setlist_delete', 'Διαγραφή'),
+                danger: true,
+                hidden: isTrash,
+                disabled: !canEdit,
+                reason: !canEdit ? t('msg_err_edit_list_band', 'Δεν έχετε δικαίωμα επεξεργασίας λίστας στη μπάντα.') : '',
+                action: () => { if (typeof deleteSetlist === 'function') deleteSetlist(); }
             }
+        ];
+        return items.filter(it => !it.hidden);
+    };
+
+    ui.renderMenu = function() {
+        const dropdown = document.getElementById('setlistMenuDropdown');
+        if (!dropdown) return;
+        const items = ui.getMenuItems();
+        dropdown.innerHTML = '';
+
+        items.forEach(item => {
+            if (item.divider) {
+                const sep = document.createElement('div');
+                sep.className = 'setlist-menu-divider';
+                sep.setAttribute('role', 'separator');
+                dropdown.appendChild(sep);
+                return;
+            }
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'setlist-menu-item'
+                + (item.danger ? ' is-danger' : '')
+                + (item.disabled ? ' is-disabled' : '');
+            btn.setAttribute('role', 'menuitem');
+            btn.dataset.menuAction = item.id;
+            if (item.disabled) {
+                btn.setAttribute('aria-disabled', 'true');
+                if (item.reason) btn.title = item.reason;
+            }
+            const iconEl = document.createElement('i');
+            iconEl.className = item.icon;
+            iconEl.setAttribute('aria-hidden', 'true');
+            const labelEl = document.createElement('span');
+            labelEl.textContent = item.label;
+            btn.appendChild(iconEl);
+            btn.appendChild(labelEl);
+
+            btn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                if (item.disabled) {
+                    if (item.reason && typeof showToast === 'function') showToast(item.reason, 'warning');
+                    return;
+                }
+                ui.closeMenu();
+                item.action();
+            });
+            dropdown.appendChild(btn);
+        });
+    };
+
+    ui.closeMenu = function() {
+        const dropdown = document.getElementById('setlistMenuDropdown');
+        const btn = document.getElementById('btnSetlistMenu');
+        if (dropdown) dropdown.hidden = true;
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+    };
+
+    ui.toggleMenu = function(e) {
+        if (e) e.stopPropagation();
+        const dropdown = document.getElementById('setlistMenuDropdown');
+        const btn = document.getElementById('btnSetlistMenu');
+        if (!dropdown || !btn) return;
+        const willOpen = dropdown.hidden;
+        if (willOpen) {
+            ui.renderMenu();
+            dropdown.hidden = false;
+            btn.setAttribute('aria-expanded', 'true');
+        } else {
+            ui.closeMenu();
         }
-        if (btnTransfer) {
-            // Transfer logic follows rename logic: you need permission to manage setlists
-            btnTransfer.style.display = isTrash ? 'none' : 'flex';
-            btnTransfer.disabled = isBandViewer;
-            btnTransfer.style.opacity = isBandViewer ? '0.3' : '1';
+    };
+
+    if (!window._setlistMenuListenersBound) {
+        window._setlistMenuListenersBound = true;
+        document.addEventListener('click', (e) => {
+            const wrap = document.querySelector('.setlist-menu-wrap');
+            if (wrap && !wrap.contains(e.target)) ui.closeMenu();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') ui.closeMenu();
+        });
+    }
+
+    ui.updateButtons = function() {
+        const menuBtn = document.getElementById('btnSetlistMenu');
+        if (menuBtn) {
+            menuBtn.classList.toggle('is-locked', !!isSetlistLocked);
+        }
+        const dropdown = document.getElementById('setlistMenuDropdown');
+        if (dropdown && !dropdown.hidden) {
+            ui.renderMenu();
         }
     };
 
@@ -461,6 +585,8 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
     window.switchSidebarTab = ui.switchTab;
     window.navSetlist = logic.navigate;
     window.generateSetlistInvite = logic.generateInvite;
+    window.toggleSetlistMenu = ui.toggleMenu;
+    window.closeSetlistMenu = ui.closeMenu;
 
     logic.transferSetlist = async function(targetGroupId, action) {
         if (!canUserPerform('USE_SUPABASE')) {

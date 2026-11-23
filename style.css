@@ -1340,6 +1340,124 @@ details.tool-group[open] > *:not(summary) {
     margin-bottom: 3px;
 }
 
+/* Unified Setlist Selector + Menu (2.8) */
+.setlist-selector-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    margin-top: 5px;
+    position: relative;
+}
+
+.setlist-selector-row .setlist-select-v2 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-top: 0;
+    min-height: 44px;
+    font-size: var(--lib-title-size, 0.9rem);
+}
+
+.setlist-menu-wrap {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+}
+
+.setlist-menu-btn {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: var(--radius-sm, 6px);
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: var(--lib-title-size, 0.95rem);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.setlist-menu-btn:hover {
+    border-color: var(--accent);
+}
+
+.setlist-menu-btn.is-locked {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.setlist-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    max-width: min(290px, calc(100vw - 24px));
+    background: var(--bg-elevated, #1e2430);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 10px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    padding: 6px;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.setlist-menu-dropdown[hidden] {
+    display: none;
+}
+
+.setlist-menu-item {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: var(--radius-sm, 6px);
+    background: transparent;
+    color: var(--text-main);
+    font-size: var(--lib-title-size, 0.9rem);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.setlist-menu-item i {
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.setlist-menu-item:hover:not(.is-disabled) {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.theme-light .setlist-menu-item:hover:not(.is-disabled) {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.setlist-menu-item.is-disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+.setlist-menu-item.is-danger,
+.setlist-menu-item.is-danger i {
+    color: #ef4444;
+}
+
+.setlist-menu-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 6px;
+}
+
 /* Cloud Status Badge στο Sidebar */
 .badge-cloud {
     font-size: 0.7rem;
@@ -2765,8 +2883,11 @@ body.theme-light .song-item.song-played {
 .song-item.song-played .song-title span:not(.played-dot) {
     color: var(--text-main) !important;
 }
-.song-item.song-played.active {
+#songList .song-item.song-played.active {
     background: rgba(76, 175, 80, 0.18);
+}
+body.theme-light #songList .song-item.song-played.active {
+    background: rgba(46, 125, 50, 0.16);
 }
 .played-dot {
     width: 16px;
@@ -4493,11 +4614,22 @@ body.theme-light .mbtn-primary {
     border-radius: 4px;
 }
 #songList .song-item .song-action {
-    min-width: 34px;
-    width: 34px;
+    min-width: 26px;
+    width: 26px;
     min-height: 40px;
-    font-size: 0.9rem;
+    height: 40px;
+    font-size: var(--lib-icon-size, 0.95rem);
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    opacity: 0.85;
+}
+#songList .song-item .song-action.in-setlist {
+    color: var(--text-main);
+    opacity: 1;
 }
 #songList .song-item .song-handle {
     min-width: 22px;
@@ -4523,10 +4655,10 @@ body.theme-light .mbtn-primary {
     opacity: 1;
     color: var(--text-main);
 }
-#songList .song-item .song-action::before {
+#songList .song-item .song-action::after {
     content: '';
     position: absolute;
-    inset: -2px -5px;
+    inset: -2px -9px;
 }
 #songList .song-item .song-handle::after {
     content: '';

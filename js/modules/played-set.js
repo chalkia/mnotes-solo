@@ -65,6 +65,8 @@
             try { localStorage.removeItem(KEY); } catch (err) { console.warn('[PlayedSet] clear:', err); }
             document.querySelectorAll('.song-item.song-played')
                     .forEach(el => el.classList.remove('song-played'));
+            document.querySelectorAll('.song-item .played-dot')
+                    .forEach(dot => dot.remove());
             api.paintCounters();
         },
 
@@ -74,8 +76,23 @@
          */
         paint(id) {
             if (id) {
-                const li = document.querySelector(`.song-item[data-id="${id}"]`);
-                if (li) li.classList.toggle('song-played', played.has(id));
+                const isPlayed = played.has(id);
+                document.querySelectorAll(`.song-item[data-id="${id}"]`).forEach(li => {
+                    li.classList.toggle('song-played', isPlayed);
+                    const titleEl = li.querySelector('.song-title');
+                    if (titleEl) {
+                        const existingDot = titleEl.querySelector('.played-dot');
+                        if (isPlayed && !existingDot) {
+                            const dot = document.createElement('span');
+                            dot.className = 'played-dot';
+                            dot.setAttribute('aria-hidden', 'true');
+                            dot.textContent = '✓';
+                            titleEl.insertBefore(dot, titleEl.firstChild);
+                        } else if (!isPlayed && existingDot) {
+                            existingDot.remove();
+                        }
+                    }
+                });
             }
             api.paintCounters();
         },

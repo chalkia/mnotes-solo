@@ -100,37 +100,17 @@
                         <span id="setlistMarkedBadge" class="setlist-marked-badge" style="display:none;" title="Μαρκαρισμένα τραγούδια"></span>
                     </label>
 
-                    <div style="display:flex; gap:5px; align-items:stretch; margin-top:5px;">
-                        <select id="selSetlistName" onchange="switchSetlist(this.value)" class="setlist-select-v2" style="flex:4; margin-top:0;">
+                    <div class="setlist-selector-row">
+                        <select id="selSetlistName" onchange="switchSetlist(this.value)" class="setlist-select-v2">
                             <option value="Default" data-i18n="lbl_default_setlist">Default Setlist</option>
                         </select>
-                        <button id="btnTransferSetlist" data-pro-only onclick="showTransferSetlistModal()" class="footer-btn" style="flex:0.5; margin:0; padding:0; color: var(--accent); display:flex; align-items:center; justify-content:center;" title="Μεταφορά Λίστας" data-i18n-title="idx_auto_130">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-
-                    <div style="display:flex; gap:5px; margin-top:5px;">
-                        <button onclick="createSetlist()" class="footer-btn" data-i18n-title="btn_new_list_title">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                        <button id="btnRenSetlist" onclick="renameSetlist()" class="footer-btn"
-                            data-i18n-title="btn_rename_title">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button id="btnLockSetlist" onclick="toggleSetlistLock()" class="footer-btn"
-                            data-i18n-title="btn_lock_title">
-                            <i class="fas fa-lock-open" id="setlistLockIcon"></i>
-                        </button>
-                        <button id="btnShareSetlist" data-pro-only onclick="window.generateSetlistInvite()" class="footer-btn" style="color:var(--accent)" title="Πρόσκληση Παρέας (Guest Singers)" data-i18n-title="idx_auto_129" style="display:none;">
-                            <i class="fas fa-share-alt"></i>
-                        </button>
-                        <button onclick="printSetlistPDF()" class="footer-btn" data-i18n-title="btn_print_title">
-                            <i class="fas fa-file-pdf"></i>
-                        </button>
-                        <button id="btnDelSetlist" onclick="deleteSetlist()" class="footer-btn danger-v2"
-                            data-i18n-title="btn_delete_title">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="setlist-menu-wrap">
+                            <button id="btnSetlistMenu" type="button" onclick="toggleSetlistMenu(event)" class="setlist-menu-btn"
+                                aria-haspopup="menu" aria-expanded="false" title="Ενέργειες λίστας" data-i18n-title="btn_setlist_menu_title">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <div id="setlistMenuDropdown" class="setlist-menu-dropdown" role="menu" hidden></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1849,61 +1829,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.8.5T.231126"></script>
-        <script src="js/config.js?v=2.8.5T.231126"></script>
+        <script src="js/edition.js?v=2.8.6T.231126"></script>
+        <script src="js/config.js?v=2.8.6T.231126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.8.5T.231126"></script>
-        <script src="js/translations.js?v=2.8.5T.231126"></script>
-        <script src="js/storage.js?v=2.8.5T.231126"></script>
+        <script src="js/data.js?v=2.8.6T.231126"></script>
+        <script src="js/translations.js?v=2.8.6T.231126"></script>
+        <script src="js/storage.js?v=2.8.6T.231126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.8.5T.231126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.8.5T.231126"></script>
-        <script src="js/custom-kits.js?v=2.8.5T.231126"></script>
-        <script src="js/drum-machine.js?v=2.8.5T.231126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.8.5T.231126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.6T.231126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.6T.231126"></script>
+        <script src="js/custom-kits.js?v=2.8.6T.231126"></script>
+        <script src="js/drum-machine.js?v=2.8.6T.231126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.6T.231126"></script>
 
-        <script src="js/modules/ui-dialogs.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/utils.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/assets.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/played-set.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/player.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/editor.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/library.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/settings.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/ui-utils.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/rhythm.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/theory.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/visuals.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/band.js?v=2.8.5T.231126"></script>
-        <script src="js/modules/export.js?v=2.8.5T.231126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/utils.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/assets.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/played-set.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/player.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/editor.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/library.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/settings.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/theory.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/visuals.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/band.js?v=2.8.6T.231126"></script>
+        <script src="js/modules/export.js?v=2.8.6T.231126"></script>
 
-        <script src="js/auth.js?v=2.8.5T.231126"></script>
-        <script src="js/basicmetronome.js?v=2.8.5T.231126"></script>
-        <script src="js/permissions.js?v=2.8.5T.231126"></script>
-        <script src="libs/fflate.min.js?v=2.8.5T.231126-f7a67a0"></script>
-        <script src="js/modules/package.js?v=2.8.5T.231126-f7a67a0"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.8.5T.231126-f7a67a0"></script>
-        <script src="js/solo/local-assets.js?v=2.8.5T.231126-f7a67a0"></script>
-        <script src="js/solo/backup.js?v=2.8.5T.231126-f7a67a0"></script>
-        <script src="js/solo/messages.js?v=2.8.5T.231126-f7a67a0"></script>
-        <script src="js/solo/account.js?v=2.8.5T.231126-f7a67a0"></script>
-        <script src="js/logic.js?v=2.8.5T.231126"></script>
-        <script src="js/floating-tools.js?v=2.8.5T.231126"></script>
-        <script src="js/tuner.js?v=2.8.5T.231126"></script>
-        <script src="js/ui.js?v=2.8.5T.231126"></script>
-        <script src="js/release-notes.js?v=2.8.5T.231126"></script>
-        <script src="js/chord-player.js?v=2.8.5T.231126"></script>
-        <script src="js/chords.js?v=2.8.5T.231126"></script>
+        <script src="js/auth.js?v=2.8.6T.231126"></script>
+        <script src="js/basicmetronome.js?v=2.8.6T.231126"></script>
+        <script src="js/permissions.js?v=2.8.6T.231126"></script>
+        <script src="libs/fflate.min.js?v=2.8.6T.231126-e5ab2bc"></script>
+        <script src="js/modules/package.js?v=2.8.6T.231126-e5ab2bc"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.6T.231126-e5ab2bc"></script>
+        <script src="js/solo/local-assets.js?v=2.8.6T.231126-e5ab2bc"></script>
+        <script src="js/solo/backup.js?v=2.8.6T.231126-e5ab2bc"></script>
+        <script src="js/solo/messages.js?v=2.8.6T.231126-e5ab2bc"></script>
+        <script src="js/solo/account.js?v=2.8.6T.231126-e5ab2bc"></script>
+        <script src="js/logic.js?v=2.8.6T.231126"></script>
+        <script src="js/floating-tools.js?v=2.8.6T.231126"></script>
+        <script src="js/tuner.js?v=2.8.6T.231126"></script>
+        <script src="js/ui.js?v=2.8.6T.231126"></script>
+        <script src="js/release-notes.js?v=2.8.6T.231126"></script>
+        <script src="js/chord-player.js?v=2.8.6T.231126"></script>
+        <script src="js/chords.js?v=2.8.6T.231126"></script>
 
-        <script src="js/app.js?v=2.8.5T.231126"></script>
+        <script src="js/app.js?v=2.8.6T.231126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.8.5T.231126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.6T.231126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

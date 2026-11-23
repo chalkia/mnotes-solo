@@ -481,7 +481,6 @@ async function switchContext(targetId) {
 
 
 function updateUIForRole() {
-    const btnDel = document.getElementById('btnDelSetlist');
     const btnAdd = document.getElementById('btnAddSong');
     const btnTabLibrary = document.getElementById('tab-library');
 
@@ -512,12 +511,8 @@ function updateUIForRole() {
         if (btnLyricsToggle) btnLyricsToggle.style.display = '';
     }
 
-    if (btnDel) {
-        if (currentGroupId === 'personal' || (isLeader && !window.isBandLocked)) {
-            btnDel.style.display = 'inline-block';
-        } else {
-            btnDel.style.display = 'none';
-        }
+    if (typeof window.mNotes?.ui?.setlists?.updateButtons === 'function') {
+        window.mNotes.ui.setlists.updateButtons();
     }
 
     if (btnAdd) {
