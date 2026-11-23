@@ -147,7 +147,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         
         let noteBtnHtml = '';
         if (hasNotes) {
-            noteBtnHtml = `<button onclick="toggleStickyNotes()" title="${t('title_show_notes')}" style="background: #fbc02d; color: #000; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.4); margin-left: 12px; transform: translateY(-2px); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px) scale(1.1)'" onmouseout="this.style.transform='translateY(-2px) scale(1)'"><i class="fas fa-thumbtack" style="font-size:0.85rem;"></i></button>`;
+            noteBtnHtml = `<button type="button" id="btnStageStickyNote" class="stage-note-pin-btn" onclick="toggleStickyNotes()" title="${t('title_show_notes')}"><i class="fas fa-thumbtack"></i></button>`;
         }
 
         let tagsHtml = "";
@@ -227,8 +227,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                 <div class="header-main-content">
                     <div class="stage-header-top-row" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 3px;">
                         <h2 id="mainAppTitle" class="${isPlayed ? 'title-marked' : ''}" style="margin:0; color:var(--text-main); display:flex; align-items:center; flex-wrap:nowrap; flex:1; min-width:0; overflow:hidden;">
-                             <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
-                             ${noteBtnHtml}
+                             <span>${s.title} ${s.artist ? `<span class="stage-artist-sub">- ${s.artist}</span>` : ''}</span>
                         </h2>
                         <div class="stage-nav-buttons" style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; z-index: 10;">
                             <span id="stagePendingBadge" class="stage-pending-badge" title="Αλλαγές που δεν έχουν σταλεί" style="display:none;"></span>
@@ -240,14 +239,15 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                         </div>
                     </div>
                      ${tagsHtml}
-                     <div class="stage-header-meta-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
-                         <div class="stage-key-cluster" style="display:flex; align-items:center; gap: 8px;">
+                     <div class="stage-header-meta-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                         <div class="stage-key-cluster" style="display:flex; align-items:center; gap: 8px; flex-wrap:wrap;">
                             <button class="key-badge" onclick="transUp()" title="${t('title_change_key')}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}</button>
                              <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
                              <button id="btnToggleView" onclick="toggleViewMode()"></button>
                              ${bandBadgeHtml}
                              ${versionClusterHtml}
                          </div>
+                         ${noteBtnHtml}
                     </div>
                 </div>
             </div>`;
