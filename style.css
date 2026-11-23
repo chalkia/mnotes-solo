@@ -770,9 +770,9 @@ body.drawer-left #drawerHandle {
 }
 
 /* Στυλ Κουμπιών Συρταριού */
-.drawer-header { 
-    display: flex; justify-content: space-between; margin-bottom: 20px; 
-    border-bottom: 1px solid var(--border-color); padding-bottom: 10px; 
+.right-drawer > .drawer-header {
+    display: flex; justify-content: space-between; margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color); padding-bottom: 10px;
 }
 .drawer-close { 
     background: none; border: none; font-size: 1.4rem; cursor: pointer; 
@@ -2542,8 +2542,31 @@ details[open] .drawer-header .toggle-icon {
 /* 2. Το Header: Πάντα σταθερό πάνω */
 .sidebar-header-tools {
     flex-shrink: 0 !important; /* Απαγορεύεται να συμπιεστεί */
-    padding: 15px; 
+    padding: 10px 12px;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.tools-mstudio-header-btn {
+    padding: 5px 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 1.5px solid var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.2;
+}
+
+body.mobile-layout-active .tools-mstudio-header-btn {
+    display: none;
 }
 
 /* 3. Η Περιοχή των Drawers (Ο πρωταγωνιστής) */

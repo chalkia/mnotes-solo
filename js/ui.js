@@ -23,14 +23,11 @@ window.openMStudio = function() {
 };
 
 window.refreshUIByTier = function() {
-    const lockIcon = document.getElementById('lockStudioIcon');
-    if (lockIcon) {
-        if (typeof canUserPerform === 'function' && canUserPerform('USE_MSTUDIO')) {
-            lockIcon.style.display = 'none';
-        } else {
-            lockIcon.style.display = 'inline-block';
-        }
-    }
+    const canStudio = (typeof canUserPerform === 'function' && canUserPerform('USE_MSTUDIO'));
+    ['lockStudioIcon', 'lockStudioIconMobile'].forEach(id => {
+        const lockIcon = document.getElementById(id);
+        if (lockIcon) lockIcon.style.display = canStudio ? 'none' : 'inline-flex';
+    });
 };
 
 // --- GLOBALS ---

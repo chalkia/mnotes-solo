@@ -365,6 +365,14 @@
         <aside class="col-tools" id="rhythmTools">
             <div class="sidebar-header-tools">
                 <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">PRACTICE AIDS</span>
+                <button id="btnMStudioDesktop" data-pro-only type="button" onclick="openMStudio()" class="tools-mstudio-header-btn">
+                    <i class="fas fa-sliders-h" style="color: var(--accent);"></i>
+                    <span>mStudio</span>
+                    <span id="lockStudioIcon" style="display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-lock" style="font-size: 0.72rem; color: var(--text-muted);"></i>
+                        <span style="font-size: 0.62rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; background: var(--accent); color: #000; letter-spacing: 0.4px; line-height: 1.2;">PRO</span>
+                    </span>
+                </button>
             </div>
 
             <div id="drawer-player-controls" class="drawer-section drawer-player-controls-top">
@@ -400,7 +408,7 @@
             </div>
 
             <div class="col-content tool-panel"
-                style="padding: 6px 10px; display: flex; flex-direction: column; gap: 6px; flex:1; min-height:0; overflow-y:auto;">
+                style="padding: 10px; display: flex; flex-direction: column; gap: 10px; flex:1; min-height:0; overflow-y:auto;">
 
                 <div id="video-sidebar-container" style="display:none;">
                     <details class="tool-group" id="drawerVideo" open>
@@ -587,9 +595,9 @@
                     </summary>
                     <div class="group-content drawer-content">
                         <div
-                            style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px; gap: 16px; padding-top: 2px;">
+                            style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px; gap: 20px; padding-top: 5px;">
                             <button id="btnPlayRhythm" onclick="toggleMasterRhythm()" class="action-btn-circle"
-                                style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
+                                style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
                                 <i class="fas fa-play" id="iconPlayRhythm"></i>
                             </button>
                             <div class="bpm-display" style="text-align: center;">
@@ -604,7 +612,7 @@
                         </div>
 
                         <div class="bpm-row"
-                            style="background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                            style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px;">
 
                             <div style="display: flex; flex-direction: column; gap: 5px;">
                                 <div
@@ -619,7 +627,7 @@
                         </div>
 
                         <div id="activeRhythmBox"
-                            style="position: relative; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 6px; padding: 6px 8px; text-align: center; margin-bottom: 6px;">
+                            style="position: relative; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 6px; padding: 10px; text-align: center; margin-bottom: 12px;">
                             <button onclick="clearActiveRhythm()"
                                 style="position: absolute; top: 5px; right: 8px; background: transparent; border: none; color: #ff4757; font-size: 1.1rem; cursor: pointer; transition: 0.2s;"
                                 data-i18n-title="title_back_to_metronome">
@@ -722,18 +730,9 @@
 
             </div>
 
-            <div style="padding: 6px 10px; border-top: 1px solid var(--border-color); margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
-                <button id="btnForgetSongTiming" class="drawer-btn drawer-forget-timing-btn" onclick="forgetCurrentSongTiming()">
-                    <i class="fas fa-eraser"></i> <span data-i18n="btn_forget_timing_full">Ξέχνα τον χρόνο του τραγουδιού</span>
-                </button>
-                <button data-pro-only onclick="openMStudio()"
-                    style="width: 100%; padding: 8px 10px; font-size: 0.95rem; font-weight: bold; background: var(--bg-panel); color: var(--text-main); border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s transform; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <i class="fas fa-sliders-h" style="color: var(--accent);"></i>
-                    <span>mStudio</span>
-                    <span id="lockStudioIcon" style="display: inline-flex; align-items: center; gap: 5px;">
-                        <i class="fas fa-lock" style="font-size: 0.8rem; color: var(--text-muted);"></i>
-                        <span style="font-size: 0.65rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--accent); color: #000; letter-spacing: 0.5px; line-height: 1.2;">PRO</span>
-                    </span>
+            <div id="toolsBottomTimingWrap" style="padding: 8px 10px; border-top: 1px solid var(--border-color); margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+                <button id="btnForgetSongTiming" class="drawer-btn drawer-forget-timing-btn" onclick="forgetCurrentSongTiming()" data-i18n-title="btn_forget_timing_title" title="Καθαρισμός μαθημένου χρόνου ώστε να επανυπολογιστεί αυτόματα η κύλιση">
+                    <i class="fas fa-eraser"></i> <span data-i18n="btn_forget_timing_full">Επανυπολογισμός χρόνου κύλισης</span>
                 </button>
             </div>
 
@@ -1299,6 +1298,14 @@
             </div>
 
             <div class="drawer-section" style="margin-top:auto; border-top:1px solid #333; padding-top:10px;">
+                <button id="btnMStudioDrawer" data-pro-only class="drawer-btn" onclick="openMStudio()" style="border: 1px solid var(--accent); margin-bottom: 6px;">
+                    <i class="fas fa-sliders-h" style="color: var(--accent);"></i>
+                    <span>mStudio</span>
+                    <span id="lockStudioIconMobile" style="display: inline-flex; align-items: center; gap: 4px; margin-left: auto;">
+                        <i class="fas fa-lock" style="font-size: 0.72rem; color: var(--text-muted);"></i>
+                        <span style="font-size: 0.62rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; background: var(--accent); color: #000; letter-spacing: 0.4px; line-height: 1.2;">PRO</span>
+                    </span>
+                </button>
                 <button id="btnMailbox" data-pro-only class="drawer-btn" onclick="showMailboxModal()" style="display:none; color:var(--accent);">
                     <i class="fas fa-inbox"></i> <span data-i18n="btn_mailbox"><span data-i18n="idx_auto_60">Προτάσεις</span></span>
                     <span id="mailboxBadge" style="background:red; color:white; border-radius:50%; padding:2px 6px; font-size:0.7rem; margin-left:auto;">1</span>
@@ -1827,61 +1834,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.8.7T.231126"></script>
-        <script src="js/config.js?v=2.8.7T.231126"></script>
+        <script src="js/edition.js?v=2.8.8T.231126"></script>
+        <script src="js/config.js?v=2.8.8T.231126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.8.7T.231126"></script>
-        <script src="js/translations.js?v=2.8.7T.231126"></script>
-        <script src="js/storage.js?v=2.8.7T.231126"></script>
+        <script src="js/data.js?v=2.8.8T.231126"></script>
+        <script src="js/translations.js?v=2.8.8T.231126"></script>
+        <script src="js/storage.js?v=2.8.8T.231126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.8.7T.231126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.8.7T.231126"></script>
-        <script src="js/custom-kits.js?v=2.8.7T.231126"></script>
-        <script src="js/drum-machine.js?v=2.8.7T.231126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.8.7T.231126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.8T.231126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.8T.231126"></script>
+        <script src="js/custom-kits.js?v=2.8.8T.231126"></script>
+        <script src="js/drum-machine.js?v=2.8.8T.231126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.8T.231126"></script>
 
-        <script src="js/modules/ui-dialogs.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/utils.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/assets.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/played-set.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/player.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/editor.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/library.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/settings.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/ui-utils.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/rhythm.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/theory.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/visuals.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/band.js?v=2.8.7T.231126"></script>
-        <script src="js/modules/export.js?v=2.8.7T.231126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/utils.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/assets.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/played-set.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/player.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/editor.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/library.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/settings.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/theory.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/visuals.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/band.js?v=2.8.8T.231126"></script>
+        <script src="js/modules/export.js?v=2.8.8T.231126"></script>
 
-        <script src="js/auth.js?v=2.8.7T.231126"></script>
-        <script src="js/basicmetronome.js?v=2.8.7T.231126"></script>
-        <script src="js/permissions.js?v=2.8.7T.231126"></script>
-        <script src="libs/fflate.min.js?v=2.8.7T.231126-7ebdf4b"></script>
-        <script src="js/modules/package.js?v=2.8.7T.231126-7ebdf4b"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.8.7T.231126-7ebdf4b"></script>
-        <script src="js/solo/local-assets.js?v=2.8.7T.231126-7ebdf4b"></script>
-        <script src="js/solo/backup.js?v=2.8.7T.231126-7ebdf4b"></script>
-        <script src="js/solo/messages.js?v=2.8.7T.231126-7ebdf4b"></script>
-        <script src="js/solo/account.js?v=2.8.7T.231126-7ebdf4b"></script>
-        <script src="js/logic.js?v=2.8.7T.231126"></script>
-        <script src="js/floating-tools.js?v=2.8.7T.231126"></script>
-        <script src="js/tuner.js?v=2.8.7T.231126"></script>
-        <script src="js/ui.js?v=2.8.7T.231126"></script>
-        <script src="js/release-notes.js?v=2.8.7T.231126"></script>
-        <script src="js/chord-player.js?v=2.8.7T.231126"></script>
-        <script src="js/chords.js?v=2.8.7T.231126"></script>
+        <script src="js/auth.js?v=2.8.8T.231126"></script>
+        <script src="js/basicmetronome.js?v=2.8.8T.231126"></script>
+        <script src="js/permissions.js?v=2.8.8T.231126"></script>
+        <script src="libs/fflate.min.js?v=2.8.8T.231126-270743a"></script>
+        <script src="js/modules/package.js?v=2.8.8T.231126-270743a"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.8T.231126-270743a"></script>
+        <script src="js/solo/local-assets.js?v=2.8.8T.231126-270743a"></script>
+        <script src="js/solo/backup.js?v=2.8.8T.231126-270743a"></script>
+        <script src="js/solo/messages.js?v=2.8.8T.231126-270743a"></script>
+        <script src="js/solo/account.js?v=2.8.8T.231126-270743a"></script>
+        <script src="js/logic.js?v=2.8.8T.231126"></script>
+        <script src="js/floating-tools.js?v=2.8.8T.231126"></script>
+        <script src="js/tuner.js?v=2.8.8T.231126"></script>
+        <script src="js/ui.js?v=2.8.8T.231126"></script>
+        <script src="js/release-notes.js?v=2.8.8T.231126"></script>
+        <script src="js/chord-player.js?v=2.8.8T.231126"></script>
+        <script src="js/chords.js?v=2.8.8T.231126"></script>
 
-        <script src="js/app.js?v=2.8.7T.231126"></script>
+        <script src="js/app.js?v=2.8.8T.231126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.8.7T.231126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.8T.231126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

@@ -458,7 +458,12 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         if (typeof window.persistContextLibrary === 'function' && typeof window.library !== 'undefined') {
             window.persistContextLibrary(window.library);
         }
-        if (typeof showToast === 'function') showToast('Ο μαθημένος χρόνος διαγράφηκε', 'info');
+        if (typeof showToast === 'function') {
+            const msg = typeof t === 'function'
+                ? t('msg_timing_reset', 'Ο χρόνος κύλισης επαναφέρθηκε για επανυπολογισμό')
+                : 'Ο χρόνος κύλισης επαναφέρθηκε για επανυπολογισμό';
+            showToast(msg, 'info');
+        }
     };
 
     function countSyllables(text) {
@@ -1511,27 +1516,37 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
                 }
             }
 
-            // 2. Open auto candidates along user's order while panel.scrollHeight <= panel.clientHeight
-            let openedCount = 0;
-            for (const details of autoCandidates) {
+            // 2. Rules (γ) & (δ):
+            //    - First auto section with content ALWAYS opens (even on compact screens).
+            //    - Every subsequent section opens if it fits whole in remaining space; otherwise it is skipped and checking continues.
+            //    - Desktop (>= 1024px) prefers TunerChords open if it fits at the end; mobile strictly follows order in (γ).
+            let hasAnyAutoOpened = false;
+            for (let i = 0; i < autoCandidates.length; i++) {
+                const details = autoCandidates[i];
                 details.open = true;
-                if (panel.scrollHeight > panel.clientHeight + 1) {
+                if (!hasAnyAutoOpened) {
+                    hasAnyAutoOpened = true;
+                } else if (panel.scrollHeight > panel.clientHeight + 1) {
                     details.open = false;
-                } else {
-                    openedCount++;
                 }
             }
 
-            // 3. Rule (d): If nothing fit on compact viewports, open the first eligible section (or TunerChords by default)
-            if (openedCount === 0) {
-                if (autoCandidates.length > 0) {
-                    autoCandidates[0].open = true;
-                } else if (!Object.prototype.hasOwnProperty.call(prefs, 'drawerTunerChords')) {
-                    const tc = document.getElementById('drawerTunerChords');
-                    if (tc && getComputedStyle(tc).display !== 'none') {
-                        tc.open = true;
+            if (window.innerWidth >= 1024) {
+                const tc = document.getElementById('drawerTunerChords');
+                if (tc && !tc.open && !Object.prototype.hasOwnProperty.call(prefs, 'drawerTunerChords') && getComputedStyle(tc).display !== 'none') {
+                    tc.open = true;
+                    if (panel.scrollHeight > panel.clientHeight + 1) {
+                        tc.open = false;
                     }
                 }
+            }
+            // Mark final expected open state so coalesced async <details> 'toggle' events
+            // fired after fitToolsSections() are not mistaken for manual user clicks.
+            for (const el of children) {
+                const id = getToolSectionId(el);
+                if (!id) continue;
+                const d = (id === 'drawerVideo') ? document.getElementById('drawerVideo') : el;
+                if (d && d.tagName === 'DETAILS') d._fitExpectedOpen = d.open;
             }
         } finally {
             _isFittingTools = false;
@@ -1557,6 +1572,10 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         panel.querySelectorAll('details.tool-group').forEach(details => {
             details.addEventListener('toggle', () => {
                 if (_isFittingTools) return;
+                if (typeof details._fitExpectedOpen === 'boolean' && details._fitExpectedOpen === details.open) {
+                    return;
+                }
+                details._fitExpectedOpen = details.open;
                 const id = details.id;
                 if (!id) return;
                 const prefs = readDrawerPrefs();
