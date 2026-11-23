@@ -140,7 +140,10 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         const targetId = viewMap[tabName]; 
         const targetEl = document.getElementById(targetId);
         
-        if (targetEl) targetEl.classList.add('mobile-view-active'); 
+        if (targetEl) targetEl.classList.add('mobile-view-active');
+        if (tabName === 'tools' && typeof window.fitToolsSections === 'function') {
+            window.fitToolsSections();
+        }
         
         const btns = document.querySelectorAll('.tab-btn-mob'); 
         btns.forEach(b => b.classList.remove('active'));
@@ -151,9 +154,6 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         document.querySelectorAll('.drawer-btn').forEach(btn => btn.classList.remove('active'));
         const drawerBtn = document.querySelector(`.drawer-btn[onclick*="'${tabName}'"]`);
         if (drawerBtn) drawerBtn.classList.add('active');
-        
-        const controlsDiv = document.getElementById('drawer-player-controls');
-        if (controlsDiv) controlsDiv.style.display = (tabName === 'stage') ? 'block' : 'none';
 
         document.querySelectorAll('.floating-window').forEach(fw => {
             fw.style.display = (tabName === 'stage') ? 'flex' : 'none';
@@ -1420,6 +1420,152 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
     window.applyToolsOrder = applyToolsOrder;
     window.saveToolsOrder = saveToolsOrder;
 
+    const DRAWER_PREFS_KEY = 'mnotes_drawer_prefs_v1';
+    let _isFittingTools = false;
+
+    function readDrawerPrefs() {
+        try {
+            const raw = localStorage.getItem(DRAWER_PREFS_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function writeDrawerPrefs(prefs) {
+        try {
+            localStorage.setItem(DRAWER_PREFS_KEY, JSON.stringify(prefs));
+        } catch (_) {}
+    }
+
+    function getSectionContentCount(id) {
+        if (id === 'drawerVideo') {
+            const wrap = document.getElementById('video-sidebar-container');
+            const box = document.getElementById('video-embed-box');
+            if (!wrap || getComputedStyle(wrap).display === 'none') return 0;
+            return box && box.children.length > 0 ? 1 : 0;
+        }
+        if (id === 'drawerRhythms') {
+            const el = document.getElementById('list-rhythms');
+            return el ? el.querySelectorAll('.track-item').length : 0;
+        }
+        if (id === 'drawerVisuals') {
+            const el = document.getElementById('list-visuals');
+            return el ? el.querySelectorAll('.track-item').length : 0;
+        }
+        if (id === 'drawerAudioHub') {
+            const el = document.getElementById('sideRecList');
+            return el ? el.querySelectorAll('.track-item').length : 0;
+        }
+        if (id === 'drawerTunerChords') return 1;
+        return 0;
+    }
+
+    function updateDrawerCountBadge(id, count) {
+        const badge = document.querySelector(`.drawer-count-badge[data-badge-for="${id}"]`);
+        if (!badge) return;
+        badge.textContent = String(count);
+        badge.setAttribute('data-count', String(count));
+    }
+
+    function fitToolsSections() {
+        const panel = getToolsPanel();
+        if (!panel) return;
+
+        const prefs = readDrawerPrefs();
+        const children = Array.from(panel.children);
+
+        // Update 0/N badges first
+        for (const el of children) {
+            const id = getToolSectionId(el);
+            if (!id) continue;
+            if (id === 'drawerRhythms' || id === 'drawerVisuals' || id === 'drawerAudioHub') {
+                updateDrawerCountBadge(id, getSectionContentCount(id));
+            }
+        }
+
+        if (panel.clientHeight <= 0) return;
+
+        _isFittingTools = true;
+        try {
+            // 1. Apply manual prefs or close all auto sections first
+            const autoCandidates = [];
+            for (const el of children) {
+                const id = getToolSectionId(el);
+                if (!id) continue;
+                const details = (id === 'drawerVideo') ? document.getElementById('drawerVideo') : el;
+                if (!details || details.tagName !== 'DETAILS') continue;
+                if (getComputedStyle(el).display === 'none') {
+                    details.open = false;
+                    continue;
+                }
+
+                if (Object.prototype.hasOwnProperty.call(prefs, id)) {
+                    details.open = !!prefs[id];
+                } else {
+                    details.open = false;
+                    if (getSectionContentCount(id) > 0) {
+                        autoCandidates.push(details);
+                    }
+                }
+            }
+
+            // 2. Open auto candidates along user's order while panel.scrollHeight <= panel.clientHeight
+            let openedCount = 0;
+            for (const details of autoCandidates) {
+                details.open = true;
+                if (panel.scrollHeight > panel.clientHeight + 1) {
+                    details.open = false;
+                } else {
+                    openedCount++;
+                }
+            }
+
+            // 3. Rule (d): If nothing fit on compact viewports, open the first eligible section (or TunerChords by default)
+            if (openedCount === 0) {
+                if (autoCandidates.length > 0) {
+                    autoCandidates[0].open = true;
+                } else if (!Object.prototype.hasOwnProperty.call(prefs, 'drawerTunerChords')) {
+                    const tc = document.getElementById('drawerTunerChords');
+                    if (tc && getComputedStyle(tc).display !== 'none') {
+                        tc.open = true;
+                    }
+                }
+            }
+        } finally {
+            _isFittingTools = false;
+        }
+    }
+
+    window.fitToolsSections = fitToolsSections;
+
+    window.resetDrawerPrefs = function() {
+        try { localStorage.removeItem(DRAWER_PREFS_KEY); } catch (_) {}
+        fitToolsSections();
+        if (typeof showToast === 'function') {
+            const msg = typeof t === 'function'
+                ? t('msg_drawer_prefs_reset', 'Επαναφέρθηκαν οι προεπιλογές ανοίγματος Βοηθημάτων.')
+                : 'Επαναφέρθηκαν οι προεπιλογές ανοίγματος Βοηθημάτων.';
+            showToast(msg, 'success');
+        }
+    };
+
+    function bindDrawerTogglePrefs(panel) {
+        if (!panel || panel._drawerPrefsBound) return;
+        panel._drawerPrefsBound = true;
+        panel.querySelectorAll('details.tool-group').forEach(details => {
+            details.addEventListener('toggle', () => {
+                if (_isFittingTools) return;
+                const id = details.id;
+                if (!id) return;
+                const prefs = readDrawerPrefs();
+                prefs[id] = details.open;
+                writeDrawerPrefs(prefs);
+            });
+        });
+    }
+
     function initToolsOrder() {
         const panel = getToolsPanel();
         if (!panel) return;
@@ -1432,6 +1578,17 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
             saved = null;
         }
         applyToolsOrder(saved);
+        bindDrawerTogglePrefs(panel);
+        fitToolsSections();
+
+        if (!window._fitToolsResizeBound) {
+            window._fitToolsResizeBound = true;
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => fitToolsSections(), 80);
+            });
+        }
 
         if (typeof Sortable !== 'undefined' && !panel._toolsSortable) {
             panel._toolsSortable = Sortable.create(panel, {
@@ -1445,6 +1602,7 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
                 chosenClass: 'tool-group-chosen',
                 onEnd: function() {
                     saveToolsOrder();
+                    fitToolsSections();
                 }
             });
         }

@@ -396,8 +396,8 @@ function loadSong(id, forceMaster = false, preventMobileSwitch = false) {
     renderPlayer(s);
     if (s.rhythm && s.rhythm.bpm && typeof BasicMetronome !== 'undefined') {
         BasicMetronome.setBpm(s.rhythm.bpm);
-        const rngBpm = document.getElementById('rngBpm');
-        if (rngBpm) rngBpm.value = s.rhythm.bpm;
+        const txtBpm = document.getElementById('txtBpm');
+        if (txtBpm) txtBpm.value = s.rhythm.bpm;
     }
     if(typeof requestWakeLock === 'function') requestWakeLock();
     if (isMobileView() && typeof switchMobileTab === 'function' && !preventMobileSwitch) switchMobileTab('stage');
@@ -405,6 +405,7 @@ function loadSong(id, forceMaster = false, preventMobileSwitch = false) {
 
     // 🚀 [V2.1.7] Ολική ανανέωση της λίστας για να συγχρονιστούν τονικότητες και versions
     if (typeof renderSidebar === 'function') renderSidebar();
+    if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
 }
 
 function navVisiblePlaylist(dir) {

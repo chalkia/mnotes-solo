@@ -8,9 +8,9 @@ const CONFIG = {
     GOOGLE_CLIENT_ID: "your-google-client-id.apps.googleusercontent.com"
 };
 
-window.MNOTES_VERSION = '2.8.6';
+window.MNOTES_VERSION = '2.8.7';
 if (typeof globalThis !== 'undefined') {
-    globalThis.MNOTES_VERSION = '2.8.6';
+    globalThis.MNOTES_VERSION = '2.8.7';
 }
 
 

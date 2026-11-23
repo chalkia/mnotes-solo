@@ -306,9 +306,18 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         const targetSong = library.find(x => x.id === targetSongId);
         if (!targetSong) return;
 
-        let currentBpm = 100;
-        const bpmSlider = document.getElementById('rngBpm');
-        if (bpmSlider) currentBpm = parseInt(bpmSlider.value);
+        const txtBpm = document.getElementById('txtBpm');
+        let currentBpm = (txtBpm && parseInt(txtBpm.value, 10)) || 100;
+        if (type === 'rhythm' && url && !String(url).startsWith('local://')) {
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    const fileBpm = parseInt(data?.metadata?.defaultBpm, 10);
+                    if (fileBpm >= 20 && fileBpm <= 240) currentBpm = fileBpm;
+                }
+            } catch (_) {}
+        }
 
         const newAssetObj = { id: Date.now(), name: name, url: url, date: Date.now(), bpm: currentBpm };
        
@@ -506,6 +515,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         });
         
         if (!hasItems) listEl.innerHTML = `<div class="empty-state">${t('msg_no_recordings')}</div>`;
+        if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
     };
 
     assets.renderAttachments = function(docs = []) {
@@ -563,6 +573,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         });
 
         if (!hasItems) listEl.innerHTML = `<div class="empty-state">${t('msg_no_attachments')}</div>`;
+        if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
     };
 
     assets.playAudio = function(url, title = "Playing Audio...") { 

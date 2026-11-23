@@ -3703,10 +3703,10 @@ body.theme-light.play-armed #stagePlayBtn::after {
 
 /* Tuner gauge */
 .tuner-group {
-    background: var(--bg-panel);
+    background: var(--bg-elevated, var(--bg-panel));
     padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 10px);
+    border: 1px solid var(--border-subtle, var(--border-color));
     text-align: center;
     transition: border-color 140ms ease;
 }
@@ -5316,4 +5316,81 @@ body.play-mode #compactBarTwinWarn {
         bottom: 0;
         right: 0;
     }
+}
+
+/* Unified Practice Aids Top Controls (2.8 Commit γ1) */
+.drawer-player-controls-top {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-subtle, var(--border-color));
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-bottom: 0;
+}
+
+.drawer-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+.drawer-controls-grid .drawer-row {
+    margin: 0;
+    padding: 2px 6px;
+    background: var(--bg-elevated, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border-subtle, var(--border-color));
+    border-radius: var(--radius-sm, 6px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    font-size: 0.76rem;
+}
+
+.drawer-controls-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.drawer-controls-actions .drawer-btn {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 4px 6px;
+    min-height: 30px;
+    font-size: 0.76rem;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.drawer-forget-timing-btn {
+    margin: 0;
+    padding: 4px 8px;
+    min-height: 30px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    justify-content: center;
+}
+
+.drawer-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--bg-elevated, rgba(255, 255, 255, 0.08));
+    color: var(--text-muted);
+}
+
+.drawer-count-badge[data-count="0"] {
+    opacity: 0.65;
+}
+
+.drawer-count-badge:not([data-count="0"]) {
+    color: var(--accent);
 }

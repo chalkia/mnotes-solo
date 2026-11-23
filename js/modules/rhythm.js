@@ -28,14 +28,15 @@ window.mNotes.ui.rhythm = window.mNotes.ui.rhythm || {};
             let downloadBtnHtml = `<button onclick="downloadAssetLocal('${rhythm.url}', '${rhythm.name}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="${t('btn_download')}"><i class="fas fa-download"></i></button>`;
             let updateBpmBtnHtml = canDelete ? `<button onclick="updateRhythmBpm('${currentSongId}', ${index})" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px;" title="${t('title_save_bpm')}"><i class="fas fa-save"></i></button>` : '';
 
-            const savedBpm = rhythm.bpm || 100;
+            const savedBpm = rhythm.bpm || rhythm.defaultBpm || rhythm.metadata?.defaultBpm || null;
+            const bpmLabel = savedBpm ? `♩ = ${savedBpm}` : '♩ = —';
 
             el.innerHTML = `
-                <div onclick="activateSongRhythm('${rhythm.url}', '${rhythm.name}', ${savedBpm}, ${index})" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${t('title_load_rhythm')}">
+                <div onclick="activateSongRhythm('${rhythm.url}', '${rhythm.name}', ${savedBpm || 0}, ${index})" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${t('title_load_rhythm')}">
                     <i class="fas fa-drum" style="color:var(--accent); margin-right:8px;"></i>
                     <div style="display:flex; flex-direction:column; overflow:hidden;">
                         <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rhythm.name}</span>
-                        <span style="font-size:0.65rem; color:var(--text-muted);"><i class="fas fa-tachometer-alt"></i> ${savedBpm} BPM</span>
+                        <span class="rhythm-item-bpm" data-rhythm-idx="${index}" style="font-size:0.65rem; color:var(--text-muted);">${bpmLabel}</span>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center;">
@@ -46,13 +47,15 @@ window.mNotes.ui.rhythm = window.mNotes.ui.rhythm || {};
             `;
             listEl.appendChild(el); 
         });
+        if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
     };
 
     rhythmMod.updateBpm = function(songId, rhythmIndex) {
         const targetSong = library.find(s => s.id === songId);
         if (!targetSong || !targetSong.rhythms || !targetSong.rhythms[rhythmIndex]) return;
 
-        const currentBpm = document.getElementById('rngBpm') ? parseInt(document.getElementById('rngBpm').value) : 100;
+        const txtBpmEl = document.getElementById('txtBpm');
+        const currentBpm = txtBpmEl ? (parseInt(txtBpmEl.value, 10) || 100) : 100;
         targetSong.rhythms[rhythmIndex].bpm = currentBpm;
         
         if (typeof saveSong === 'function') saveSong(targetSong);
@@ -117,9 +120,13 @@ window.mNotes.ui.rhythm = window.mNotes.ui.rhythm || {};
                 : rawTargetBpm;
 
             if (effectiveBpm) {
-                const rngBpm = document.getElementById('rngBpm');
-                if (rngBpm) rngBpm.value = effectiveBpm;
+                const txtBpm = document.getElementById('txtBpm');
+                if (txtBpm) txtBpm.value = effectiveBpm;
                 rhythmMod.changeBpm(effectiveBpm);
+                if (!savedBpm && rhythmIndex !== -1) {
+                    const lbl = document.querySelector(`.rhythm-item-bpm[data-rhythm-idx="${rhythmIndex}"]`);
+                    if (lbl) lbl.textContent = `♩ = ${effectiveBpm}`;
+                }
             }
 
             if (window.mRhythm) {
@@ -171,8 +178,8 @@ window.mNotes.ui.rhythm = window.mNotes.ui.rhythm || {};
 
     rhythmMod.toggleMaster = function() {
         const icon = document.getElementById('iconPlayRhythm');
-        const bpmSlider = document.getElementById('rngBpm');
-        const currentBpm = bpmSlider ? parseInt(bpmSlider.value) : 100;
+        const txtBpmEl = document.getElementById('txtBpm');
+        const currentBpm = txtBpmEl ? (parseInt(txtBpmEl.value, 10) || 100) : 100;
 
         const isCurrentlyPlaying = (window.activeRhythmType === 'sequencer' && window.mRhythm) 
             ? window.isRhythmPlaying 
@@ -216,8 +223,6 @@ window.mNotes.ui.rhythm = window.mNotes.ui.rhythm || {};
         const newBpm = parseInt(value);
         if (isNaN(newBpm)) return;
         
-        const rngBpm = document.getElementById('rngBpm');
-        if (rngBpm && rngBpm.value != newBpm) rngBpm.value = newBpm;
         const txtBpm = document.getElementById('txtBpm');
         if (txtBpm && txtBpm.value != newBpm) txtBpm.value = newBpm;
         const dispBpm = document.getElementById('dispBpm');
