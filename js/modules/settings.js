@@ -40,7 +40,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
 
         const checkboxes = {
             'setWakeLock': userSettings.wakeLock,
-            'setDisableSplit': userSettings.disableSplit,
+            'setDisableSplit': !userSettings.disableSplit,
             'setPrintLyricsOnly': userSettings.printLyricsOnly,
             'setShowScrollBtn': (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true,
             'setAutoFitLyrics': userSettings.autoFitLyrics || false,
@@ -79,6 +79,15 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
             const el = document.getElementById(id);
             if (el) el.value = values[id];
         }
+        const vSpeed = document.getElementById('valScrollSpeed');
+        if (vSpeed) vSpeed.textContent = String(values['setScrollSpeed']);
+        const vChordSize = document.getElementById('valChordSize');
+        if (vChordSize) vChordSize.textContent = parseFloat(values['setChordSize']).toFixed(1) + '×';
+        const vChordDist = document.getElementById('valChordDist');
+        if (vChordDist) vChordDist.textContent = String(values['setChordDist']) + ' px';
+        const pitchInp = document.getElementById('rngPitch');
+        const vPitch = document.getElementById('valMetronomePitch');
+        if (pitchInp && vPitch) vPitch.textContent = pitchInp.value + ' Hz';
         settingsMod.applyLibraryTextSize();
 
         /* Ετοιμότητα offline, με μια ματιά. Χωρίς αυτό ο χρήστης μαθαίνει
@@ -124,7 +133,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         const forceSyncRow = document.getElementById('forceSyncContainer');
         if (forceSyncRow) {
             const canCloudSync = (typeof canUserPerform === 'function') && canUserPerform('CLOUD_SYNC');
-            forceSyncRow.style.display = canCloudSync ? 'block' : 'none';
+            forceSyncRow.style.display = canCloudSync ? 'inline-flex' : 'none';
         }
 
         fetch('sw.js?t=' + Date.now())
@@ -168,7 +177,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
 
     settingsMod.save = async function() {
         userSettings.wakeLock = document.getElementById('setWakeLock')?.checked || false;
-        userSettings.disableSplit = document.getElementById('setDisableSplit')?.checked || false;
+        userSettings.disableSplit = !(document.getElementById('setDisableSplit')?.checked ?? true);
         userSettings.printLyricsOnly = document.getElementById('setPrintLyricsOnly')?.checked || false;
         userSettings.accidentalMode = document.getElementById('setAccidentalMode')?.value || 'scale';
         userSettings.forceMobile = document.getElementById('setForceMobile')?.checked || false;

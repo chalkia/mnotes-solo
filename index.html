@@ -229,7 +229,7 @@
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
                     <button onclick="exitEditor()" class="text-btn">
-                        <i class="fas fa-times"></i>
+                        <i class="fas fa-times" aria-hidden="true"></i>
                         <span data-i18n="btn_cancel">Cancel</span>
                     </button>
 
@@ -829,302 +829,286 @@
             <div class="modal-content settings-content">
                 <!-- Sticky Header -->
                 <div class="settings-header">
-                    <h3 data-i18n="title_settings" style="margin: 0;">Settings</h3>
+                    <h3><i class="fas fa-cog"></i> <span data-i18n="title_settings">Ρυθμίσεις</span></h3>
+                    <button type="button" class="drawer-close" onclick="closeSettings()" data-i18n-aria="btn_close" aria-label="Κλείσιμο"><i class="fas fa-times"></i></button>
                 </div>
 
-                <!-- Scrollable Body -->
-                <div class="settings-body">
-                    <!-- Εμφάνιση -->
-                    <div class="settings-group">
-                        <h4 style="color: var(--accent); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;"
-                            data-i18n="sec_settings_appearance">Εμφάνιση</h4>
-
-                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span data-i18n="lbl_theme">Theme:</span>
-                            <select id="setTheme" class="set-control" onchange="applyTheme(this.value)">
-                                <option value="theme-dark">Deep Night</option>
-                                <option value="theme-slate">Slate Gray</option>
-                                <option value="theme-light">Paper Light</option>
-                            </select>
-                        </label>
-
-                        <div class="setting-row-segmented" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-                            <span data-i18n="lbl_lib_text_size">Μέγεθος γραμμάτων & κεφαλίδων</span>
-                            <div id="setLibTextSize" class="segmented-control" role="group" aria-label="Library text size">
-                                <button type="button" class="seg-btn" data-size="sm" onclick="setLibraryTextSize('sm')" data-i18n="opt_size_sm">Μικρά</button>
-                                <button type="button" class="seg-btn active" data-size="md" onclick="setLibraryTextSize('md')" data-i18n="opt_size_md">Κανονικά</button>
-                                <button type="button" class="seg-btn" data-size="lg" onclick="setLibraryTextSize('lg')" data-i18n="opt_size_lg">Μεγάλα</button>
+                <!-- Scrollable Body: 7 Groups (2 cols on Desktop >=900px, 1 col on Mobile) -->
+                <div class="settings-body" id="settingsBody">
+                    <div class="settings-col">
+                        <!-- 1. Εμφάνιση & Οθόνη -->
+                        <div class="settings-group">
+                            <h4 data-i18n="sec_settings_appearance">Εμφάνιση &amp; Οθόνη</h4>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_theme">Θέμα εμφάνισης</span>
+                                <select id="setTheme" class="set-select" onchange="applyTheme(this.value)">
+                                    <option value="theme-dark">Deep Night</option>
+                                    <option value="theme-slate">Slate Gray</option>
+                                    <option value="theme-light">Paper Light</option>
+                                </select>
+                            </label>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="lbl_keep_screen">Οθόνη πάντα ανοιχτή κατά τη χρήση</span>
+                                <input type="checkbox" id="setWakeLock" class="settings-check">
+                            </label>
+                            <div class="setting-row">
+                                <span data-i18n="lbl_lib_text_size">Μέγεθος γραμμάτων &amp; κεφαλίδων</span>
+                                <div id="setLibTextSize" class="segmented-control" role="group" aria-label="Library text size">
+                                    <button type="button" class="seg-btn" data-size="sm" onclick="setLibraryTextSize('sm')" data-i18n="opt_size_sm">Μικρά</button>
+                                    <button type="button" class="seg-btn active" data-size="md" onclick="setLibraryTextSize('md')" data-i18n="opt_size_md">Κανονικά</button>
+                                    <button type="button" class="seg-btn" data-size="lg" onclick="setLibraryTextSize('lg')" data-i18n="opt_size_lg">Μεγάλα</button>
+                                </div>
                             </div>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="lbl_autofit_lyrics">Αυτόματη προσαρμογή μεγέθους στίχων</span>
+                                <input type="checkbox" id="setAutoFitLyrics" class="settings-check">
+                            </label>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="lbl_force_mobile">Μία οθόνη τη φορά</span>
+                                <input type="checkbox" id="setForceMobile" class="settings-check" onchange="applyMobileForce()">
+                            </label>
                         </div>
 
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setForceMobile" onchange="applyMobileForce()">
-                            <span data-i18n="lbl_force_mobile">Μία οθόνη τη φορά</span>
-                        </label>
-                    </div>
-
-                    <!-- Σκηνή & κύλιση -->
-                    <div class="settings-group" style="margin-top: 18px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
-                        <h4 style="color: var(--accent); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;"
-                            data-i18n="sec_settings_stage">Σκηνή &amp; κύλιση</h4>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setDisableSplit">
-                            <span data-i18n="opt_disable_split">Ενιαία προβολή κειμένου (Όχι Split)</span>
-                        </label>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setWakeLock">
-                            <span data-i18n="lbl_keep_screen">Οθόνη πάντα ανοιχτή κατά τη χρήση</span>
-                        </label>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setAutoFitLyrics">
-                            <span data-i18n="lbl_autofit_lyrics">Αυτόματη προσαρμογή μεγέθους (Auto-Fit, ελάχ. 13 px)</span>
-                        </label>
-
-                        <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; cursor:pointer;">
-                            <input type="checkbox" id="setHideIntroInter" style="margin-top:3px;">
-                            <div>
-                                <strong data-i18n="opt_hide_intro_inter">Απόκρυψη πεδίων Intro / Inter στον επεξεργαστή</strong>
-                                <div style="font-size:0.85em; color:gray;" data-i18n="sub_hide_intro_inter">Αν ένα τραγούδι έχει ήδη Intro ή Inter, τα πεδία εμφανίζονται για να το διορθώσεις.</div>
-                            </div>
-                        </label>
-
-                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span data-i18n="lbl_chord_size">Μέγεθος:</span>
-                            <input type="range" id="setChordSize" min="0.5" max="2" step="0.1" value="1" style="width: 50%;">
-                        </label>
-
-                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span data-i18n="lbl_chord_dist">Απόσταση (Ύψος):</span>
-                            <input type="range" id="setChordDist" min="-10" max="20" step="1" value="0" style="width: 50%;">
-                        </label>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setShowChords" checked onchange="GuitarChordsUI.toggleVisibility(this.checked)">
-                            <span data-i18n="lbl_show_chords">Εμφάνιση συγχορδιών (κιθάρα)</span>
-                        </label>
-
-                        <div class="setting-item" style="margin-bottom: 10px;">
-                            <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;" data-i18n="lbl_accidentals">Αλλοιώσεις:</label>
-                            <select id="setAccidentalMode" class="modal-input" style="width:100%;">
-                                <option value="scale" data-i18n="opt_acc_scale">Βάσει Κλίμακας</option>
-                                <option value="sharps" data-i18n="opt_acc_sharps">Μόνο Διέσεις (♯)</option>
-                                <option value="flats" data-i18n="opt_acc_flats">Μόνο Υφέσεις (♭)</option>
-                            </select>
+                        <!-- 2. Σκηνή & Κύλιση -->
+                        <div class="settings-group">
+                            <h4 data-i18n="sec_settings_stage">Σκηνή &amp; Κύλιση</h4>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="lbl_smart_scroll_play">Έξυπνη κύλιση στο Play</span>
+                                <input type="checkbox" id="setSmartScrollOnPlay" class="settings-check" checked>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_scroll_speed">Ταχύτητα κύλισης</span>
+                                <span class="set-range-wrap">
+                                    <input type="range" id="setScrollSpeed" class="set-range" min="10" max="200" value="50"
+                                        oninput="var v=document.getElementById('valScrollSpeed');if(v)v.textContent=this.value;">
+                                    <span id="valScrollSpeed" class="set-val">50</span>
+                                </span>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_scroll_delay">Καθυστέρηση έναρξης κύλισης</span>
+                                <span class="set-num-wrap">
+                                    <input type="number" id="setScrollDelay" value="10" min="0" max="30" class="set-num">
+                                    <span class="set-unit" data-i18n="unit_sec">δευτ.</span>
+                                </span>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_play_delay">Καθυστέρηση Play</span>
+                                <span class="set-num-wrap">
+                                    <input type="number" id="setPlayDelay" value="0" min="0" max="15" class="set-num">
+                                    <span class="set-unit" data-i18n="unit_sec">δευτ.</span>
+                                </span>
+                            </label>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="opt_show_scroll">Εμφάνιση κουμπιού κύλισης</span>
+                                <input type="checkbox" id="setShowScrollBtn" class="settings-check" checked>
+                            </label>
+                            <label class="setting-row setting-check-row setting-row-split">
+                                <span class="set-label-col">
+                                    <span class="set-label-main">
+                                        <svg class="split-horiz-icon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="6.5" rx="1.5" fill="currentColor" opacity="0.9"/><rect x="3" y="13" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="21" width="10" height="2" rx="1" fill="currentColor"/><path d="M18.5 13v7m0 0-2.5-2.5m2.5 2.5 2.5-2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                                        <span data-i18n="opt_fixed_chords_top">Σταθερές συγχορδίες πάνω, κυλιόμενοι στίχοι από κάτω</span>
+                                    </span>
+                                    <span class="set-sub-hint" data-i18n="sub_fixed_chords_song">Αλλάζει και για ένα μόνο τραγούδι από τη Σκηνή</span>
+                                </span>
+                                <input type="checkbox" id="setDisableSplit" class="settings-check" checked>
+                            </label>
+                            <label class="setting-row setting-check-row" data-i18n-title="sub_hide_intro_inter" title="Αν ένα τραγούδι έχει ήδη Intro ή Inter, τα πεδία εμφανίζονται για να το διορθώσεις.">
+                                <span data-i18n="opt_hide_intro_inter">Απόκρυψη πεδίων Intro / Inter</span>
+                                <input type="checkbox" id="setHideIntroInter" class="settings-check">
+                            </label>
                         </div>
 
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setOnlySharps">
-                            <span data-i18n="opt_only_sharps">Χρήση μόνο διέσεων (Sharps)</span>
-                        </label>
-
-                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span data-i18n="lbl_max_capo">Max Capo:</span>
-                            <input type="number" id="setMaxCapo" value="12" class="inp" style="width: 60px; padding: 4px; text-align: center;">
-                        </label>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setShowScrollBtn" checked>
-                            <span data-i18n="opt_show_scroll">Εμφάνιση κουμπιού Scroll</span>
-                        </label>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setSmartScrollOnPlay" checked>
-                            <span data-i18n="lbl_smart_scroll_play">Έξυπνη κύλιση στο Play</span>
-                        </label>
-
-                        <div style="margin-bottom: 15px;">
-                            <span data-i18n="lbl_scroll_speed" style="display: block; margin-bottom: 5px;">Ταχύτητα (Speed):</span>
-                            <input type="range" id="setScrollSpeed" min="10" max="200" style="width: 100%;">
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span data-i18n="lbl_scroll_delay">Καθυστέρηση Έναρξης (Delay):</span>
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <input type="number" id="setScrollDelay" value="10" min="0" max="30" class="inp" style="width: 60px; text-align: center; padding: 4px;">
-                                <span style="font-size: 0.8rem; color:var(--text-muted);">sec</span>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span data-i18n="lbl_play_delay">Καθυστέρηση Play:</span>
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <input type="number" id="setPlayDelay" value="0" min="0" max="15" class="inp" style="width: 60px; text-align: center; padding: 4px;">
-                                <span style="font-size: 0.8rem; color: var(--text-muted);">sec</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Πεντάλ -->
-                    <div class="settings-group" style="margin-top: 18px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
-                        <h4 style="color: var(--accent); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;"
-                            data-i18n="sec_settings_pedal">Πεντάλ</h4>
-
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;" data-i18n="lbl_pedal_left">Αριστερό πεντάλ (PageUp / ↑ / ←):</label>
-                            <select id="setPedalLeft" class="modal-input" style="width:100%;">
-                                <option value="scroll">Κύλιση μιας οθόνης (80%) πάνω/κάτω</option>
-                                <option value="autoscroll">Παύση/συνέχεια Auto-Scroll (ή ξεκίνα τώρα)</option>
-                                <option value="song">Προηγούμενο / επόμενο τραγούδι</option>
-                                <option value="score" data-i18n="opt_pedal_score">Εναλλαγή παρτιτούρας / στίχων</option>
-                            </select>
-                        </div>
-
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;" data-i18n="lbl_pedal_right">Δεξί πεντάλ (PageDown / ↓ / → / Space / Enter):</label>
-                            <select id="setPedalRight" class="modal-input" style="width:100%;">
-                                <option value="scroll">Κύλιση μιας οθόνης (80%) πάνω/κάτω</option>
-                                <option value="autoscroll">Παύση/συνέχεια Auto-Scroll (ή ξεκίνα τώρα)</option>
-                                <option value="song">Προηγούμενο / επόμενο τραγούδι</option>
-                                <option value="score" data-i18n="opt_pedal_score">Εναλλαγή παρτιτούρας / στίχων</option>
-                            </select>
-                        </div>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setPedalHoldSong">
-                            <span data-i18n="lbl_pedal_hold">Κράτημα &gt;600 ms = αλλαγή τραγουδιού</span>
-                        </label>
-
-                        <div id="pedalTestBox" tabindex="0" style="padding:10px; border:1px dashed var(--border-color); border-radius:6px; font-size:0.85rem; text-align:center; color:var(--text-muted); cursor:pointer;">
-                            <span data-i18n="lbl_pedal_test">Δοκίμασε το πεντάλ — πάτησε ένα πλήκτρο...</span>
-                            <div id="pedalTestOutput" style="margin-top:4px; font-weight:bold; color:var(--text-main);">—</div>
+                        <!-- 3. Συγχορδίες & Τρανσπόζο -->
+                        <div class="settings-group">
+                            <h4 data-i18n="sec_settings_chords">Συγχορδίες &amp; Τρανσπόζο</h4>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="lbl_show_chords">Εμφάνιση συγχορδιών (κιθάρα)</span>
+                                <input type="checkbox" id="setShowChords" class="settings-check" checked onchange="GuitarChordsUI.toggleVisibility(this.checked)">
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_chord_size">Μέγεθος συγχορδιών</span>
+                                <span class="set-range-wrap">
+                                    <input type="range" id="setChordSize" class="set-range" min="0.5" max="2" step="0.1" value="1"
+                                        oninput="var v=document.getElementById('valChordSize');if(v)v.textContent=parseFloat(this.value).toFixed(1)+'×';">
+                                    <span id="valChordSize" class="set-val">1.0×</span>
+                                </span>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_chord_dist">Απόσταση συγχορδιών (Ύψος)</span>
+                                <span class="set-range-wrap">
+                                    <input type="range" id="setChordDist" class="set-range" min="-10" max="20" step="1" value="0"
+                                        oninput="var v=document.getElementById('valChordDist');if(v)v.textContent=this.value+' px';">
+                                    <span id="valChordDist" class="set-val">0 px</span>
+                                </span>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_accidentals">Αλλοιώσεις συγχορδιών</span>
+                                <select id="setAccidentalMode" class="set-select">
+                                    <option value="scale" data-i18n="opt_acc_scale">Βάσει κλίμακας</option>
+                                    <option value="sharps" data-i18n="opt_acc_sharps">Μόνο διέσεις (♯)</option>
+                                    <option value="flats" data-i18n="opt_acc_flats">Μόνο υφέσεις (♭)</option>
+                                </select>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_max_capo">Μέγιστο Capo</span>
+                                <span class="set-num-wrap">
+                                    <input type="number" id="setMaxCapo" value="12" min="0" max="24" class="set-num">
+                                    <span class="set-unit" data-i18n="unit_frets">τάστα</span>
+                                </span>
+                            </label>
                         </div>
                     </div>
 
-                    <!-- Παρτιτούρες -->
-                    <div class="settings-group" style="margin-top: 18px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
-                        <h4 style="color: var(--accent); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;"
-                            data-i18n="sec_settings_scores">Παρτιτούρες</h4>
-
-                        <div class="setting-row-segmented" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-                            <span data-i18n="lbl_abc_inline">ABC μέσα στο τραγούδι</span>
-                            <div id="setAbcInline" class="segmented-control" role="group" aria-label="Inline ABC score">
-                                <button type="button" class="seg-btn active" data-val="yes" onclick="setAbcInline(true)" data-i18n="opt_score_yes">Ναι</button>
-                                <button type="button" class="seg-btn" data-val="no" onclick="setAbcInline(false)" data-i18n="opt_score_no">Όχι</button>
+                    <div class="settings-col">
+                        <!-- 4. Παρτιτούρες & Βοηθήματα -->
+                        <div class="settings-group">
+                            <h4 data-i18n="sec_settings_tools">Παρτιτούρες &amp; Βοηθήματα</h4>
+                            <div class="setting-row">
+                                <span data-i18n="lbl_score_open_mode">Άνοιγμα παρτιτούρας</span>
+                                <div id="setScoreOpenMode" class="segmented-control" role="group" aria-label="Open score mode">
+                                    <button type="button" class="seg-btn active" data-mode="full" onclick="setScoreOpenMode('full')" data-i18n="opt_score_full">Πλήρης οθόνη</button>
+                                    <button type="button" class="seg-btn" data-mode="half" onclick="setScoreOpenMode('half')" data-i18n="opt_score_half">Μισή οθόνη</button>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <span data-i18n="lbl_abc_inline">ABC μέσα στο τραγούδι (!score)</span>
+                                <div id="setAbcInline" class="segmented-control" role="group" aria-label="Inline ABC score">
+                                    <button type="button" class="seg-btn active" data-val="yes" onclick="setAbcInline(true)" data-i18n="opt_score_yes">Ναι</button>
+                                    <button type="button" class="seg-btn" data-val="no" onclick="setAbcInline(false)" data-i18n="opt_score_no">Όχι</button>
+                                </div>
+                            </div>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_ref_freq">Συχνότητα αναφοράς (A4)</span>
+                                <span class="set-num-wrap">
+                                    <input type="number" id="setRefFreq" value="440" min="415" max="465" class="set-num">
+                                    <span class="set-unit">Hz</span>
+                                </span>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_metronome_pitch">Συχνότητα ήχου μετρονόμου</span>
+                                <span class="set-range-wrap">
+                                    <input type="range" id="rngPitch" class="set-range" min="400" max="1500" value="800"
+                                        oninput="BasicMetronome.setPitch(this.value);var vp=document.getElementById('valMetronomePitch');if(vp)vp.textContent=this.value+' Hz';"
+                                        data-i18n-title="lbl_tick_freq_title">
+                                    <span id="valMetronomePitch" class="set-val">800 Hz</span>
+                                </span>
+                            </label>
+                            <div class="setting-row">
+                                <span data-i18n="lbl_drawer_defaults">Προεπιλογή ενοτήτων Βοηθημάτων</span>
+                                <button id="btnResetDrawerPrefs" type="button" onclick="window.resetDrawerPrefs()" class="chip-ctl" data-i18n="btn_reset_drawer_prefs">Αυτόματο άνοιγμα (Επαναφορά)</button>
+                            </div>
+                            <div class="setting-row">
+                                <span data-i18n="lbl_tools_order_row">Σειρά ενοτήτων Βοηθημάτων</span>
+                                <button id="btnResetToolsOrder" type="button" onclick="window.resetToolsOrder()" class="chip-ctl" data-i18n="btn_reset_tools_order">Επαναφορά αρχικής σειράς</button>
                             </div>
                         </div>
-                        <div class="setting-row-segmented" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-                            <span data-i18n="lbl_score_open_mode">Άνοιγμα παρτιτούρας</span>
-                            <div id="setScoreOpenMode" class="segmented-control" role="group" aria-label="Open score mode">
-                                <button type="button" class="seg-btn active" data-mode="full" onclick="setScoreOpenMode('full')" data-i18n="opt_score_full">Πλήρης οθόνη</button>
-                                <button type="button" class="seg-btn" data-mode="half" onclick="setScoreOpenMode('half')" data-i18n="opt_score_half">Μισή οθόνη</button>
+
+                        <!-- 5. Πεντάλ Bluetooth -->
+                        <div class="settings-group">
+                            <h4 data-i18n="sec_settings_pedal">Πεντάλ Bluetooth</h4>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_pedal_left">Αριστερό πεντάλ</span>
+                                <select id="setPedalLeft" class="set-select">
+                                    <option value="scroll" data-i18n="opt_pedal_scroll">Κύλιση 80% επάνω/κάτω</option>
+                                    <option value="autoscroll" data-i18n="opt_pedal_autoscroll">Παύση/συνέχεια αυτόματης κύλισης</option>
+                                    <option value="song" data-i18n="opt_pedal_song">Προηγούμενο / επόμενο τραγούδι</option>
+                                    <option value="score" data-i18n="opt_pedal_score">Εναλλαγή παρτιτούρας / στίχων</option>
+                                </select>
+                            </label>
+                            <label class="setting-row">
+                                <span data-i18n="lbl_pedal_right">Δεξί πεντάλ</span>
+                                <select id="setPedalRight" class="set-select">
+                                    <option value="scroll" data-i18n="opt_pedal_scroll">Κύλιση 80% επάνω/κάτω</option>
+                                    <option value="autoscroll" data-i18n="opt_pedal_autoscroll">Παύση/συνέχεια αυτόματης κύλισης</option>
+                                    <option value="song" data-i18n="opt_pedal_song">Προηγούμενο / επόμενο τραγούδι</option>
+                                    <option value="score" data-i18n="opt_pedal_score">Εναλλαγή παρτιτούρας / στίχων</option>
+                                </select>
+                            </label>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="lbl_pedal_hold">Κράτημα &gt;600 ms = αλλαγή τραγουδιού</span>
+                                <input type="checkbox" id="setPedalHoldSong" class="settings-check">
+                            </label>
+                            <div id="pedalTestBox" tabindex="0">
+                                <span data-i18n="lbl_pedal_test">Δοκιμή πεντάλ — πάτησε πλήκτρο</span>
+                                <span id="pedalTestOutput">—</span>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Βοηθήματα -->
-                    <div class="settings-group" style="margin-top: 18px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
-                        <h4 style="color: var(--accent); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;"
-                            data-i18n="sec_settings_tools">Βοηθήματα</h4>
-
-                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span data-i18n="lbl_ref_freq">Συχνότητα Αναφοράς (A4):</span>
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <input type="number" id="setRefFreq" value="440" min="415" max="465" class="inp" style="width: 65px; text-align: center; padding: 4px;">
-                                <span style="font-size: 0.8rem; color: var(--text-muted);">Hz</span>
+                        <!-- 6. Δεδομένα, Συγχρονισμός & Εκτύπωση -->
+                        <div class="settings-group">
+                            <h4 data-i18n="sec_settings_data">Δεδομένα, Συγχρονισμός &amp; Εκτύπωση</h4>
+                            <div class="setting-row" data-pro-only>
+                                <span id="offlineStatusRow" data-pro-only><span id="offlineStatusText">—</span></span>
+                                <span id="forceSyncContainer" data-pro-only style="display:none;">
+                                    <button id="btnForceSync" type="button" onclick="window.forceFullSync()" class="chip-ctl warn" data-i18n-title="idx_auto_83" title="Επιδιορθώνει προβλήματα απώλειας τραγουδιών επαναφέροντας τα πάντα από το Cloud.">
+                                        <i class="fas fa-sync-alt"></i> <span data-i18n="btn_force_sync">Αναγκαστικός συγχρονισμός</span>
+                                    </button>
+                                </span>
                             </div>
-                        </label>
-
-                        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
-                            <label for="rngPitch" style="font-size: 0.9rem;" data-i18n="lbl_metronome_pitch">Συχνότητα ήχου μετρονόμου</label>
-                            <input type="range" id="rngPitch" min="400" max="1500" value="800" class="compact-range"
-                                style="width: 100%; accent-color: var(--accent);"
-                                oninput="BasicMetronome.setPitch(this.value)" data-i18n-title="lbl_tick_freq_title">
+                            <div id="soloLocalNotice" data-solo-only class="setting-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+                                <span data-i18n="solo_local_storage_notice" style="font-size:0.76rem; color:var(--text-muted); line-height:1.35;">Τα τραγούδια και οι παρτιτούρες αποθηκεύονται τοπικά στη συσκευή σου. Κράτα αντίγραφο ασφαλείας.</span>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button type="button" id="btnSoloExportLib" class="chip-ctl" onclick="if(window.SoloBackup&&SoloBackup.openExportDialog){SoloBackup.openExportDialog();}else if(typeof exportJSON==='function'){exportJSON();}"><i class="fas fa-download"></i> <span data-i18n="solo_btn_export_lib">Εξαγωγή βιβλιοθήκης</span></button>
+                                    <button type="button" id="btnSoloImportLib" class="chip-ctl" onclick="document.getElementById('hiddenFileInput')?.click()"><i class="fas fa-upload"></i> <span data-i18n="solo_btn_import_lib">Εισαγωγή</span></button>
+                                </div>
+                            </div>
+                            <div id="failedSyncSection" style="display:none; border-top:1px solid rgba(255,80,80,0.35); padding-top:6px;"></div>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="opt_print_lyrics">Εκτύπωση μόνο στίχων (PDF)</span>
+                                <input type="checkbox" id="setPrintLyricsOnly" class="settings-check">
+                            </label>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="opt_pdf_toc">Πίνακας περιεχομένων στην εκτύπωση PDF</span>
+                                <input type="checkbox" id="pdfTableOfContents" class="settings-check" checked>
+                            </label>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="opt_pdf_pages">Αρίθμηση σελίδων στην εκτύπωση PDF</span>
+                                <input type="checkbox" id="pdfPageNumbers" class="settings-check" checked>
+                            </label>
+                            <label class="setting-row setting-check-row">
+                                <span data-i18n="opt_pdf_cover">Δημιουργία εξωφύλλου στην εκτύπωση PDF</span>
+                                <input type="checkbox" id="pdfCoverPage" class="settings-check" checked>
+                            </label>
                         </div>
 
-                        <div style="display:flex; flex-direction:column; gap:8px;">
-                            <button id="btnResetToolsOrder" type="button" onclick="window.resetToolsOrder()" class="modal-btn" style="width:100%; padding: 10px; background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); cursor: pointer; border-radius: 6px;">
-                                <i class="fas fa-undo"></i> <span data-i18n="btn_reset_tools_order">Επαναφορά αρχικής σειράς Βοηθημάτων</span>
+                        <!-- 7. Λογαριασμός & Εφαρμογή -->
+                        <div class="settings-group">
+                            <h4 data-i18n="sec_settings_account">Λογαριασμός &amp; Εφαρμογή</h4>
+                            <label class="setting-row setting-check-row" data-pro-only data-i18n-title="idx_auto_100" title="Δεν θα επιτρέπεται σε κανέναν άλλον να σας αποσυνδέσει από άλλη συσκευή.">
+                                <span data-i18n="idx_auto_101">Μόνιμη σύνδεση από αυτή τη συσκευή</span>
+                                <input type="checkbox" id="inpPermanentDeviceLock" class="settings-check" onchange="saveDeviceLockSetting()">
+                            </label>
+                            <div class="setting-row" data-pro-only>
+                                <span data-i18n="btn_gift_or_band_code">Κωδικός δώρου ή μπάντας</span>
+                                <button type="button" onclick="redeemGiftCode()" class="chip-ctl">
+                                    <i class="fas fa-gift"></i> <span data-i18n="btn_redeem_code_short">Εξαργύρωση κωδικού</span>
+                                </button>
+                            </div>
+                            <div class="setting-row" data-solo-only>
+                                <span id="soloEditionLine" data-i18n="solo_tier_free" style="font-size:0.78rem; color:var(--text-muted);">mNotes Solo · Δωρεάν (έως 20 τραγούδια)</span>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button type="button" id="soloGiftBtn" class="chip-ctl" onclick="if(window.SoloAccount&&SoloAccount.openGiftDialog){SoloAccount.openGiftDialog();}"><i class="fas fa-gift"></i> <span data-i18n="solo_btn_gift_code">Κωδικός δώρου</span></button>
+                                    <button type="button" id="btnSoloMessages" class="chip-ctl" onclick="if(window.SoloMessages&&SoloMessages.openDialog){SoloMessages.openDialog();}"><i class="fas fa-envelope"></i> <span data-i18n="solo_btn_messages">Μηνύματα</span><span id="soloMessagesDot" class="set-dot" style="display:none;"></span></button>
+                                </div>
+                            </div>
+                            <button id="btnInstallApp" type="button" onclick="promptInstall()" class="chip-ctl" style="display:none; width:100%; justify-content:center;">
+                                <i class="fas fa-download"></i> <span data-i18n="btn_install_device">Εγκατάσταση στη συσκευή</span>
                             </button>
-                            <button id="btnResetDrawerPrefs" type="button" onclick="window.resetDrawerPrefs()" class="modal-btn" style="width:100%; padding: 10px; background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); cursor: pointer; border-radius: 6px;">
-                                <i class="fas fa-magic"></i> <span data-i18n="btn_reset_drawer_prefs">Επαναφορά προεπιλογών Βοηθημάτων</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Δεδομένα -->
-                    <div class="settings-group" style="margin-top: 18px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
-                        <h4 style="color: var(--accent); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;"
-                            data-i18n="sec_settings_data">Δεδομένα &amp; Εξαγωγή</h4>
-
-                        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                            <input type="checkbox" id="setPrintLyricsOnly">
-                            <span data-i18n="opt_print_lyrics">Εκτύπωση μόνο στίχων (PDF)</span>
-                        </label>
-                        <div class="setting-row">
-                            <label for="pdfTableOfContents" data-i18n="opt_pdf_toc">Πίνακας Περιεχομένων στην Εκτύπωση</label>
-                            <input type="checkbox" id="pdfTableOfContents" checked>
-                        </div>
-                        <div class="setting-row">
-                            <label for="pdfPageNumbers" data-i18n="opt_pdf_pages">Αρίθμηση Σελίδων στην Εκτύπωση</label>
-                            <input type="checkbox" id="pdfPageNumbers" checked>
-                        </div>
-                        <div class="setting-row">
-                            <label for="pdfCoverPage" data-i18n="opt_pdf_cover">Δημιουργία Εξωφύλλου στην Εκτύπωση</label>
-                            <input type="checkbox" id="pdfCoverPage" checked>
-                        </div>
-                        <div id="failedSyncSection" style="display:none; margin-top:12px; border-top:1px solid rgba(255,80,80,0.35); padding-top:12px;"></div>
-                    </div>
-
-                    <!-- Λογαριασμός & έκδοση -->
-                    <div class="settings-group" style="margin-top: 18px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
-                        <h4 style="color: var(--accent); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;"
-                            data-i18n="sec_settings_account">Λογαριασμός &amp; έκδοση</h4>
-
-                        <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <input type="checkbox" id="inpPermanentDeviceLock" onchange="saveDeviceLockSetting()">
-                            <div>
-                                <strong><span data-i18n="idx_auto_101">Μόνιμη σύνδεση από αυτή τη συσκευή</span></strong>
-                                <div style="font-size:0.85em; color:gray;"><span data-i18n="idx_auto_100">Δεν θα επιτρέπεται σε κανέναν άλλον να σας αποσυνδέσει από άλλη συσκευή.</span></div>
+                            <div class="setting-row">
+                                <span id="appVersionDisplay"><span data-i18n="idx_auto_82">Ανάγνωση έκδοσης...</span></span>
+                                <button id="btnOpenWhatsNew" type="button" onclick="showWhatsNewModal()" class="chip-ctl">
+                                    <i class="fas fa-bullhorn"></i> <span data-i18n="btn_whats_new">Τι νέο υπάρχει</span>
+                                    <span id="settingsWhatsNewDot" class="set-dot" style="display:none;"></span>
+                                </button>
                             </div>
-                        </label>
-
-                        <button data-pro-only onclick="redeemGiftCode()" class="modal-btn" style="width:100%; padding: 10px; background:var(--bg-panel); border:1px dashed var(--accent); color:var(--accent); cursor: pointer; border-radius: 6px;">
-                            <i class="fas fa-gift"></i> <span data-i18n="btn_gift_or_band_code">Κωδικός δώρου ή μπάντας</span>
-                        </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Sticky Footer -->
+                <!-- Sticky Slim Footer (~48px): ONLY Cancel & Save -->
                 <div class="settings-footer">
-                    <div style="display:flex; gap:10px; width: 100%;">
-                        <button onclick="saveSettings()" class="modal-btn accent" data-i18n="btn_save" style="flex: 1; padding: 12px; font-weight: bold;">Save</button>
-                        <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_cancel" style="flex: 1; padding: 12px;">Cancel</button>
-                    </div>
-                    
-                    <div id="forceSyncContainer" data-pro-only style="margin-top: 25px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; display: none;">
-                        <button id="btnForceSync" onclick="window.forceFullSync()" style="width: 100%; padding: 10px; background: transparent; border: 1px solid #ff9800; color: #ff9800; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <i class="fas fa-sync-alt"></i> <span data-i18n="btn_force_sync">Αναγκαστικός Συγχρονισμός</span>
-                        </button>
-                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;"><span data-i18n="idx_auto_83">Επιδιορθώνει προβλήματα απώλειας τραγουδιών επαναφέροντας τα πάντα από το Cloud.</span></div>
-                    </div>
-                    <div id="offlineStatusRow" style="text-align:center; margin-top:10px; font-size:0.8rem; font-weight:700;">
-                        <span data-pro-only><span id="offlineStatusText">—</span></span>
-                        <div id="soloLocalNotice" data-solo-only style="font-weight:500; color:var(--text-muted); line-height:1.45;">
-                            <div data-i18n="solo_local_storage_notice" style="margin-bottom:8px;">Τα τραγούδια και οι παρτιτούρες αποθηκεύονται τοπικά στη συσκευή σου. Κράτα αντίγραφο ασφαλείας.</div>
-                            <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-                                <button type="button" id="btnSoloExportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="if(window.SoloBackup&&SoloBackup.openExportDialog){SoloBackup.openExportDialog();}else if(typeof exportJSON==='function'){exportJSON();}" data-i18n="solo_btn_export_lib">Εξαγωγή βιβλιοθήκης</button>
-                                <button type="button" id="btnSoloImportLib" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="document.getElementById('hiddenFileInput')?.click()" data-i18n="solo_btn_import_lib">Εισαγωγή</button>
-                                <button type="button" id="btnSoloMessages" class="modal-btn" style="padding:7px 12px; font-size:0.78rem; display:inline-flex; align-items:center; gap:6px;" onclick="if(window.SoloMessages&&SoloMessages.openDialog){SoloMessages.openDialog();}"><span data-i18n="solo_btn_messages">Μηνύματα</span><span id="soloMessagesDot" style="display:none; width:7px; height:7px; border-radius:50%; background:var(--accent);"></span></button>
-                                <button type="button" id="soloGiftBtn" class="modal-btn" style="padding:7px 12px; font-size:0.78rem;" onclick="if(window.SoloAccount&&SoloAccount.openGiftDialog){SoloAccount.openGiftDialog();}" data-i18n="solo_btn_gift_code">Κωδικός δώρου</button>
-                            </div>
-                        </div>
-                    </div>
-                    <button id="btnInstallApp" type="button" onclick="promptInstall()" class="modal-btn accent" style="display:none; width:100%; margin-top:8px;">
-                        <i class="fas fa-download"></i> <span data-i18n="btn_install_device">Εγκατάσταση στη συσκευή</span>
-                    </button>
-                    <button id="btnOpenWhatsNew" type="button" onclick="showWhatsNewModal()" class="modal-btn" style="width:100%; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px;">
-                        <i class="fas fa-bullhorn"></i> <span data-i18n="btn_whats_new">Τι νέο υπάρχει</span>
-                        <span id="settingsWhatsNewDot" style="display:none; width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>
-                    </button>
-                    <div id="soloEditionLine" data-solo-only data-i18n="solo_tier_free" style="text-align:center; margin-top:8px; font-size:0.78rem; color:var(--text-muted);">
-                        mNotes Solo · Δωρεάν (έως 20 τραγούδια)
-                    </div>
-                    <div id="appVersionDisplay" style="text-align:center; margin-top:10px; font-size:0.7rem; color:var(--text-muted); font-family:monospace; letter-spacing:1px;">
-                        <span data-i18n="idx_auto_82">Ανάγνωση έκδοσης...</span>
-                    </div>
+                    <button type="button" onclick="closeSettings()" class="sbtn" data-i18n="btn_cancel">Ακύρωση</button>
+                    <button type="button" onclick="saveSettings()" class="sbtn primary" data-i18n="btn_save">Αποθήκευση</button>
                 </div>
             </div>
         </div>
@@ -1834,61 +1818,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.8.9T.231126"></script>
-        <script src="js/config.js?v=2.8.9T.231126"></script>
+        <script src="js/edition.js?v=2.8.10T.231126"></script>
+        <script src="js/config.js?v=2.8.10T.231126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.8.9T.231126"></script>
-        <script src="js/translations.js?v=2.8.9T.231126"></script>
-        <script src="js/storage.js?v=2.8.9T.231126"></script>
+        <script src="js/data.js?v=2.8.10T.231126"></script>
+        <script src="js/translations.js?v=2.8.10T.231126"></script>
+        <script src="js/storage.js?v=2.8.10T.231126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.8.9T.231126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.8.9T.231126"></script>
-        <script src="js/custom-kits.js?v=2.8.9T.231126"></script>
-        <script src="js/drum-machine.js?v=2.8.9T.231126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.8.9T.231126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.10T.231126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.10T.231126"></script>
+        <script src="js/custom-kits.js?v=2.8.10T.231126"></script>
+        <script src="js/drum-machine.js?v=2.8.10T.231126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.10T.231126"></script>
 
-        <script src="js/modules/ui-dialogs.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/utils.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/assets.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/played-set.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/player.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/editor.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/library.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/settings.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/ui-utils.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/rhythm.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/theory.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/visuals.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/band.js?v=2.8.9T.231126"></script>
-        <script src="js/modules/export.js?v=2.8.9T.231126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/utils.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/assets.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/played-set.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/player.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/editor.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/library.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/settings.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/theory.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/visuals.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/band.js?v=2.8.10T.231126"></script>
+        <script src="js/modules/export.js?v=2.8.10T.231126"></script>
 
-        <script src="js/auth.js?v=2.8.9T.231126"></script>
-        <script src="js/basicmetronome.js?v=2.8.9T.231126"></script>
-        <script src="js/permissions.js?v=2.8.9T.231126"></script>
-        <script src="libs/fflate.min.js?v=2.8.9T.231126-5435ab3"></script>
-        <script src="js/modules/package.js?v=2.8.9T.231126-5435ab3"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.8.9T.231126-5435ab3"></script>
-        <script src="js/solo/local-assets.js?v=2.8.9T.231126-5435ab3"></script>
-        <script src="js/solo/backup.js?v=2.8.9T.231126-5435ab3"></script>
-        <script src="js/solo/messages.js?v=2.8.9T.231126-5435ab3"></script>
-        <script src="js/solo/account.js?v=2.8.9T.231126-5435ab3"></script>
-        <script src="js/logic.js?v=2.8.9T.231126"></script>
-        <script src="js/floating-tools.js?v=2.8.9T.231126"></script>
-        <script src="js/tuner.js?v=2.8.9T.231126"></script>
-        <script src="js/ui.js?v=2.8.9T.231126"></script>
-        <script src="js/release-notes.js?v=2.8.9T.231126"></script>
-        <script src="js/chord-player.js?v=2.8.9T.231126"></script>
-        <script src="js/chords.js?v=2.8.9T.231126"></script>
+        <script src="js/auth.js?v=2.8.10T.231126"></script>
+        <script src="js/basicmetronome.js?v=2.8.10T.231126"></script>
+        <script src="js/permissions.js?v=2.8.10T.231126"></script>
+        <script src="libs/fflate.min.js?v=2.8.10T.231126-3edbf8a"></script>
+        <script src="js/modules/package.js?v=2.8.10T.231126-3edbf8a"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.10T.231126-3edbf8a"></script>
+        <script src="js/solo/local-assets.js?v=2.8.10T.231126-3edbf8a"></script>
+        <script src="js/solo/backup.js?v=2.8.10T.231126-3edbf8a"></script>
+        <script src="js/solo/messages.js?v=2.8.10T.231126-3edbf8a"></script>
+        <script src="js/solo/account.js?v=2.8.10T.231126-3edbf8a"></script>
+        <script src="js/logic.js?v=2.8.10T.231126"></script>
+        <script src="js/floating-tools.js?v=2.8.10T.231126"></script>
+        <script src="js/tuner.js?v=2.8.10T.231126"></script>
+        <script src="js/ui.js?v=2.8.10T.231126"></script>
+        <script src="js/release-notes.js?v=2.8.10T.231126"></script>
+        <script src="js/chord-player.js?v=2.8.10T.231126"></script>
+        <script src="js/chords.js?v=2.8.10T.231126"></script>
 
-        <script src="js/app.js?v=2.8.9T.231126"></script>
+        <script src="js/app.js?v=2.8.10T.231126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.8.9T.231126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.10T.231126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

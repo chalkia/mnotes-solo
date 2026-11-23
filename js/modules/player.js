@@ -212,12 +212,15 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             const isSplit = (window.songSplitOverride === 'force_split') || 
                             (window.songSplitOverride !== 'force_single' && (typeof userSettings !== 'undefined' ? !userSettings.disableSplit : true));
             const isOverridden = window.songSplitOverride !== null;
-            const splitIcon = isSplit ? 'fa-columns' : 'fa-align-justify';
+            const splitIconHtml = isSplit
+                ? '<svg class="split-horiz-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="6.5" rx="1.5" fill="currentColor" opacity="0.9"/><rect x="3" y="13" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="21" width="10" height="2" rx="1" fill="currentColor"/><path d="M18.5 13v7m0 0-2.5-2.5m2.5 2.5 2.5-2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
+                : '<i class="fas fa-align-justify" aria-hidden="true"></i>';
             const splitColor = isOverridden ? 'var(--accent)' : 'inherit';
             const splitBorder = isOverridden ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,0.15)';
-            const splitTitle = isSplit 
-                ? (typeof t === 'function' ? t('title_force_single', 'Αλλαγή σε Ενιαία Προβολή (Προσωρινά)') : 'Αλλαγή σε Ενιαία Προβολή (Προσωρινά)')
-                : (typeof t === 'function' ? t('title_force_split', 'Αλλαγή σε Στήλες (Προσωρινά)') : 'Αλλαγή σε Στήλες (Προσωρινά)');
+            const splitKey = isSplit ? 'title_split_active' : 'title_split_single';
+            const splitTitle = isSplit
+                ? (typeof t === 'function' ? t('title_split_active', 'Σταθερές συγχορδίες πάνω, κυλιόμενοι στίχοι') : 'Σταθερές συγχορδίες πάνω, κυλιόμενοι στίχοι')
+                : (typeof t === 'function' ? t('title_split_single', 'Ενιαία κύλιση όλου του τραγουδιού') : 'Ενιαία κύλιση όλου του τραγουδιού');
 
             const isPlayed = (window.PlayedSet && window.PlayedSet.has(s.id));
 
@@ -232,7 +235,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                         <div class="stage-nav-buttons" style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; z-index: 10;">
                             <span id="stagePendingBadge" class="stage-pending-badge" title="Αλλαγές που δεν έχουν σταλεί" style="display:none;"></span>
                             <span id="stagePlayedBadge" style="display:none;"></span>
-                            <button id="btnToggleSplit" onclick="toggleSongSplit()" class="round-btn" title="${splitTitle}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas ${splitIcon}"></i></button>
+                            <button id="btnToggleSplit" onclick="toggleSongSplit()" class="round-btn" data-i18n-title="${splitKey}" title="${splitTitle}" aria-label="${splitTitle}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">${splitIconHtml}</button>
                             <button id="btnEditSong" onclick="switchToEditor()" class="round-btn btn-edit-stage" title="${t('btn_edit', 'Επεξεργασία')}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-pen"></i></button>
                             <button onclick="navSetlist(-1)" class="round-btn" title="Προηγούμενο" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-backward"></i></button>
                             <button onclick="navSetlist(1)" class="round-btn" title="Επόμενο" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-forward"></i></button>
