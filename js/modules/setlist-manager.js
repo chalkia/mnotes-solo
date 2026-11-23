@@ -20,6 +20,14 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         return currentGroupId === 'personal' ? 'mnotes_active_personal_setlist' : `mnotes_active_band_setlist_${currentGroupId}`;
     };
 
+    logic.getActiveName = function() {
+        const key = logic.getActiveNameKey();
+        const raw = key ? localStorage.getItem(key) : null;
+        if (typeof raw !== 'string' || !raw.trim() || raw === 'null' || raw === 'undefined') return null;
+        if (typeof allSetlists !== 'object' || allSetlists === null || !Object.prototype.hasOwnProperty.call(allSetlists, raw)) return null;
+        return raw;
+    };
+
     logic.init = async function() {
         console.log(`[SETLISTS] Αρχικοποίηση λιστών για context: ${currentGroupId}`);
         const storageKey = logic.getStorageKey();
@@ -91,9 +99,10 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         var currentSetlistName = localStorage.getItem(activeNameKey);
         
         // Αν δεν υπάρχει αποθηκευμένη ή αν είναι ο Κάδος, προσπάθησε να βρεις μια άλλη
-        if (!currentSetlistName || !allSetlists[currentSetlistName] || currentSetlistName === "🗑️ Κάδος") {
+        if (!currentSetlistName || !Object.prototype.hasOwnProperty.call(allSetlists, currentSetlistName) || currentSetlistName === "🗑️ Κάδος") {
             const keys = Object.keys(allSetlists);
             currentSetlistName = keys.find(k => k !== "🗑️ Κάδος") || keys[0];
+            if (currentSetlistName) safeSetLocal(activeNameKey, currentSetlistName);
         }
         
         let rawSongs = allSetlists[currentSetlistName].songs || [];
@@ -109,8 +118,8 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
 
     logic.save = async function(activeName) {
         const activeNameKey = logic.getActiveNameKey();
-        var name = activeName || localStorage.getItem(activeNameKey);
-        if(allSetlists[name]) allSetlists[name].songs = liveSetlist;
+        var name = activeName || logic.getActiveName();
+        if (name && Object.prototype.hasOwnProperty.call(allSetlists, name)) allSetlists[name].songs = liveSetlist;
         
         safeSetLocal(logic.getStorageKey(), JSON.stringify(allSetlists));
         if (activeName) safeSetLocal(activeNameKey, activeName);
@@ -169,7 +178,11 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
     };
 
     logic.rename = async function() {
-        var currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
+        var currentSetlistName = logic.getActiveName();
+        if (!currentSetlistName || currentSetlistName === "🗑️ Κάδος") {
+            if (typeof showToast === 'function') showToast(t('msg_no_setlist_selected', 'Δεν υπάρχει ενεργή λίστα.'), 'error');
+            return;
+        }
         const rawNewName = window.mDialog
             ? await window.mDialog.prompt({
                 title: t('btn_rename_title', 'Μετονομασία Λίστας'),
@@ -190,22 +203,31 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
     };
 
     logic.delete = async function() {
-        var currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
+        var currentSetlistName = logic.getActiveName();
+        if (!currentSetlistName) {
+            if (typeof showToast === 'function') showToast(t('msg_no_setlist_selected', 'Δεν υπάρχει ενεργή λίστα για διαγραφή.'), 'error');
+            return;
+        }
+        if (currentSetlistName === "🗑️ Κάδος") {
+            if (typeof showToast === 'function') showToast(t('msg_pick_valid_list', 'Επιλέξτε μια έγκυρη λίστα.'), 'warning');
+            return;
+        }
         if (Object.keys(allSetlists).length <= 1) { 
             showToast(t('msg_err_delete_last_list')); 
             return; 
         }
         const msg = t('msg_confirm_delete_list').replace('{name}', currentSetlistName);
-        const confirmed = window.mDialog
+        const confirmed = window.mDialog && typeof window.mDialog.dangerConfirm === 'function'
             ? await window.mDialog.dangerConfirm({
                 title: t('btn_delete_title', 'Διαγραφή Λίστας'),
                 message: msg,
                 dangerText: t('btn_delete', 'Διαγραφή')
             })
-            : confirm(msg);
+            : (typeof mConfirm === 'function' ? await mConfirm(msg, true) : false);
         if (confirmed) {
             delete allSetlists[currentSetlistName]; 
-            const fallbackName = Object.keys(allSetlists)[0];
+            const keys = Object.keys(allSetlists);
+            const fallbackName = keys.find(k => k !== "🗑️ Κάδος") || keys[0];
             ui.switch(fallbackName); 
             logic.save(fallbackName); 
             ui.updateDropdown();
@@ -270,7 +292,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             return;
         }
         
-        var currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
+        var currentSetlistName = logic.getActiveName();
         if (!currentSetlistName || currentSetlistName === "🗑️ Κάδος") {
             showToast(t('msg_pick_valid_list', 'Επιλέξτε μια έγκυρη λίστα.'), 'warning');
             return;
@@ -337,7 +359,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         if(!sel) return; 
         sel.innerHTML = "";
         
-        var currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
+        var currentSetlistName = logic.getActiveName();
         Object.keys(allSetlists).forEach(name => {
             const opt = document.createElement('option'); opt.value = name;
             let icon = (currentGroupId !== 'personal') ? '👥' : '📝';
@@ -351,6 +373,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             if(name === currentSetlistName) opt.selected = true;
             sel.appendChild(opt);
         });
+        if (!currentSetlistName) sel.selectedIndex = -1;
         ui.updateButtons();
 
         const btnEmptyTrash = document.getElementById('btnEmptyTrash');
@@ -364,7 +387,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
     };
 
     ui.getMenuItems = function() {
-        const currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
+        const currentSetlistName = logic.getActiveName();
         const isTrash = (currentSetlistName === "🗑️ Κάδος");
         const isBand = (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal');
         const isSolo = (typeof window.currentEdition === 'function'
@@ -541,6 +564,8 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             return item;
         }).filter(Boolean);
         safeSetLocal(logic.getActiveNameKey(), name);
+        const sel = document.getElementById('selSetlistName');
+        if (sel && sel.value !== name) sel.value = name;
         if (typeof renderSidebar === 'function') renderSidebar(); 
         ui.updateButtons();
     };
@@ -573,6 +598,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
 
     // --- Aliases for backward compatibility ---
     window.initSetlists = logic.init;
+    window.getActiveSetlistName = logic.getActiveName;
     window.updateSetlistDropdown = ui.updateDropdown;
     window.updateSetlistButtons = ui.updateButtons;
     window.switchSetlist = ui.switch;
@@ -594,8 +620,8 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             return;
         }
 
-        const currentSetlistName = localStorage.getItem(logic.getActiveNameKey());
-        if (!currentSetlistName || currentSetlistName === 'Default' || !allSetlists[currentSetlistName]) {
+        const currentSetlistName = logic.getActiveName();
+        if (!currentSetlistName || currentSetlistName === 'Default' || currentSetlistName === '🗑️ Κάδος' || !allSetlists[currentSetlistName]) {
             showToast(t('msg_no_setlist_selected', "Δεν υπάρχει ενεργό Setlist για μεταφορά."), "error");
             return;
         }

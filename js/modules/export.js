@@ -43,12 +43,14 @@ window.mNotes.ui.export = window.mNotes.ui.export || {};
         if (showCoverPage) {
             var activeListName = "";
             if (typeof viewMode !== 'undefined' && viewMode === 'setlist') {
-                if (window.mNotes && window.mNotes.logic && window.mNotes.logic.setlists && typeof window.mNotes.logic.setlists.getActiveNameKey === 'function') {
-                    activeListName = localStorage.getItem(window.mNotes.logic.setlists.getActiveNameKey());
+                if (window.mNotes && window.mNotes.logic && window.mNotes.logic.setlists && typeof window.mNotes.logic.setlists.getActiveName === 'function') {
+                    activeListName = window.mNotes.logic.setlists.getActiveName() || "";
+                } else if (window.mNotes && window.mNotes.logic && window.mNotes.logic.setlists && typeof window.mNotes.logic.setlists.getActiveNameKey === 'function') {
+                    activeListName = localStorage.getItem(window.mNotes.logic.setlists.getActiveNameKey()) || "";
                 } else {
                     var groupId = (typeof currentGroupId !== 'undefined') ? currentGroupId : 'personal';
                     var activeKey = groupId === 'personal' ? 'mnotes_active_personal_setlist' : `mnotes_active_band_setlist_${groupId}`;
-                    activeListName = localStorage.getItem(activeKey);
+                    activeListName = localStorage.getItem(activeKey) || "";
                 }
             }
 

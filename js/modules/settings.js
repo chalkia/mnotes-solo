@@ -336,9 +336,21 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
                 if (TRANSLATIONS[otherLang] && TRANSLATIONS[otherLang][key]) transText = TRANSLATIONS[otherLang][key];
             }
             if (transText) el.title = transText;
-        });    
+        });
+        document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+            var key = el.getAttribute('data-i18n-aria');
+            let transText = null;
+            if (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) transText = TRANSLATIONS[currentLang][key];
+            else {
+                let otherLang = currentLang === 'en' ? 'el' : 'en';
+                if (TRANSLATIONS[otherLang] && TRANSLATIONS[otherLang][key]) transText = TRANSLATIONS[otherLang][key];
+            }
+            if (transText) el.setAttribute('aria-label', transText);
+        });
         var btn = document.getElementById('btnLang'); 
         if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL'; 
+        if (window.mNotes?.ui?.player?.syncSplitButtons) window.mNotes.ui.player.syncSplitButtons();
+        if (window.mNotes?.ui?.player?.syncViewModeButtons) window.mNotes.ui.player.syncViewModeButtons();
     };
 
     settingsMod.applyMobileForce = function() {

@@ -21,8 +21,11 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
 
         const trashList = (typeof allSetlists !== 'undefined' && allSetlists["🗑️ Κάδος"]) ? allSetlists["🗑️ Κάδος"].songs || [] : [];
         // ✅ Fix: χρησιμοποιούμε το σωστό module API αντί για ανύπαρκτο global
-        const _activeNameKey = (window.mNotes?.logic?.setlists?.getActiveNameKey) ? window.mNotes.logic.setlists.getActiveNameKey() : null;
-        const currentSetlistName = _activeNameKey ? localStorage.getItem(_activeNameKey) : null;
+        const _setlistsLogic = window.mNotes?.logic?.setlists;
+        const _activeNameKey = (_setlistsLogic?.getActiveNameKey) ? _setlistsLogic.getActiveNameKey() : null;
+        const currentSetlistName = (_setlistsLogic?.getActiveName)
+            ? _setlistsLogic.getActiveName()
+            : (_activeNameKey ? localStorage.getItem(_activeNameKey) : null);
         const isViewingTrash = (viewMode === 'setlist' && currentSetlistName === "🗑️ Κάδος");
         const activeSetlistObj = (currentSetlistName && allSetlists[currentSetlistName]) ? allSetlists[currentSetlistName] : null;
 

@@ -68,11 +68,11 @@ window.mNotes.theory = window.mNotes.theory || {};
 
         const tTxt = (state.t > 0 ? "+" : "") + state.t;
         
-        if (dValT) dValT.innerText = tTxt;
-        if (mValT) mValT.innerText = tTxt;
+        if (dValT) { dValT.innerText = tTxt; dValT.classList.toggle('is-modified', !!state.t); }
+        if (mValT) { mValT.innerText = tTxt; mValT.classList.toggle('is-modified', !!state.t); }
         
-        if (dValC) dValC.innerText = state.c;
-        if (mValC) mValC.innerText = state.c;
+        if (dValC) { dValC.innerText = state.c; dValC.classList.toggle('is-modified', !!state.c); }
+        if (mValC) { mValC.innerText = state.c; mValC.classList.toggle('is-modified', !!state.c); }
     };
 
     theory.autoCapo = function() {

@@ -28,6 +28,99 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     let ytPlayerInstance = null;
     let allowedYtPlay = false;
 
+    // Key badge (+1 tap / -1 long-press or right-click) transient indicator state
+    let keyBadgeArrow = null;
+    let keyBadgeFadeTimer = null;
+    let keyBadgeClearTimer = null;
+
+    player.getKeyBadgeArrowHtml = function() {
+        if (!keyBadgeArrow || Date.now() >= keyBadgeArrow.expiresAt) return '';
+        const up = keyBadgeArrow.dir > 0;
+        return `<span class="key-badge-dir ${up ? 'is-up' : 'is-down'}" aria-hidden="true">${up ? '▲' : '▼'}</span>`;
+    };
+
+    player.triggerKeyBadge = function(dir) {
+        const up = dir > 0;
+        clearTimeout(keyBadgeFadeTimer);
+        clearTimeout(keyBadgeClearTimer);
+        keyBadgeArrow = { dir: up ? 1 : -1, expiresAt: Date.now() + 700 };
+
+        if (!up && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+            navigator.vibrate(20);
+        }
+        if (up && typeof transUp === 'function') transUp();
+        else if (!up && typeof transDown === 'function') transDown();
+
+        keyBadgeFadeTimer = setTimeout(() => {
+            document.querySelectorAll('.player-header .key-badge .key-badge-dir').forEach(el => {
+                el.classList.add('fading');
+            });
+        }, 380);
+        keyBadgeClearTimer = setTimeout(() => {
+            keyBadgeArrow = null;
+            document.querySelectorAll('.player-header .key-badge .key-badge-dir').forEach(el => el.remove());
+        }, 700);
+    };
+
+    const SPLIT_HORIZ_SVG = '<svg class="split-horiz-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="6.5" rx="1.5" fill="currentColor" opacity="0.9"/><rect x="3" y="13" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="21" width="10" height="2" rx="1" fill="currentColor"/><path d="M18.5 13v7m0 0-2.5-2.5m2.5 2.5 2.5-2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+
+    player.getSplitState = function() {
+        const isSplit = (window.songSplitOverride === 'force_split') ||
+                        (window.songSplitOverride !== 'force_single' && (typeof userSettings !== 'undefined' ? !userSettings.disableSplit : true));
+        const isOverridden = window.songSplitOverride !== null && window.songSplitOverride !== undefined;
+        const iconHtml = isSplit ? SPLIT_HORIZ_SVG : '<i class="fas fa-align-justify" aria-hidden="true"></i>';
+        const titleKey = isSplit ? 'title_split_active' : 'title_split_single';
+        const fallbackTitle = isSplit
+            ? 'Σταθερές συγχορδίες πάνω, κυλιόμενοι στίχοι'
+            : 'Ενιαία κύλιση όλου του τραγουδιού';
+        const title = (typeof t === 'function') ? t(titleKey, fallbackTitle) : fallbackTitle;
+        return { isSplit, isOverridden, iconHtml, titleKey, title };
+    };
+
+    player.syncSplitButtons = function() {
+        const info = player.getSplitState();
+        ['btnToggleSplit', 'btnToggleSplitDesktop'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.innerHTML = info.iconHtml;
+            btn.setAttribute('data-i18n-title', info.titleKey);
+            btn.setAttribute('title', info.title);
+            btn.setAttribute('aria-label', info.title);
+            btn.setAttribute('aria-pressed', info.isSplit ? 'true' : 'false');
+            btn.classList.toggle('active-btn', !!info.isSplit);
+            btn.classList.toggle('split-overridden', !!info.isOverridden);
+        });
+    };
+
+    player.syncViewModeButtons = function() {
+        const mode = window.stageViewMode || 'full';
+        const labelKey = mode === 'lyrics' ? 'mode_lyrics_only' : (mode === 'cues' ? 'mode_cues_only' : 'btn_lyrics_mode');
+        const labelFallback = mode === 'lyrics' ? 'Μόνο στίχοι' : (mode === 'cues' ? 'Λέξεις-οδηγοί' : 'Λειτουργία Στίχων');
+        const labelTxt = (typeof t === 'function') ? t(labelKey, labelFallback) : labelFallback;
+        const isActive = mode !== 'full';
+
+        const btnLyrics = document.getElementById('btnLyrics');
+        if (btnLyrics) {
+            btnLyrics.classList.toggle('active-btn', isActive);
+            btnLyrics.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            btnLyrics.setAttribute('data-i18n-title', labelKey);
+            btnLyrics.setAttribute('title', labelTxt);
+            btnLyrics.setAttribute('aria-label', labelTxt);
+        }
+
+        const drawerBtn = document.getElementById('viewModeToggle');
+        if (drawerBtn) {
+            drawerBtn.classList.toggle('active-btn', isActive);
+            drawerBtn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            drawerBtn.dataset.viewMode = mode;
+            const span = drawerBtn.querySelector('span');
+            if (span) {
+                span.setAttribute('data-i18n', labelKey);
+                span.textContent = labelTxt;
+            }
+        }
+    };
+
     // --- Core Rendering ---
 
     player.renderEmptyState = function() {
@@ -209,18 +302,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         const headerContainer = document.querySelector('.player-header-container');
         if (headerContainer) {
             // 🚀 [V2.1.8] Prepare split button variables
-            const isSplit = (window.songSplitOverride === 'force_split') || 
-                            (window.songSplitOverride !== 'force_single' && (typeof userSettings !== 'undefined' ? !userSettings.disableSplit : true));
-            const isOverridden = window.songSplitOverride !== null;
-            const splitIconHtml = isSplit
-                ? '<svg class="split-horiz-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="6.5" rx="1.5" fill="currentColor" opacity="0.9"/><rect x="3" y="13" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="21" width="10" height="2" rx="1" fill="currentColor"/><path d="M18.5 13v7m0 0-2.5-2.5m2.5 2.5 2.5-2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-                : '<i class="fas fa-align-justify" aria-hidden="true"></i>';
-            const splitColor = isOverridden ? 'var(--accent)' : 'inherit';
-            const splitBorder = isOverridden ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,0.15)';
-            const splitKey = isSplit ? 'title_split_active' : 'title_split_single';
-            const splitTitle = isSplit
-                ? (typeof t === 'function' ? t('title_split_active', 'Σταθερές συγχορδίες πάνω, κυλιόμενοι στίχοι') : 'Σταθερές συγχορδίες πάνω, κυλιόμενοι στίχοι')
-                : (typeof t === 'function' ? t('title_split_single', 'Ενιαία κύλιση όλου του τραγουδιού') : 'Ενιαία κύλιση όλου του τραγουδιού');
+            const splitInfo = player.getSplitState();
 
             const isPlayed = (window.PlayedSet && window.PlayedSet.has(s.id));
 
@@ -235,7 +317,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                         <div class="stage-nav-buttons" style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; z-index: 10;">
                             <span id="stagePendingBadge" class="stage-pending-badge" title="Αλλαγές που δεν έχουν σταλεί" style="display:none;"></span>
                             <span id="stagePlayedBadge" style="display:none;"></span>
-                            <button id="btnToggleSplit" onclick="toggleSongSplit()" class="round-btn" data-i18n-title="${splitKey}" title="${splitTitle}" aria-label="${splitTitle}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">${splitIconHtml}</button>
+                            <button id="btnToggleSplit" onclick="toggleSongSplit()" class="round-btn ${splitInfo.isSplit ? 'active-btn' : ''}${splitInfo.isOverridden ? ' split-overridden' : ''}" data-i18n-title="${splitInfo.titleKey}" title="${splitInfo.title}" aria-label="${splitInfo.title}" aria-pressed="${splitInfo.isSplit ? 'true' : 'false'}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">${splitInfo.iconHtml}</button>
                             <button id="btnEditSong" onclick="switchToEditor()" class="round-btn btn-edit-stage" title="${t('btn_edit', 'Επεξεργασία')}" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-pen"></i></button>
                             <button onclick="navSetlist(-1)" class="round-btn" title="Προηγούμενο" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-backward"></i></button>
                             <button onclick="navSetlist(1)" class="round-btn" title="Επόμενο" style="width: 44px; height: 44px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-forward"></i></button>
@@ -244,7 +326,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                      ${tagsHtml}
                      <div class="stage-header-meta-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                          <div class="stage-key-cluster" style="display:flex; align-items:center; gap: 8px; flex-wrap:wrap;">
-                            <button class="key-badge" onclick="transUp()" title="${t('title_change_key')}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}</button>
+                            <button type="button" class="key-badge" data-i18n-title="title_change_key" data-i18n-aria="title_change_key" title="${t('title_change_key', 'Πάτημα: +1 ημιτόνιο · Παρατεταμένο / δεξί κλικ: −1')}" aria-label="${t('title_change_key', 'Πάτημα: +1 ημιτόνιο · Παρατεταμένο / δεξί κλικ: −1')}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}${player.getKeyBadgeArrowHtml()}</button>
                              <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
                              <button id="btnToggleView" onclick="toggleViewMode()"></button>
                              ${bandBadgeHtml}
@@ -312,10 +394,16 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         if(typeof renderAttachmentsList === 'function') renderAttachmentsList(s.attachments || []);
         if(typeof renderRhythmsList === 'function') renderRhythmsList(s.rhythms || []);
        
-        const dValT = document.getElementById('val-t'); const dValC = document.getElementById('val-c');
-        if(dValT) dValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(dValC) dValC.innerText = state.c;
-        const mValT = document.getElementById('drawer-val-t'); const mValC = document.getElementById('drawer-val-c');
-        if(mValT) mValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(mValC) mValC.innerText = state.c;
+        if (typeof updateTransDisplay === 'function') {
+            updateTransDisplay();
+        } else {
+            const dValT = document.getElementById('val-t'); const dValC = document.getElementById('val-c');
+            if(dValT) dValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(dValC) dValC.innerText = state.c;
+            const mValT = document.getElementById('drawer-val-t'); const mValC = document.getElementById('drawer-val-c');
+            if(mValT) mValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(mValC) mValC.innerText = state.c;
+        }
+        player.syncSplitButtons();
+        player.syncViewModeButtons();
 
         var split = { fixed: "", scroll: s.body || "" }; 
         if (!isLyricsMode && typeof splitSongBody === 'function') {
@@ -874,14 +962,10 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 
         if (typeof showToast === 'function') {
             if (nextMode === 'lyrics') showToast(t('msg_lyrics_on', 'Μόνο στίχοι'));
-            else if (nextMode === 'cues') showToast('Λέξεις-οδηγοί');
+            else if (nextMode === 'cues') showToast(t('mode_cues_only', 'Λέξεις-οδηγοί'));
             else showToast(t('msg_lyrics_off', 'Πλήρες'));
         }
-        ['btnLyrics', 'viewModeToggle'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (!btn) return;
-            btn.classList.toggle('active-btn', nextMode !== 'full');
-        });
+        player.syncViewModeButtons();
         if (currentSongId && typeof library !== 'undefined') {
             const s = library.find(x => x.id === currentSongId);
             if (s) player.render(s);
@@ -891,8 +975,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 
     // 🚀 [V2.1.8] Ephemeral per-song split override toggle
     player.toggleSongSplit = function() {
-        const isSplit = (window.songSplitOverride === 'force_split') || 
-                        (window.songSplitOverride !== 'force_single' && (typeof userSettings !== 'undefined' ? !userSettings.disableSplit : true));
+        const isSplit = player.getSplitState().isSplit;
         
         if (isSplit) {
             window.songSplitOverride = 'force_single';
@@ -902,6 +985,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             showToast(typeof t === 'function' ? t('msg_view_split', "Προβολή στηλών (Προσωρινά) 🗂️") : "Προβολή στηλών (Προσωρινά) 🗂️");
         }
         
+        player.syncSplitButtons();
         if (currentSongId) {
             const s = library.find(x => x.id === currentSongId);
             if (s) player.render(s);
@@ -1058,6 +1142,107 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     // Το μενού αντιγραφής του κινητού διακόπτει το κράτημα στον τίτλο.
     document.addEventListener('contextmenu', function (e) {
         if (e.target.closest(TITLE_SELECTOR)) e.preventDefault();
+    });
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   Σήμα κλίμακας (.player-header .key-badge):
+   Απλό πάτημα/κλικ (+1) · Παρατεταμένο πάτημα ~500ms ή δεξί κλικ (-1).
+   Κάθε πάτημα ανεξάρτητο (χωρίς κατάσταση κατεύθυνσης).
+   ───────────────────────────────────────────────────────────── */
+(function () {
+    const BADGE_SELECTOR = '.player-header .key-badge';
+    const HOLD_MS = 500;
+    const MOVE_TOLERANCE_PX = 10;
+
+    let timer = null;
+    let suppressNextClick = false;
+    let suppressResetTimer = null;
+    let startX = 0;
+    let startY = 0;
+
+    function cancelHold() {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    }
+
+    function clearSuppressSoon() {
+        clearTimeout(suppressResetTimer);
+        suppressResetTimer = setTimeout(function () {
+            suppressNextClick = false;
+        }, 80);
+    }
+
+    document.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const badge = e.target.closest(BADGE_SELECTOR);
+        if (!badge) return;
+
+        // Νέο πάτημα -> ακυρώνει τυχόν υπόλοιπο suppression από προηγούμενη χειρονομία
+        clearTimeout(suppressResetTimer);
+        suppressNextClick = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        cancelHold();
+
+        timer = setTimeout(function () {
+            timer = null;
+            suppressNextClick = true;
+            if (window.mNotes && window.mNotes.ui && window.mNotes.ui.player && typeof window.mNotes.ui.player.triggerKeyBadge === 'function') {
+                window.mNotes.ui.player.triggerKeyBadge(-1);
+            } else if (typeof transDown === 'function') {
+                transDown();
+            }
+        }, HOLD_MS);
+    });
+
+    document.addEventListener('pointermove', function (e) {
+        if (!timer) return;
+        if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOLERANCE_PX) {
+            cancelHold();
+        }
+    });
+
+    document.addEventListener('pointerup', function () {
+        cancelHold();
+        if (suppressNextClick) clearSuppressSoon();
+    });
+
+    document.addEventListener('pointercancel', function () {
+        cancelHold();
+        if (suppressNextClick) clearSuppressSoon();
+    });
+
+    document.addEventListener('click', function (e) {
+        const badge = e.target.closest(BADGE_SELECTOR);
+        if (!badge) return;
+        if (suppressNextClick) {
+            e.preventDefault();
+            e.stopPropagation();
+            clearTimeout(suppressResetTimer);
+            suppressNextClick = false;
+            return;
+        }
+        if (window.mNotes && window.mNotes.ui && window.mNotes.ui.player && typeof window.mNotes.ui.player.triggerKeyBadge === 'function') {
+            window.mNotes.ui.player.triggerKeyBadge(1);
+        } else if (typeof transUp === 'function') {
+            transUp();
+        }
+    });
+
+    document.addEventListener('contextmenu', function (e) {
+        const badge = e.target.closest(BADGE_SELECTOR);
+        if (!badge) return;
+        e.preventDefault();
+        cancelHold();
+        suppressNextClick = false;
+        if (window.mNotes && window.mNotes.ui && window.mNotes.ui.player && typeof window.mNotes.ui.player.triggerKeyBadge === 'function') {
+            window.mNotes.ui.player.triggerKeyBadge(-1);
+        } else if (typeof transDown === 'function') {
+            transDown();
+        }
     });
 })();
 

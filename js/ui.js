@@ -256,12 +256,14 @@ function showTransferModal() {
 }
 
 function showTransferSetlistModal() {
-    const selSetlistName = document.getElementById('selSetlistName');
-    if (!selSetlistName || !selSetlistName.value || selSetlistName.value === 'Default') {
+    const activeName = (typeof getActiveSetlistName === 'function')
+        ? getActiveSetlistName()
+        : document.getElementById('selSetlistName')?.value;
+    if (!activeName || activeName === 'Default' || activeName === '🗑️ Κάδος') {
         showToast((typeof t === 'function') ? t('msg_no_setlist_selected', "Δεν έχετε επιλέξει κάποιο ενεργό Setlist.") : "Δεν έχετε επιλέξει κάποιο ενεργό Setlist.", "warning");
         return;
     }
-    const setlistName = selSetlistName.value;
+    const setlistName = activeName;
 
     let destinations = [];
     
