@@ -484,6 +484,7 @@
         _popHandler: null,
 
         // ✨ Λεξικό Ορίων & Στόχων Συχνοτήτων ανά Όργανο (Μαγνητικό Κλείδωμα)
+        INSTRUMENT_STORAGE_KEY: 'mnotes_tuner_instrument',
         currentInstrument: 'chromatic',
         RANGES: {
             'chromatic': { min: 30, max: 4000 },
@@ -599,6 +600,9 @@
             if (closeBtn) {
                 closeBtn.setAttribute('aria-label', tr('tuner_big_close', ''));
             }
+            if (this.elInstrument && this.RANGES[this.currentInstrument]) {
+                this.elInstrument.value = this.currentInstrument;
+            }
             if (this.elBigInst && this.elInstrument) {
                 const opt = this.elInstrument.options[this.elInstrument.selectedIndex];
                 if (opt) this.elBigInst.innerText = opt.innerText;
@@ -640,6 +644,14 @@
                 });
                 obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
             }
+
+            const drawerTuner = document.getElementById('drawerTunerChords');
+            if (drawerTuner && !drawerTuner.__tunerPersistBound) {
+                drawerTuner.__tunerPersistBound = true;
+                drawerTuner.addEventListener('toggle', () => {
+                    this.restoreInstrument();
+                });
+            }
         },
 
         scrollTunerIntoView: function() {
@@ -664,12 +676,17 @@
             if (!this.elNote) this.initUI();
             if (!this.elBigOverlay) return;
 
+            this.restoreInstrument();
             this.isBigViewOpen = true;
             this.elBigOverlay.style.display = 'flex';
+            if (this.elInstrument && this.RANGES[this.currentInstrument]) {
+                this.elInstrument.value = this.currentInstrument;
+            }
             if (this.elBigInst && this.elInstrument) {
                 const opt = this.elInstrument.options[this.elInstrument.selectedIndex];
                 if (opt) this.elBigInst.innerText = opt.innerText;
             }
+            this.renderStringsRow(this.displayedMidi, null);
             this.refreshTranslations();
 
             if (!this._escHandler) {
@@ -761,8 +778,36 @@
                 this.elDebug = dbg;
             }
             this.installHooks();
+            this.restoreInstrument();
             this.setZoneClasses('idle');
             this.renderStringsRow(null, null);
+        },
+
+        getSavedInstrument: function() {
+            try {
+                if (typeof localStorage === 'undefined') return 'chromatic';
+                const saved = localStorage.getItem(this.INSTRUMENT_STORAGE_KEY);
+                if (saved && Object.prototype.hasOwnProperty.call(this.RANGES, saved)) {
+                    return saved;
+                }
+            } catch (_) {}
+            return 'chromatic';
+        },
+
+        restoreInstrument: function() {
+            const target = this.getSavedInstrument();
+            const needsSync = (this.currentInstrument !== target) ||
+                (this.elInstrument && this.elInstrument.value !== target);
+            if (needsSync) {
+                this.setInstrument(target, { skipSave: true });
+            } else {
+                this.renderStringsRow(this.isRunning ? this.displayedMidi : null, null);
+                if (this.elBigInst && this.elInstrument) {
+                    const opt = this.elInstrument.options[this.elInstrument.selectedIndex];
+                    if (opt) this.elBigInst.innerText = opt.innerText;
+                }
+            }
+            return target;
         },
 
         setZoneClasses: function(zone) {
@@ -775,24 +820,35 @@
             }
         },
 
-        setInstrument: function(inst) {
-            if (this.RANGES[inst]) {
-                this.currentInstrument = inst;
+        setInstrument: function(inst, options) {
+            const safeInst = (inst && Object.prototype.hasOwnProperty.call(this.RANGES, inst)) ? inst : 'chromatic';
+            if (this.RANGES[safeInst]) {
+                this.currentInstrument = safeInst;
                 this.resetTrackingState();
                 if (!this.elNote) this.initUI();
+                if (this.elInstrument && this.elInstrument.value !== safeInst) {
+                    this.elInstrument.value = safeInst;
+                }
+                if (!(options && options.skipSave)) {
+                    try {
+                        if (typeof localStorage !== 'undefined') {
+                            localStorage.setItem(this.INSTRUMENT_STORAGE_KEY, safeInst);
+                        }
+                    } catch (_) {}
+                }
                 this.renderStringsRow(null, null);
                 if (this.elBigInst && this.elInstrument) {
                     const opt = this.elInstrument.options[this.elInstrument.selectedIndex];
                     if (opt) this.elBigInst.innerText = opt.innerText;
                 }
                 if (this.analyser && this.audioCtx) {
-                    const nextSize = this.getFftSize(inst, this.audioCtx.sampleRate);
+                    const nextSize = this.getFftSize(safeInst, this.audioCtx.sampleRate);
                     if (this.analyser.fftSize !== nextSize) {
                         this.analyser.fftSize = nextSize;
                         this.timeBuffer = new Float32Array(nextSize);
                     }
                 }
-                console.log(`[Tuner] Όργανο: ${inst} | Όρια: ${this.RANGES[inst].min}Hz - ${this.RANGES[inst].max}Hz`);
+                console.log(`[Tuner] Όργανο: ${safeInst} | Όρια: ${this.RANGES[safeInst].min}Hz - ${this.RANGES[safeInst].max}Hz`);
             }
         },
 

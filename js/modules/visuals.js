@@ -47,8 +47,21 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
         window.isVisualLayerOpen = true;
     };
 
+    visualsMod.activeDocUrl = null;
+    visualsMod.setActiveDocUrl = function(url) {
+        visualsMod.activeDocUrl = url || null;
+        if (typeof window !== 'undefined') window.activeVisualDocUrl = visualsMod.activeDocUrl;
+        const listEl = document.getElementById('list-visuals');
+        if (!listEl) return;
+        listEl.querySelectorAll('.track-item').forEach(row => {
+            const match = !!visualsMod.activeDocUrl && row.getAttribute('data-url') === visualsMod.activeDocUrl;
+            row.classList.toggle('is-viewing', match);
+        });
+    };
+
     visualsMod.closeLayer = function() {
-        zoomStep = 0;   // επόμενη εικόνα ξεκινά πάντα στο 100%
+        zoomStep = 0;   // επόμενη εικόνα ξεκάζει πάντα στο 100%
+        visualsMod.setActiveDocUrl(null);
         const layer = document.getElementById('stageVisualLayer');
         const viewPlayer = document.getElementById('view-player');
         if (layer) {
@@ -106,29 +119,28 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
         }, { passive: true });
     }
 
-    function renderImageInLayer(url, name) {
+    function renderImageInLayer(url, name, activeUrl) {
         zoomStep = 0;
         visualsMod.openLayer(`<img id="stageSheetImage" src="${url}" style="width:100%; max-width:100%; height:auto; display:block; border-radius:4px; box-shadow:0 0 30px rgba(0,0,0,0.5);" alt="${name}">`);
+        visualsMod.setActiveDocUrl(activeUrl || url);
     }
 
     visualsMod.showImage = function(url, name) {
         if (typeof window.resolveAttachmentUrl === 'function') {
             Promise.resolve(window.resolveAttachmentUrl(url, name)).then(resolved => {
                 if (!resolved) return;
-                renderImageInLayer(resolved.url, name);
+                renderImageInLayer(resolved.url, name, url);
                 setupStageImageZoom();
             });
             return;
         }
-        renderImageInLayer(url, name);
+        renderImageInLayer(url, name, url);
         setupStageImageZoom();
     };
 
     function setupStageImageZoom() {
-
         const img = document.getElementById('stageSheetImage');
         if (!img) return;
-        attachScorePinchZoom(img);
         attachScorePinchZoom(img);
 
         function cycleZoom() {
@@ -191,6 +203,7 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
         
         if (isABC) {
             visualsMod.openLayer(`<div id="stage-abc-paper" style="background:#fff; color:#000; padding:20px; border-radius:8px; width:95%; max-height:90%; overflow-y:auto;"></div>`);
+            visualsMod.setActiveDocUrl(url);
             
             fetch(url).then(r => r.text()).then(abcText => {
                 if (typeof ABCJS !== 'undefined') {
@@ -216,7 +229,7 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
     visualsMod.currentPdfObj = null;
     visualsMod.currentPdfPage = 1;
 
-    function renderPdfInLayer(url, name) {
+    function renderPdfInLayer(url, name, activeUrl) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdf.worker.min.js';
 
         zoomStep = 0;
@@ -228,6 +241,7 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
                 <div id="pdf-page-info" style="position:fixed; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:5px 15px; border-radius:15px; font-size:0.85rem; font-weight:bold; z-index:115; pointer-events:none;"></div>
             </div>
         `);
+        visualsMod.setActiveDocUrl(activeUrl || url);
 
         const pdfCanvas = document.getElementById('stage-pdf-canvas');
         if (pdfCanvas) {
@@ -287,11 +301,11 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
         if (typeof window.resolveAttachmentUrl === 'function') {
             Promise.resolve(window.resolveAttachmentUrl(url, name)).then(resolved => {
                 if (!resolved) return;
-                renderPdfInLayer(resolved.url, name);
+                renderPdfInLayer(resolved.url, name, url);
             });
             return;
         }
-        renderPdfInLayer(url, name);
+        renderPdfInLayer(url, name, url);
     };
 
     visualsMod.renderPdfPage = function() {

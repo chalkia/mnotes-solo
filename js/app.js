@@ -96,6 +96,9 @@ window.addEventListener('load', function() {
         window.mRhythm = new MNotesRhythmRuntime();
         window.mRhythm.onPlaybackStarted = () => { window.isRhythmPlaying = true; };
         window.mRhythm.onPlaybackStopped = () => { window.isRhythmPlaying = false; };
+        if (window.mNotes?.ui?.rhythm?.bindEngineHooks) {
+            window.mNotes.ui.rhythm.bindEngineHooks();
+        }
         console.log("πŸ¥  [RHYTHM] Engine initialized.");
     }
 

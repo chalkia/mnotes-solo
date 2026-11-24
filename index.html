@@ -576,86 +576,106 @@
                 <details class="tool-group" id="drawerVisuals">
                     <summary class="drawer-header">
                         <span><i class="fas fa-file-image" style="color:var(--accent);"></i> <span
-                                data-i18n="sum_visuals">IMAGES & SCORES</span></span>
+                                data-i18n="sum_visuals">IMAGES &amp; SCORES</span></span>
                         <span class="drawer-header-actions"><span class="drawer-count-badge" data-badge-for="drawerVisuals">0</span><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                     </summary>
-                    <div class="group-content drawer-content">
-                        <div id="list-visuals" class="file-list compact" style="margin-bottom: 10px;">
+                    <div class="group-content drawer-content vis-compact-content">
+                        <div id="list-visuals" class="file-list compact vis-file-list">
                             <div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-                            <button class="add-mini-btn" onclick="openAssetManager('visuals')"
-                                style="justify-content: center; padding: 8px;">
-                                <i class="fas fa-photo-video"></i> <span data-i18n="sum_visuals">Images & Scores</span>
-                            </button>
-                        </div>
+                        <button type="button" id="btnAddVisuals" class="add-wide-btn" onclick="openAssetManager('visuals')">
+                            <i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="btn_visuals_library">Scores &amp; Files</span>
+                        </button>
                     </div>
                 </details>
 
 
                 <details class="tool-group" id="drawerRhythms">
                     <summary class="drawer-header">
-                        <span><i class="fas fa-drum"></i> <span data-i18n="sum_rhythms">RHYTHMS &
-                                METRONOME</span></span>
+                        <span><i class="fas fa-drum"></i> <span data-i18n="sum_rhythms">RHYTHMS &amp; METRONOME</span></span>
                         <span class="drawer-header-actions"><span class="drawer-count-badge" data-badge-for="drawerRhythms">0</span><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                     </summary>
-                    <div class="group-content drawer-content">
-                        <div
-                            style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px; gap: 20px; padding-top: 5px;">
-                            <button id="btnPlayRhythm" onclick="toggleMasterRhythm()" class="action-btn-circle"
-                                style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
+                    <div class="group-content drawer-content rhythm-compact-content">
+                        <div class="rhythm-organ-plate" id="rhythmOrganPlate">
+                            <button type="button" id="btnPlayRhythm" class="rhythm-play-btn" onclick="toggleMasterRhythm()" aria-label="Play / Stop">
                                 <i class="fas fa-play" id="iconPlayRhythm"></i>
                             </button>
-                            <div class="bpm-display" style="text-align: center;">
-                                <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
-                                    <span style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">♩ =</span>
-                                    <input type="number" id="txtBpm" value="100" min="20" max="240"
-                                        style="background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-size: 1.8rem; font-weight: bold; width: 80px; text-align: center; border-radius: 6px; padding: 2px;"
-                                        oninput="changeRhythmBpm(this.value)" onchange="changeRhythmBpm(this.value)">
-                                    <span id="dispBpm" style="display:none;">100</span>
+                            <div class="rhythm-meter-dial">
+                                <div class="rhythm-dial-top">
+                                    <span class="rhythm-meter-badge" id="rhythmMeterBadge">4/4</span>
+                                    <span class="rhythm-beat-counter" id="rhythmBeatCounter">—/4</span>
                                 </div>
+                                <div class="rhythm-beat-strip" id="rhythmBeatStrip" aria-hidden="true"></div>
                             </div>
-                        </div>
-
-                        <div class="bpm-row"
-                            style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px;">
-
-                            <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <div
-                                    style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
-                                    <span><i class="fas fa-volume-up"></i> <span
-                                            data-i18n="lbl_volume"><span data-i18n="idx_auto_111">Ένταση</span></span></span>
-                                </div>
-                                <input type="range" id="rngVolume" min="0" max="100" value="80" class="compact-range"
-                                    style="width: 100%; accent-color: #4db6ac;"
-                                    oninput="changeRhythmVolume(this.value)">
-                            </div>
-                        </div>
-
-                        <div id="activeRhythmBox"
-                            style="position: relative; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 6px; padding: 10px; text-align: center; margin-bottom: 12px;">
-                            <button onclick="clearActiveRhythm()"
-                                style="position: absolute; top: 5px; right: 8px; background: transparent; border: none; color: #ff4757; font-size: 1.1rem; cursor: pointer; transition: 0.2s;"
-                                data-i18n-title="title_back_to_metronome">
-                                <i class="fas fa-times-circle"></i>
+                            <button type="button" id="btnToggleMetronome" class="rhythm-metro-btn" onclick="toggleRhythmMetronome()" aria-pressed="false" data-i18n-title="ttl_metronome" data-i18n-aria="ttl_metronome" title="Metronome" aria-label="Metronome">
+                                <svg class="metro-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polygon points="7 21 17 21 14 4 10 4 7 21"></polygon>
+                                    <line x1="12" y1="16" x2="17" y2="7"></line>
+                                    <circle cx="15.5" cy="9.5" r="1.4" fill="currentColor"></circle>
+                                </svg>
+                                <span class="metro-led" aria-hidden="true"></span>
                             </button>
-                            <span
-                                style="color: var(--text-muted); display: block; font-size: 0.75rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;"
-                                data-i18n="lbl_active_rhythm"><span data-i18n="idx_auto_109">Ενεργος Ρυθμος:</span></span>
-                            <span id="seq-current-name"
-                                style="font-weight: bold; color: var(--text-main); font-size: 0.95rem;"
-                                data-i18n="lbl_simple_metronome"><span data-i18n="idx_auto_108">Απλός Μετρονόμος
-                                (Tick)</span></span>
                         </div>
-                        <div id="list-rhythms" class="file-list compact" style="margin-bottom: 10px;">
+
+                        <div class="rhythm-tempo-row">
+                            <span class="rhythm-tempo-glyph" aria-hidden="true">♩ =</span>
+                            <input type="number" id="txtBpm" class="rhythm-bpm-input" value="100" min="20" max="240"
+                                aria-label="♩ =" oninput="changeRhythmBpm(this.value)" onchange="changeRhythmBpm(this.value)">
+                            <span id="dispBpm" style="display:none;">100</span>
+                            <input type="range" id="rngBpm" class="rhythm-tempo-slider" min="20" max="240" value="100"
+                                data-i18n-aria="aria_tempo_slider" aria-label="Tempo (slider)"
+                                oninput="changeRhythmBpm(this.value)" onchange="changeRhythmBpm(this.value)">
+                        </div>
+
+                        <div class="rhythm-vol-row">
+                            <i class="fas fa-volume-up rhythm-vol-ico" aria-hidden="true"></i>
+                            <input type="range" id="rngVolume" class="rhythm-vol-slider" min="0" max="100" value="80"
+                                data-i18n-aria="aria_volume_slider" aria-label="Rhythm volume"
+                                oninput="changeRhythmVolume(this.value)" onchange="changeRhythmVolume(this.value)">
+                            <button type="button" id="btnRhythmMore" class="rhythm-more-btn" onclick="toggleRhythmMorePanel()" aria-expanded="false">
+                                <span class="rhythm-more-dots" aria-hidden="true">⋯</span>
+                                <span id="lblRhythmMoreText" data-i18n="btn_rhythm_more">More</span>
+                            </button>
+                        </div>
+
+                        <div id="rhythmMorePanel" class="rhythm-more-panel" hidden>
+                            <div class="rhythm-more-grid">
+                                <label class="rhythm-more-field">
+                                    <span class="more-lbl" data-i18n="lbl_rhythm_kit">Drum kit</span>
+                                    <select id="rhythmKitSelect" class="more-select" onchange="changeRhythmKitTemp(this.value)"></select>
+                                </label>
+                                <label class="rhythm-more-field" id="rhythmSubdivWrap">
+                                    <span class="more-lbl" data-i18n="lbl_rhythm_subdiv">Subdivision</span>
+                                    <select id="rhythmSubdivSelect" class="more-select" onchange="changeRhythmSubdivTemp(this.value)"></select>
+                                </label>
+                            </div>
+                            <div class="rhythm-more-actions">
+                                <button type="button" id="btnSaveRhythmBpm" class="more-save-btn" onclick="updateRhythmBpm()">
+                                    <i class="fas fa-save" aria-hidden="true"></i>
+                                    <span data-i18n="btn_save_rhythm_tempo">Save ♩</span>
+                                    <span id="saveDirtyDot" class="save-dirty-dot" hidden aria-hidden="true">•</span>
+                                </button>
+                                <button type="button" id="btnDownloadRhythm" class="more-ico-btn" onclick="downloadCurrentRhythm()"
+                                    data-i18n-title="ttl_download_rhythm" data-i18n-aria="ttl_download_rhythm" title="Download rhythm" aria-label="Download rhythm">
+                                    <i class="fas fa-download" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" id="btnDeleteRhythm" class="more-ico-btn danger" onclick="deleteCurrentRhythm()"
+                                    data-i18n-title="ttl_remove_rhythm" data-i18n-aria="ttl_remove_rhythm" title="Remove from song" aria-label="Remove from song">
+                                    <i class="fas fa-times" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <button type="button" id="btnOpenRhythmLibrary" class="add-wide-btn" onclick="openAssetManager('rhythm')">
+                                <i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="btn_open_rhythm_library">Rhythms Library</span>
+                            </button>
+                        </div>
+
+                        <div id="activeRhythmBox" class="rhythm-active-box">
+                            <span class="rhythm-active-meter" id="seq-current-meter">4/4</span>
+                            <span class="rhythm-active-name" id="seq-current-name" data-i18n="lbl_rhythm_active_empty">Simple Metronome</span>
+                            <span class="rhythm-active-tempo" id="seq-current-tempo">♩ = 100</span>
+                        </div>
+                        <div id="list-rhythms" class="file-list compact rhythm-list-compact" hidden>
                             <div class="empty-state" data-i18n="msg_no_attachments">No rhythms</div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 15px;">
-                            <button class="add-mini-btn" onclick="openAssetManager('rhythm')"
-                                style="justify-content: center; padding: 8px;">
-                                <i class="fas fa-drum"></i> <span data-i18n="tab_rhythm">Rhythm Library</span>
-                            </button>
                         </div>
                     </div>
                 </details>
@@ -1824,61 +1844,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.8.11T.241126"></script>
-        <script src="js/config.js?v=2.8.11T.241126"></script>
+        <script src="js/edition.js?v=2.8.12T.241126"></script>
+        <script src="js/config.js?v=2.8.12T.241126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.8.11T.241126"></script>
-        <script src="js/translations.js?v=2.8.11T.241126"></script>
-        <script src="js/storage.js?v=2.8.11T.241126"></script>
+        <script src="js/data.js?v=2.8.12T.241126"></script>
+        <script src="js/translations.js?v=2.8.12T.241126"></script>
+        <script src="js/storage.js?v=2.8.12T.241126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.8.11T.241126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.8.11T.241126"></script>
-        <script src="js/custom-kits.js?v=2.8.11T.241126"></script>
-        <script src="js/drum-machine.js?v=2.8.11T.241126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.8.11T.241126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.12T.241126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.12T.241126"></script>
+        <script src="js/custom-kits.js?v=2.8.12T.241126"></script>
+        <script src="js/drum-machine.js?v=2.8.12T.241126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.12T.241126"></script>
 
-        <script src="js/modules/ui-dialogs.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/utils.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/assets.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/played-set.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/player.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/editor.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/library.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/settings.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/ui-utils.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/rhythm.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/theory.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/visuals.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/band.js?v=2.8.11T.241126"></script>
-        <script src="js/modules/export.js?v=2.8.11T.241126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/utils.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/assets.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/played-set.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/player.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/editor.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/library.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/settings.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/theory.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/visuals.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/band.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/export.js?v=2.8.12T.241126"></script>
 
-        <script src="js/auth.js?v=2.8.11T.241126"></script>
-        <script src="js/basicmetronome.js?v=2.8.11T.241126"></script>
-        <script src="js/permissions.js?v=2.8.11T.241126"></script>
-        <script src="libs/fflate.min.js?v=2.8.11T.241126-ecf3e7f"></script>
-        <script src="js/modules/package.js?v=2.8.11T.241126-ecf3e7f"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.8.11T.241126-ecf3e7f"></script>
-        <script src="js/solo/local-assets.js?v=2.8.11T.241126-ecf3e7f"></script>
-        <script src="js/solo/backup.js?v=2.8.11T.241126-ecf3e7f"></script>
-        <script src="js/solo/messages.js?v=2.8.11T.241126-ecf3e7f"></script>
-        <script src="js/solo/account.js?v=2.8.11T.241126-ecf3e7f"></script>
-        <script src="js/logic.js?v=2.8.11T.241126"></script>
-        <script src="js/floating-tools.js?v=2.8.11T.241126"></script>
-        <script src="js/tuner.js?v=2.8.11T.241126"></script>
-        <script src="js/ui.js?v=2.8.11T.241126"></script>
-        <script src="js/release-notes.js?v=2.8.11T.241126"></script>
-        <script src="js/chord-player.js?v=2.8.11T.241126"></script>
-        <script src="js/chords.js?v=2.8.11T.241126"></script>
+        <script src="js/auth.js?v=2.8.12T.241126"></script>
+        <script src="js/basicmetronome.js?v=2.8.12T.241126"></script>
+        <script src="js/permissions.js?v=2.8.12T.241126"></script>
+        <script src="libs/fflate.min.js?v=2.8.12T.241126-2043ed3"></script>
+        <script src="js/modules/package.js?v=2.8.12T.241126-2043ed3"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.12T.241126-2043ed3"></script>
+        <script src="js/solo/local-assets.js?v=2.8.12T.241126-2043ed3"></script>
+        <script src="js/solo/backup.js?v=2.8.12T.241126-2043ed3"></script>
+        <script src="js/solo/messages.js?v=2.8.12T.241126-2043ed3"></script>
+        <script src="js/solo/account.js?v=2.8.12T.241126-2043ed3"></script>
+        <script src="js/logic.js?v=2.8.12T.241126"></script>
+        <script src="js/floating-tools.js?v=2.8.12T.241126"></script>
+        <script src="js/tuner.js?v=2.8.12T.241126"></script>
+        <script src="js/ui.js?v=2.8.12T.241126"></script>
+        <script src="js/release-notes.js?v=2.8.12T.241126"></script>
+        <script src="js/chord-player.js?v=2.8.12T.241126"></script>
+        <script src="js/chords.js?v=2.8.12T.241126"></script>
 
-        <script src="js/app.js?v=2.8.11T.241126"></script>
+        <script src="js/app.js?v=2.8.12T.241126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.8.11T.241126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.12T.241126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

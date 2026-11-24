@@ -423,22 +423,47 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         }
     };
 
+    function escHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, function(ch) {
+            return ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch === '"' ? '&quot;' : '&#39;';
+        });
+    }
+
     assets.detachFromSong = async function(songId, listType, index) {
-        if (!songId || typeof library === 'undefined') return;
+        if (!songId || typeof library === 'undefined') return false;
         const song = library.find(s => s.id === songId);
-        if (!song) return;
+        if (!song) return false;
 
         if (currentGroupId !== 'personal' && !song.is_clone) {
             if (!roleCan('REMOVE_MASTER_ASSET')) {
                 if (typeof showToast === 'function') showToast(t('msg_admins_only_remove_files', "Μόνο οι διαχειριστές μπορούν να αφαιρέσουν αρχεία από το κεντρικό τραγούδι."), "error");
-                return;
+                return false;
             }
         }
 
-        if (confirm(t('msg_remove_file_confirm', "Σίγουρα θέλετε να αφαιρέσετε αυτό το αρχείο από το τραγούδι;"))) {
-            let list = typeof window.safeParse === 'function' ? window.safeParse(song[listType]) : song[listType] || [];
-            if (typeof list === 'string') list = JSON.parse(list); // just in case
-            
+        let list = typeof window.safeParse === 'function' ? window.safeParse(song[listType]) : song[listType] || [];
+        if (typeof list === 'string') list = JSON.parse(list); // just in case
+        const item = Array.isArray(list) ? list[index] : null;
+        const itemName = item && item.name ? item.name : '';
+        const confirmMsg = itemName
+            ? (listType === 'rhythms'
+                ? t('msg_confirm_remove_rhythm', "Αφαίρεση του '{name}' από το τραγούδι;").replace('{name}', itemName)
+                : t('msg_confirm_detach_file', "Αποσύνδεση του '{name}' από το τραγούδι; (Θα παραμείνει στη Βιβλιοθήκη σας)").replace('{name}', itemName))
+            : t('msg_remove_file_confirm', "Σίγουρα θέλετε να αφαιρέσετε αυτό το αρχείο από το τραγούδι;");
+
+        const isNativeConfirm = typeof window.confirm === 'function' && /\[native code\]/.test(Function.prototype.toString.call(window.confirm));
+        let confirmed = false;
+        if (isNativeConfirm && window.mDialog && typeof window.mDialog.dangerConfirm === 'function') {
+            confirmed = await window.mDialog.dangerConfirm({
+                title: t('btn_remove_from_song', 'Αφαίρεση από το τραγούδι'),
+                message: confirmMsg,
+                dangerText: t('btn_remove', 'Αφαίρεση')
+            });
+        } else {
+            confirmed = window.confirm(confirmMsg);
+        }
+
+        if (confirmed) {
             if (Array.isArray(list) && list.length > index) {
                 const removedItem = list.splice(index, 1)[0];
                 song[listType] = list; // MUST be an array, not a string
@@ -454,8 +479,10 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 if (listType === 'recordings') assets.renderRecordings(list);
                 else if (listType === 'attachments') assets.renderAttachments(list);
                 else if (listType === 'rhythms' && window.mNotes && window.mNotes.ui.rhythm) window.mNotes.ui.rhythm.renderRhythmsList(list);
+                return true;
             }
         }
+        return false;
     };
 
     assets.renderRecordings = function(recs = []) {
@@ -524,55 +551,108 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         
         listEl.innerHTML = ''; 
         let hasItems = false;
+        const activeUrl = (typeof window !== 'undefined' && window.activeVisualDocUrl) ? window.activeVisualDocUrl : null;
         
         docs.forEach((doc, index) => {
             const el = document.createElement('div'); 
-            el.className = 'track-item'; 
+            const isViewing = !!(activeUrl && doc.url && activeUrl === doc.url);
+            el.className = 'track-item vis-row' + (isViewing ? ' is-viewing' : '');
+            if (doc.url) el.setAttribute('data-url', doc.url);
             
             const isPrivate = (doc.origin === 'private' || !doc.origin);
-            const borderColor = isPrivate ? '#ffb74d' : '#9c27b0';
             const tooltip = isPrivate ? t('ttl_private_file') : t('ttl_public_file');
-            
-            el.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); padding:8px; margin-bottom:5px; border-radius:4px; border-left: 3px solid ${borderColor};`;
             
             const isImage = (doc.type && doc.type.toLowerCase().includes('image')) || (doc.url && /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(doc.url));
             const isABC = doc.url && (doc.url.toLowerCase().includes('.abc?') || doc.url.toLowerCase().endsWith('.abc'));
-            const iconClass = isImage ? 'fas fa-image' : (isABC ? 'fas fa-file-musical' : 'fas fa-file-pdf');
-            
-            const safeObjStr = encodeURIComponent(JSON.stringify(doc));
-
-
+            const kind = isABC ? 'abc' : (isImage ? 'img' : 'pdf');
+            const badgeText = isABC ? 'ABC' : (isImage ? 'IMG' : 'PDF');
 
             const isOwnerOrAdmin = roleCan('DELETE_BAND_ATTACHMENT');
             const canDelete = isPrivate || currentGroupId === 'personal' || isOwnerOrAdmin;
+            const moreLabel = t('ttl_file_actions', 'Ενέργειες αρχείου');
+            const dlLabel = t('btn_download_file', 'Λήψη αρχείου');
+            const rmLabel = t('btn_remove_from_song', 'Αφαίρεση από το τραγούδι');
 
-            let deleteBtnHtml = '';
+            const mainDiv = document.createElement('div');
+            mainDiv.className = 'track-main vis-main';
+            mainDiv.setAttribute('title', tooltip || doc.name || '');
+            mainDiv.innerHTML = `
+                <span class="vis-type-badge vis-type-${kind}">${badgeText}</span>
+                <span class="vis-name">${escHtml(doc.name)}</span>
+                ${!isPrivate ? `<span class="vis-band-ico" title="${escHtml(t('ttl_public_file', 'Public (Band common)'))}" aria-label="${escHtml(t('ttl_public_file', 'Public (Band common)'))}">👥</span>` : ''}
+                <span class="vis-active-dot" aria-hidden="true"></span>
+            `;
+            mainDiv.addEventListener('click', () => {
+                if (isABC && typeof window.showScoreInLayer === 'function') window.showScoreInLayer(doc.url, doc.name);
+                else if (isImage && typeof window.showImageInLayer === 'function') window.showImageInLayer(doc.url, doc.name);
+                else if (typeof window.showPdfInLayer === 'function') window.showPdfInLayer(doc.url, doc.name);
+            });
+
+            const moreBtn = document.createElement('button');
+            moreBtn.type = 'button';
+            moreBtn.className = 'vis-more-btn';
+            moreBtn.setAttribute('aria-expanded', 'false');
+            moreBtn.setAttribute('title', moreLabel);
+            moreBtn.setAttribute('aria-label', moreLabel);
+            moreBtn.textContent = '⋯';
+
+            const strip = document.createElement('div');
+            strip.className = 'vis-action-strip';
+            strip.hidden = true;
+
+            const dlBtn = document.createElement('button');
+            dlBtn.type = 'button';
+            dlBtn.className = 'vis-act-btn vis-act-download';
+            dlBtn.innerHTML = `<i class="fas fa-download" aria-hidden="true"></i> <span>${escHtml(dlLabel)}</span>`;
+            dlBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                strip.hidden = true;
+                moreBtn.setAttribute('aria-expanded', 'false');
+                el.classList.remove('is-more-open');
+                if (typeof window.downloadAssetLocal === 'function') {
+                    window.downloadAssetLocal(doc.url, doc.name);
+                }
+            });
+            strip.appendChild(dlBtn);
+
             if (canDelete) {
-                deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'attachments', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="${t('btn_delete')}"><i class="fas fa-times"></i></button>`;
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'vis-act-btn danger vis-act-delete';
+                delBtn.innerHTML = `<i class="fas fa-times" aria-hidden="true"></i> <span>${escHtml(rmLabel)}</span>`;
+                delBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    if (typeof window.deleteMediaItem === 'function') {
+                        window.deleteMediaItem(currentSongId, 'attachments', index);
+                    }
+                });
+                strip.appendChild(delBtn);
             }
 
-            let downloadBtnHtml = `<button onclick="downloadAssetLocal('${doc.url}', '${doc.name}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="${t('btn_download')}"><i class="fas fa-download"></i></button>`;
+            moreBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const willOpen = strip.hidden;
+                listEl.querySelectorAll('.vis-row').forEach(otherRow => {
+                    if (otherRow === el) return;
+                    const otherStrip = otherRow.querySelector('.vis-action-strip');
+                    const otherBtn = otherRow.querySelector('.vis-more-btn');
+                    if (otherStrip) otherStrip.hidden = true;
+                    if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+                    otherRow.classList.remove('is-more-open');
+                });
+                strip.hidden = !willOpen;
+                moreBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                el.classList.toggle('is-more-open', willOpen);
+            });
 
-            let clickAction = "";
-            if (isABC) clickAction = `showScoreInLayer('${doc.url}', '${doc.name}')`;
-            else if (isImage) clickAction = `showImageInLayer('${doc.url}', '${doc.name}')`;
-            else clickAction = `showPdfInLayer('${doc.url}', '${doc.name}')`;
-
-            el.innerHTML = `
-                <div onclick="${clickAction}" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
-                    <i class="${iconClass}" style="color:${borderColor}; margin-right:8px;"></i>
-                    <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${doc.name}</span>
-                </div>
-                <div style="display:flex; align-items:center;">
-                    ${downloadBtnHtml}
-                    ${deleteBtnHtml}
-                </div>
-            `;
+            el.appendChild(mainDiv);
+            el.appendChild(moreBtn);
+            el.appendChild(strip);
             listEl.appendChild(el);
             hasItems = true;
         });
 
-        if (!hasItems) listEl.innerHTML = `<div class="empty-state">${t('msg_no_attachments')}</div>`;
+        if (!hasItems) listEl.innerHTML = `<div class="empty-state">${escHtml(t('msg_no_attachments'))}</div>`;
         if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
     };
 

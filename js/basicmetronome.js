@@ -10,6 +10,10 @@ const BasicMetronome = {
     timerID: null,
     nextNoteTime: 0,
     audioCtx: null,
+    currentBeat: 0,
+    beatCount: 4,
+    onBeat: null,
+    onStateChange: null,
 
     toggle: function() {
         if (!this.audioCtx) {
@@ -22,17 +26,21 @@ const BasicMetronome = {
             // Σταμάτημα
             clearTimeout(this.timerID);
             this.isPlaying = false;
+            this.currentBeat = 0;
             if (this.audioCtx) this.audioCtx.suspend();
             if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
+            if (typeof this.onStateChange === 'function') this.onStateChange(false);
             console.log("⏹️ [BasicMetronome] Σταμάτησε.");
         } else {
             // Ξεκίνημα
             if (this.audioCtx.state === 'suspended' || this.audioCtx.state === 'interrupted') {
                 this.audioCtx.resume();
             }
+            this.currentBeat = 0;
             this.nextNoteTime = this.audioCtx.currentTime + 0.05;
             this.isPlaying = true;
             if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-stop'); }
+            if (typeof this.onStateChange === 'function') this.onStateChange(true);
             console.log(`▶️ [BasicMetronome] Ξεκίνησε στα ${this.bpm} BPM | ${this.pitch}Hz | Ένταση: ${this.volume}`);
             this.schedule();
         }
@@ -44,6 +52,9 @@ const BasicMetronome = {
         // Προγραμματίζουμε τα χτυπήματα
         while (this.nextNoteTime < this.audioCtx.currentTime + 0.1) {
             this.playClick(this.nextNoteTime);
+            const beatIdx = this.currentBeat;
+            this.currentBeat = (this.currentBeat + 1) % (this.beatCount || 4);
+            if (typeof this.onBeat === 'function') this.onBeat(beatIdx, this.beatCount || 4);
             this.nextNoteTime += secondsPerBeat;
         }
         this.timerID = setTimeout(() => this.schedule(), 25);

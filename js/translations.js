@@ -1159,7 +1159,27 @@ const TRANSLATIONS = {
         solo_tier_paid: "mNotes Solo · Full edition",
         solo_local_storage_notice: "Your songs and scores are stored locally on your device. Keep a backup.",
         solo_btn_export_lib: "Export library",
-        solo_btn_import_lib: "Import"
+        solo_btn_import_lib: "Import",
+        ttl_file_actions: "File actions",
+        btn_download_file: "Download file",
+        btn_remove_from_song: "Remove from song",
+        btn_remove: "Remove",
+        btn_visuals_library: "Scores & Files",
+        ttl_metronome: "Metronome",
+        btn_rhythm_more: "More",
+        btn_rhythm_less: "Less",
+        lbl_rhythm_kit: "Drum kit",
+        lbl_rhythm_subdiv: "Subdivision",
+        btn_save_rhythm_tempo: "Save ♩",
+        lbl_rhythm_active_empty: "Simple Metronome",
+        ttl_rhythm_library: "Rhythms Library",
+        btn_open_rhythm_library: "Rhythms Library",
+        msg_confirm_remove_rhythm: "Remove '{name}' from this song?",
+        aria_tempo_slider: "Tempo (slider)",
+        aria_volume_slider: "Rhythm volume",
+        ttl_download_rhythm: "Download rhythm",
+        ttl_remove_rhythm: "Remove from song",
+        msg_rhythm_tempo_unsaved: "Unsaved changes"
     },
 
     el: {
@@ -2305,7 +2325,27 @@ const TRANSLATIONS = {
         solo_tier_paid: "mNotes Solo · Πλήρης έκδοση",
         solo_local_storage_notice: "Τα τραγούδια και οι παρτιτούρες αποθηκεύονται τοπικά στη συσκευή σου. Κράτα αντίγραφο ασφαλείας.",
         solo_btn_export_lib: "Εξαγωγή βιβλιοθήκης",
-        solo_btn_import_lib: "Εισαγωγή"
+        solo_btn_import_lib: "Εισαγωγή",
+        ttl_file_actions: "Ενέργειες αρχείου",
+        btn_download_file: "Λήψη αρχείου",
+        btn_remove_from_song: "Αφαίρεση από το τραγούδι",
+        btn_remove: "Αφαίρεση",
+        btn_visuals_library: "Παρτιτούρες & Αρχεία",
+        ttl_metronome: "Μετρονόμος",
+        btn_rhythm_more: "Περισσότερα",
+        btn_rhythm_less: "Λιγότερα",
+        lbl_rhythm_kit: "Kit κρουστών",
+        lbl_rhythm_subdiv: "Υποδιαίρεση",
+        btn_save_rhythm_tempo: "Αποθήκευση ♩",
+        lbl_rhythm_active_empty: "Απλός Μετρονόμος",
+        ttl_rhythm_library: "Βιβλιοθήκη Ρυθμών",
+        btn_open_rhythm_library: "Βιβλιοθήκη Ρυθμών",
+        msg_confirm_remove_rhythm: "Αφαίρεση του '{name}' από το τραγούδι;",
+        aria_tempo_slider: "Τέμπο (κύλιση)",
+        aria_volume_slider: "Ένταση ρυθμού",
+        ttl_download_rhythm: "Λήψη ρυθμού",
+        ttl_remove_rhythm: "Αφαίρεση από το τραγούδι",
+        msg_rhythm_tempo_unsaved: "Μη αποθηκευμένες αλλαγές"
     }
 };
 
