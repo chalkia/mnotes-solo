@@ -218,7 +218,7 @@
                 buildActions: (actionsEl, finish) => {
                     const cancel = document.createElement('button');
                     cancel.type = 'button';
-                    cancel.className = 'mbtn mbtn-secondary';
+                    cancel.className = 'mbtn mbtn-secondary btn-secondary';
                     cancel.textContent = p.cancelText || tr('btn_cancel', 'Ακύρωση');
                     cancel.onclick = () => finish(false);
 
@@ -256,7 +256,7 @@
                 buildActions: (actionsEl, finish) => {
                     const cancel = document.createElement('button');
                     cancel.type = 'button';
-                    cancel.className = 'mbtn mbtn-secondary mbtn-safe-focus';
+                    cancel.className = 'mbtn mbtn-secondary btn-secondary mbtn-safe-focus';
                     cancel.textContent = p.cancelText || tr('btn_cancel', 'Ακύρωση');
                     cancel.onclick = () => finish(false);
 
@@ -316,7 +316,7 @@
                 buildActions: (actionsEl, finish) => {
                     const cancel = document.createElement('button');
                     cancel.type = 'button';
-                    cancel.className = 'mbtn mbtn-secondary';
+                    cancel.className = 'mbtn mbtn-secondary btn-secondary';
                     cancel.textContent = p.cancelText || tr('btn_cancel', 'Ακύρωση');
                     cancel.onclick = () => finish(null);
 
@@ -394,7 +394,7 @@
                 buildActions: (actionsEl, finish) => {
                     const cancel = document.createElement('button');
                     cancel.type = 'button';
-                    cancel.className = 'mbtn mbtn-secondary';
+                    cancel.className = 'mbtn mbtn-secondary btn-secondary';
                     cancel.textContent = p.cancelText || tr('btn_cancel', 'Ακύρωση');
                     cancel.onclick = () => finish(null);
                     actionsEl.appendChild(cancel);

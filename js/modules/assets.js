@@ -393,6 +393,21 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         if (modal) modal.style.display = 'none';
     };
 
+    if (typeof document !== 'undefined' && !document._mnotesAssetManagerEscBound) {
+        document._mnotesAssetManagerEscBound = true;
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            const dlg = document.getElementById('mDialogOverlay');
+            if (dlg && dlg.style.display && dlg.style.display !== 'none') return;
+            const rlModal = document.getElementById('linkFileToSongsModal');
+            if (rlModal && rlModal.style.display && rlModal.style.display !== 'none') return;
+            const modal = document.getElementById('assetManagerModal');
+            if (modal && modal.style.display && modal.style.display !== 'none') {
+                assets.closeManager();
+            }
+        });
+    }
+
     assets.switchTab = function(type) {
         const tabs = document.querySelectorAll('#assetManagerTabs .tab-btn');
         tabs.forEach(btn => {
