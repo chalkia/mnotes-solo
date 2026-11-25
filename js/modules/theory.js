@@ -68,11 +68,22 @@ window.mNotes.theory = window.mNotes.theory || {};
 
         const tTxt = (state.t > 0 ? "+" : "") + state.t;
         
-        if (dValT) { dValT.innerText = tTxt; dValT.classList.toggle('is-modified', !!state.t); }
-        if (mValT) { mValT.innerText = tTxt; mValT.classList.toggle('is-modified', !!state.t); }
-        
-        if (dValC) { dValC.innerText = state.c; dValC.classList.toggle('is-modified', !!state.c); }
-        if (mValC) { mValC.innerText = state.c; mValC.classList.toggle('is-modified', !!state.c); }
+        const tModified = Boolean(state.t);
+        const cModified = Boolean(state.c);
+        [dValT, mValT].forEach(el => {
+            if (!el) return;
+            el.innerText = tTxt;
+            el.classList.toggle('is-modified', tModified);
+            const box = el.closest('.stepper');
+            if (box) box.classList.toggle('is-modified', tModified);
+        });
+        [dValC, mValC].forEach(el => {
+            if (!el) return;
+            el.innerText = state.c;
+            el.classList.toggle('is-modified', cModified);
+            const box = el.closest('.stepper');
+            if (box) box.classList.toggle('is-modified', cModified);
+        });
     };
 
     theory.autoCapo = function() {

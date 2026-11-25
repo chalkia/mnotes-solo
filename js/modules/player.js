@@ -447,10 +447,23 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         if (typeof updateTransDisplay === 'function') {
             updateTransDisplay();
         } else {
-            const dValT = document.getElementById('val-t'); const dValC = document.getElementById('val-c');
-            if(dValT) dValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(dValC) dValC.innerText = state.c;
-            const mValT = document.getElementById('drawer-val-t'); const mValC = document.getElementById('drawer-val-c');
-            if(mValT) mValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(mValC) mValC.innerText = state.c;
+            const tTxt = (state.t > 0 ? "+" : "") + state.t;
+            const tMod = Boolean(state.t);
+            const cMod = Boolean(state.c);
+            [document.getElementById('val-t'), document.getElementById('drawer-val-t')].forEach(el => {
+                if (!el) return;
+                el.innerText = tTxt;
+                el.classList.toggle('is-modified', tMod);
+                const box = el.closest('.stepper');
+                if (box) box.classList.toggle('is-modified', tMod);
+            });
+            [document.getElementById('val-c'), document.getElementById('drawer-val-c')].forEach(el => {
+                if (!el) return;
+                el.innerText = state.c;
+                el.classList.toggle('is-modified', cMod);
+                const box = el.closest('.stepper');
+                if (box) box.classList.toggle('is-modified', cMod);
+            });
         }
         player.syncSplitButtons();
         player.syncViewModeButtons();
@@ -630,7 +643,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         const atts = (song && Array.isArray(song.attachments)) ? song.attachments : [];
         const abcInlineEnabled = (typeof userSettings === 'undefined' || userSettings.abcInline !== false);
 
-        text = text.replace(/!score\s+([\s\S]*?)\s*!\//gi, function(match, innerRaw) {
+        text = text.replace(/!score\s+([^\n]*?)\s*!\//gi, function(match, innerRaw) {
             const raw = (innerRaw || '').trim();
             if (!raw) return '';
             const atMatch = raw.match(/^(.*?)\s+@([^\s@]+)$/);
@@ -639,15 +652,18 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 
             let matched = null;
             if (scoreId) {
-                matched = atts.find(a => a && String(a.id || '') === scoreId);
+                matched = atts.find(a => a && a.asset_id !== undefined && a.asset_id !== null && String(a.asset_id) === scoreId)
+                    || atts.find(a => a && a.id !== undefined && a.id !== null && String(a.id) === scoreId);
             }
             if (!matched && scoreName) {
                 const targetLower = scoreName.toLowerCase();
-                matched = atts.find(a => {
+                const matchByName = (a) => {
                     if (!a || !a.name) return false;
                     const n = String(a.name).trim().toLowerCase();
                     return n === targetLower || n.replace(/\.abc$/i, '') === targetLower;
-                });
+                };
+                matched = atts.find(a => a && (typeof isAbcAttachment !== 'function' || isAbcAttachment(a)) && matchByName(a))
+                    || atts.find(matchByName);
             }
 
             let finalHtml = '';
@@ -661,11 +677,11 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                 const dispName = escHtml(String(matched.name || scoreName || 'ABC').replace(/\.abc$/i, ''));
                 const safeUrl = String(matched.url || '').replace(/'/g, "\\'");
                 const safeTitle = String(matched.name || scoreName || 'ABC').replace(/'/g, "\\'");
-                finalHtml = `<button type="button" class="stage-inline-abc stage-inline-abc-link" onclick="if(typeof showScoreInLayer==='function') showScoreInLayer('${safeUrl}','${safeTitle}')"><i class="fas fa-music"></i> <span>${dispName}</span></button>`;
+                finalHtml = `<button type="button" class="stage-inline-abc stage-inline-abc-link" onclick="if(typeof showScoreInLayer==='function') showScoreInLayer('${safeUrl}','${safeTitle}',{category:'score'})"><i class="fas fa-music"></i> <span>${dispName}</span></button>`;
             } else {
                 const dispName = escHtml(String(matched.name || scoreName || 'ABC').replace(/\.abc$/i, ''));
                 const safeUrl = escHtml(matched.url || '');
-                const safeId = escHtml(matched.id || scoreId || '');
+                const safeId = escHtml(matched.asset_id || matched.id || scoreId || '');
                 const inlineAttr = matched.content ? ` data-abc-inline="${escHtml(matched.content)}"` : '';
                 finalHtml = `<div class="stage-inline-abc" data-abc-url="${safeUrl}" data-abc-id="${safeId}"${inlineAttr}><div class="stage-inline-abc-title"><i class="fas fa-music"></i> <span>${dispName}</span></div><div class="stage-inline-abc-paper"></div></div>`;
             }
@@ -1206,10 +1222,16 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     const MOVE_TOLERANCE_PX = 10;
 
     let timer = null;
+    let isTrackingBadge = false;
     let suppressNextClick = false;
     let suppressResetTimer = null;
     let startX = 0;
     let startY = 0;
+
+    function closestBadge(target) {
+        const el = (target && target.nodeType === 1) ? target : target?.parentElement;
+        return (el && typeof el.closest === 'function') ? el.closest(BADGE_SELECTOR) : null;
+    }
 
     function cancelHold() {
         if (timer) {
@@ -1222,18 +1244,19 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         clearTimeout(suppressResetTimer);
         suppressResetTimer = setTimeout(function () {
             suppressNextClick = false;
-        }, 80);
+        }, 120);
     }
 
     document.addEventListener('pointerdown', function (e) {
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        const badge = e.target.closest(BADGE_SELECTOR);
+        if (e.button !== 0) return;
+        const badge = closestBadge(e.target);
         if (!badge) return;
         e.stopPropagation();
 
         // Νέο πάτημα -> ακυρώνει τυχόν υπόλοιπο suppression από προηγούμενη χειρονομία
         clearTimeout(suppressResetTimer);
         suppressNextClick = false;
+        isTrackingBadge = true;
         startX = e.clientX;
         startY = e.clientY;
         cancelHold();
@@ -1250,24 +1273,27 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     });
 
     document.addEventListener('pointermove', function (e) {
-        if (!timer) return;
+        if (!isTrackingBadge) return;
         if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOLERANCE_PX) {
             cancelHold();
+            suppressNextClick = true;
         }
     });
 
     document.addEventListener('pointerup', function () {
+        isTrackingBadge = false;
         cancelHold();
         if (suppressNextClick) clearSuppressSoon();
     });
 
     document.addEventListener('pointercancel', function () {
+        isTrackingBadge = false;
         cancelHold();
         if (suppressNextClick) clearSuppressSoon();
     });
 
     document.addEventListener('click', function (e) {
-        const badge = e.target.closest(BADGE_SELECTOR);
+        const badge = closestBadge(e.target);
         if (!badge) return;
         e.stopPropagation();
         if (suppressNextClick) {
@@ -1284,17 +1310,19 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     });
 
     document.addEventListener('contextmenu', function (e) {
-        const badge = e.target.closest(BADGE_SELECTOR);
+        const badge = closestBadge(e.target);
         if (!badge) return;
         e.preventDefault();
         e.stopPropagation();
+        isTrackingBadge = false;
         cancelHold();
-        suppressNextClick = false;
+        suppressNextClick = true;
+        clearSuppressSoon();
         if (window.mNotes && window.mNotes.ui && window.mNotes.ui.player && typeof window.mNotes.ui.player.triggerKeyBadge === 'function') {
             window.mNotes.ui.player.triggerKeyBadge(-1);
         } else if (typeof transDown === 'function') {
             transDown();
         }
-    });
+    }, true);
 })();
 

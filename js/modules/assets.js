@@ -29,6 +29,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     const _amSelectedIds = new Set();
     let _amPreviewAudio = null;
     let _amPreviewUrl = null;
+    let _keepPendingScoreOnClose = false;
 
     function trAsset(key, fallback) {
         return typeof t === 'function' ? t(key, fallback) : fallback;
@@ -160,7 +161,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
 
         const mimeLow = (asset.mime || '').toLowerCase();
         const extLow = (asset.ext || '').toLowerCase();
-        const isAbc = fType === 'score' || urlClean.endsWith('.abc');
+        const isAbc = (typeof isAbcAttachment === 'function')
+            ? isAbcAttachment(asset)
+            : (fType === 'score' || urlClean.endsWith('.abc'));
         const isPdf = urlClean.endsWith('.pdf') || mimeLow === 'application/pdf' || extLow === 'pdf';
         if (_amFilter === 'score') return isAbc;
         if (_amFilter === 'pdf') return isPdf;
@@ -214,7 +217,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             const extLow = (asset.ext || '').toLowerCase();
             if (asset.file_type === 'audio') itemIcon = 'fas fa-music';
             else if (asset.file_type === 'rhythm' || urlLow.endsWith('.mnr')) itemIcon = 'fas fa-drum';
-            else if (asset.file_type === 'score' || urlLow.endsWith('.abc')) itemIcon = 'fas fa-file-code';
+            else if (typeof isAbcAttachment === 'function' ? isAbcAttachment(asset) : (asset.file_type === 'score' || urlLow.endsWith('.abc'))) itemIcon = 'fas fa-file-code';
             else if (urlLow.endsWith('.pdf') || mimeLow === 'application/pdf' || extLow === 'pdf') itemIcon = 'fas fa-file-pdf';
             else if (asset.file_type === 'document' || asset.file_type === 'image') itemIcon = 'fas fa-image';
 
@@ -309,10 +312,12 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         for (const asset of selected) {
             let assetType = assets.currentType;
             if (assetType === 'visuals') {
-                const uLow = cleanAssetUrl(asset.file_url).toLowerCase();
-                assetType = (uLow.endsWith('.abc') || asset.file_type === 'score') ? 'score' : 'document';
+                const isAbc = (typeof isAbcAttachment === 'function')
+                    ? isAbcAttachment(asset)
+                    : (cleanAssetUrl(asset.file_url).toLowerCase().endsWith('.abc') || asset.file_type === 'score');
+                assetType = isAbc ? 'score' : 'document';
             }
-            const ok = await assets.processAttachment(currentSongId, assetType, asset.custom_name, asset.file_url);
+            const ok = await assets.processAttachment(currentSongId, assetType, asset.custom_name, asset.file_url, asset.id);
             if (ok !== false) addedCount++;
         }
 
@@ -381,6 +386,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
 
     assets.closeManager = function() {
         stopAmPreview();
+        if (!_keepPendingScoreOnClose && window.mNotes && window.mNotes.ui && window.mNotes.ui.editor) {
+            window.mNotes.ui.editor._pendingScoreInsert = null;
+        }
         const modal = document.getElementById('assetManagerModal');
         if (modal) modal.style.display = 'none';
     };
@@ -438,7 +446,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             let filtered = (userData || []).filter(asset => {
                 const fType = (asset.file_type || "").toLowerCase();
                 if (type === 'visuals') {
-                    return ['document', 'score', 'image'].includes(fType) || (asset.file_url && asset.file_url.toLowerCase().includes('.abc'));
+                    return ['document', 'score', 'image'].includes(fType) || (typeof isAbcAttachment === 'function' && isAbcAttachment(asset));
                 }
                 return fType === type.toLowerCase();
             });
@@ -542,11 +550,16 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         
         if (customTrackName.trim() === "") customTrackName = "Untitled Asset";
 
+        _keepPendingScoreOnClose = true;
         assets.closeManager();
+        _keepPendingScoreOnClose = false;
         showToast(`Uploading '${customTrackName}'... Μπορείτε να συνεχίσετε την εργασία σας!`, "info");
 
         const safeNameForStorage = customTrackName.replace(/[^a-zA-Z0-9]/g, '_');
-        const filename = `Asset_${Date.now()}_${safeNameForStorage}`;
+        const isAbcUpload = (assetType === 'visuals' && fileExt === 'abc');
+        const filename = isAbcUpload
+            ? `Score_${Date.now()}_${safeNameForStorage}.abc`
+            : `Asset_${Date.now()}_${safeNameForStorage}`;
 
         try {
             const { error: uploadErr } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, file);
@@ -554,20 +567,28 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
 
             const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
 
-            const { error: dbErr } = await supabaseClient
+            const insertQuery = supabaseClient
                 .from('user_assets')
                 .insert([{
                     user_id: currentUser.id,
                     group_id: isShared ? currentGroupId : null,
                     custom_name: customTrackName,
                     file_url: publicUrl,
-                    file_type: (assetType === 'visuals') ? (fileExt === 'abc' ? 'score' : 'document') : assetType
+                    file_type: (assetType === 'visuals') ? (isAbcUpload ? 'score' : 'document') : assetType
                 }]);
+            const { data: insertedRows, error: dbErr } = (insertQuery && typeof insertQuery.select === 'function')
+                ? await insertQuery.select('id')
+                : await insertQuery;
             if (dbErr) throw dbErr;
 
-            await assets.processAttachment(targetSongId, assetType, customTrackName, publicUrl);
+            const insertedAssetId = Array.isArray(insertedRows) ? insertedRows[0]?.id : insertedRows?.id;
+            const effectiveAttachType = isAbcUpload ? 'score' : assetType;
+            await assets.processAttachment(targetSongId, effectiveAttachType, customTrackName, publicUrl, insertedAssetId);
             showToast(`Επιτυχία! Το '${customTrackName}' συνδέθηκε στο τραγούδι.`);
         } catch (err) {
+            if (window.mNotes && window.mNotes.ui && window.mNotes.ui.editor) {
+                window.mNotes.ui.editor._pendingScoreInsert = null;
+            }
             console.error("[AssetManager] Αποτυχία Upload:", err);
             showToast(t('msg_upload_failed_generic', "Αποτυχία Upload / Upload Failed: ") + err.message, "error");
         } finally {
@@ -575,20 +596,25 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         }
     };
 
-    assets.attachExisting = async function(assetName, assetUrl) {
+    assets.attachExisting = async function(assetName, assetUrl, assetMeta) {
         if (!currentSongId) { showToast(t('msg_select_song_first', "Επιλέξτε τραγούδι πρώτα! / Select a song first!")); return; }
         
+        const metaObj = (assetMeta && typeof assetMeta === 'object') ? assetMeta : { id: assetMeta };
         let assetType = assets.currentType;
         if (assetType === 'visuals') {
-            assetType = (assetUrl.toLowerCase().includes('.abc?') || assetUrl.toLowerCase().endsWith('.abc')) ? 'score' : 'document';
+            const probe = { name: assetName, url: assetUrl, file_type: metaObj.file_type, category: metaObj.category };
+            const isAbc = (typeof isAbcAttachment === 'function')
+                ? isAbcAttachment(probe)
+                : (assetUrl.toLowerCase().includes('.abc?') || assetUrl.toLowerCase().endsWith('.abc'));
+            assetType = isAbc ? 'score' : 'document';
         }
         
-        await assets.processAttachment(currentSongId, assetType, assetName, assetUrl);
+        await assets.processAttachment(currentSongId, assetType, assetName, assetUrl, metaObj.id);
         assets.closeManager();
         showToast(`Το αρχείο '${assetName}' συνδέθηκε επιτυχώς!`);
     };
 
-    assets.processAttachment = async function(targetSongId, type, name, url) {
+    assets.processAttachment = async function(targetSongId, type, name, url, assetId) {
         const targetSong = library.find(x => x.id === targetSongId);
         if (!targetSong) return;
 
@@ -606,6 +632,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         }
 
         const newAssetObj = { id: Date.now(), name: name, url: url, date: Date.now(), bpm: currentBpm };
+        if (assetId) newAssetObj.asset_id = assetId;
         const cleanU = cleanAssetUrl(url);
         const alreadyHasUrl = (arr) => Array.isArray(arr) && arr.some(x => cleanAssetUrl(typeof x === 'string' ? x : x?.url) === cleanU);
        
@@ -640,7 +667,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         } else { 
             if (!targetSong.attachments) targetSong.attachments = [];
             if (alreadyHasUrl(targetSong.attachments)) return false;
-            if (type === 'score') {
+            if (type === 'score' || (typeof isAbcAttachment === 'function' && isAbcAttachment(newAssetObj))) {
                 newAssetObj.category = 'score';
             }
             targetSong.attachments.push(newAssetObj);
@@ -649,6 +676,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             
             if (currentSongId === targetSongId && typeof renderAttachmentsList === 'function') {
                 renderAttachmentsList(targetSong.attachments);
+            }
+            if ((newAssetObj.category === 'score' || (typeof isAbcAttachment === 'function' && isAbcAttachment(newAssetObj))) && typeof window.onScoreAttachmentAdded === 'function') {
+                window.onScoreAttachmentAdded(targetSongId, newAssetObj);
             }
         }
         return true;
@@ -1243,7 +1273,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             const tooltip = isPrivate ? t('ttl_private_file') : t('ttl_public_file');
             
             const isImage = (doc.type && doc.type.toLowerCase().includes('image')) || (doc.url && /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(doc.url));
-            const isABC = doc.url && (doc.url.toLowerCase().includes('.abc?') || doc.url.toLowerCase().endsWith('.abc'));
+            const isABC = (typeof isAbcAttachment === 'function')
+                ? isAbcAttachment(doc)
+                : Boolean(doc.url && (doc.url.toLowerCase().includes('.abc?') || doc.url.toLowerCase().endsWith('.abc')));
             const kind = isABC ? 'abc' : (isImage ? 'img' : 'pdf');
             const badgeText = isABC ? 'ABC' : (isImage ? 'IMG' : 'PDF');
 
@@ -1263,7 +1295,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 <span class="vis-active-dot" aria-hidden="true"></span>
             `;
             mainDiv.addEventListener('click', () => {
-                if (isABC && typeof window.showScoreInLayer === 'function') window.showScoreInLayer(doc.url, doc.name);
+                if (isABC && typeof window.showScoreInLayer === 'function') window.showScoreInLayer(doc.url, doc.name, doc);
                 else if (isImage && typeof window.showImageInLayer === 'function') window.showImageInLayer(doc.url, doc.name);
                 else if (typeof window.showPdfInLayer === 'function') window.showPdfInLayer(doc.url, doc.name);
             });
@@ -1897,7 +1929,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 if (!s || (songId && s.id !== songId)) return;
                 if (Array.isArray(s.attachments)) {
                     s.attachments.forEach(att => {
-                        if (att && String(att.id) === String(assetId)) att.name = cleanName;
+                        if (att && (String(att.id || '') === String(assetId) || String(att.asset_id || '') === String(assetId))) {
+                            att.name = cleanName;
+                        }
                     });
                 }
             });

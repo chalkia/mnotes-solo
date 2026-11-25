@@ -36,6 +36,7 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
     };
 
     editor.switchTo = function() {
+        editor._pendingScoreInsert = null;
         if (typeof saveAppState === 'function') saveAppState(currentGroupId, 'editor');
         localStorage.setItem('mnotes_view_state', 'editor');
        
@@ -60,6 +61,14 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         
         document.getElementById('view-player').classList.remove('active-view'); 
         document.getElementById('view-editor').classList.add('active-view');
+        const rightDrawer = document.getElementById('rightDrawer');
+        if (rightDrawer && rightDrawer.classList.contains('open')) {
+            if (typeof toggleRightDrawer === 'function') toggleRightDrawer();
+            rightDrawer.classList.remove('open');
+        }
+        if (typeof isMobileView === 'function' && isMobileView() && typeof switchMobileTab === 'function') {
+            switchMobileTab('stage');
+        }
        
         let chordsGroup = document.getElementById('guitarChordsGroup');
         if (chordsGroup) chordsGroup.open = false; 
@@ -142,9 +151,19 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         } else { 
             editor.createNew(); 
         }
+        const viewEd = document.getElementById('view-editor');
+        if (viewEd) viewEd.scrollTop = 0;
+        const edBody = viewEd ? viewEd.querySelector('.editor-body') : null;
+        if (edBody) edBody.scrollTop = 0;
+        const inpB = document.getElementById('inpBody');
+        if (inpB) {
+            inpB.scrollTop = 0;
+            try { inpB.setSelectionRange(0, 0); } catch (_) {}
+        }
     };
 
     editor.exit = function() { 
+        editor._pendingScoreInsert = null;
         if (typeof saveAppState === 'function') saveAppState(currentGroupId, 'player');
         localStorage.setItem('mnotes_view_state', 'player');
         localStorage.removeItem('mnotes_draft_' + currentSongId);
@@ -155,6 +174,9 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         // Always switch views
         document.getElementById('view-editor').classList.remove('active-view'); 
         document.getElementById('view-player').classList.add('active-view'); 
+        if (typeof isMobileView === 'function' && isMobileView() && typeof switchMobileTab === 'function') {
+            switchMobileTab('stage');
+        }
 
         if (currentSongId) {
             if (typeof loadSong === 'function') loadSong(currentSongId); 
@@ -224,7 +246,15 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         if (tsBar) tsBar.style.display = 'none';
         
         document.getElementById('view-player').classList.remove('active-view'); 
-        document.getElementById('view-editor').classList.add('active-view'); 
+        document.getElementById('view-editor').classList.add('active-view');
+        const rightDrawer = document.getElementById('rightDrawer');
+        if (rightDrawer && rightDrawer.classList.contains('open')) {
+            if (typeof toggleRightDrawer === 'function') toggleRightDrawer();
+            rightDrawer.classList.remove('open');
+        }
+        if (typeof isMobileView === 'function' && isMobileView() && typeof switchMobileTab === 'function') {
+            switchMobileTab('stage');
+        } 
         
         if (typeof saveAppState === 'function') saveAppState(typeof currentGroupId !== 'undefined' ? currentGroupId : 'personal', 'editor');
         localStorage.setItem('mnotes_view_state', 'editor');
@@ -546,9 +576,10 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
 
         lines.forEach((lineText, lineIdx) => {
             const lineNum = lineIdx + 1;
+            const workLine = lineText.replace(/!(?:score|com|str|strum)\b[^\n]*?!\//gi, '');
             const tokenRegex = /!(cho|ver|bri|tab|com|str|strum|soc|sov|sob|sot)\b|!\/|!(?:eoc|eov|eob|eot)\b!?|\{(soc|sov|sob|sot|start_of_[a-z]+)\}|\{(?:eoc|eov|eob|eot|end_of_[a-z]+)\}/gi;
             let match;
-            while ((match = tokenRegex.exec(lineText)) !== null) {
+            while ((match = tokenRegex.exec(workLine)) !== null) {
                 const token = match[0];
                 if (token === '!/' || token.startsWith('{eoc') || token.startsWith('{eov') || token.startsWith('{eob') || token.startsWith('{eot') || token.startsWith('{end_of') || /!(?:eoc|eov|eob|eot)/i.test(token)) {
                     if (stack.length > 0) {
@@ -653,23 +684,34 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         let newCursorPos = start;
 
         if (type === 'score') {
-            if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_ABC_SCORE')) return;
+            if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_ABC_SCORE')) {
+                const deniedMsg = (typeof t === 'function')
+                    ? t('msg_err_abc_pro_only', 'Η προσθήκη αρχείων .abc διατίθεται στο mNotes Pro.')
+                    : 'Η προσθήκη αρχείων .abc διατίθεται στο mNotes Pro.';
+                if (typeof showToast === 'function') showToast(deniedMsg, 'warning');
+                return;
+            }
             const song = (typeof library !== 'undefined' && typeof currentSongId !== 'undefined')
                 ? library.find(s => s.id === currentSongId)
                 : null;
             const atts = (song && Array.isArray(song.attachments)) ? song.attachments : [];
-            const abcList = atts.filter(a => a && (a.category === 'score' || a.file_type === 'score' || (a.url && (a.url.toLowerCase().includes('.abc?') || a.url.toLowerCase().endsWith('.abc'))) || (a.name && a.name.toLowerCase().endsWith('.abc'))));
+            const abcList = atts.filter(a => (typeof isAbcAttachment === 'function')
+                ? isAbcAttachment(a)
+                : Boolean(a && (a.category === 'score' || a.file_type === 'score')));
 
-            const insertScoreTag = (att) => {
+            const insertScoreTag = (att, insStart = start, insEnd = end) => {
                 const name = String(att.name || 'Score').replace(/\.abc$/i, '').trim() || 'Score';
-                const idPart = att.id ? ` @${att.id}` : '';
+                const stableId = att.asset_id || att.id;
+                const idPart = stableId ? ` @${stableId}` : '';
                 const tag = `!score ${name}${idPart} !/`;
                 const curVal = inpBody.value;
-                const prefix = (start > 0 && curVal[start - 1] !== '\n') ? '\n' : '';
-                const suffix = (end < curVal.length && curVal[end] !== '\n') ? '\n' : '';
+                const sPos = Math.max(0, Math.min(insStart, curVal.length));
+                const ePos = Math.max(sPos, Math.min(insEnd, curVal.length));
+                const prefix = (sPos > 0 && curVal[sPos - 1] !== '\n') ? '\n' : '';
+                const suffix = (ePos < curVal.length && curVal[ePos] !== '\n') ? '\n' : '';
                 const rep = `${prefix}${tag}${suffix}`;
-                inpBody.value = curVal.substring(0, start) + rep + curVal.substring(end);
-                const pos = start + rep.length;
+                inpBody.value = curVal.substring(0, sPos) + rep + curVal.substring(ePos);
+                const pos = sPos + rep.length;
                 inpBody.focus();
                 inpBody.setSelectionRange(pos, pos);
                 inpBody.dispatchEvent(new Event('input'));
@@ -678,6 +720,7 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
             };
 
             if (abcList.length === 0) {
+                editor._pendingScoreInsert = { songId: currentSongId, start, end };
                 const msg = (typeof t === 'function')
                     ? t('msg_no_abc_attached', 'Δεν υπάρχει συνδεδεμένη παρτιτούρα ABC. Άνοιγμα Βιβλιοθήκης αρχείων;')
                     : 'Δεν υπάρχει συνδεδεμένη παρτιτούρα ABC. Άνοιγμα Βιβλιοθήκης αρχείων;';
@@ -685,7 +728,11 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
                     ? window.mDialog.confirm(msg)
                     : Promise.resolve(typeof mConfirm === 'function' ? mConfirm(msg) : false);
                 Promise.resolve(goOpen).then(ok => {
-                    if (ok && typeof openAssetManager === 'function') openAssetManager('visuals');
+                    if (ok && typeof openAssetManager === 'function') {
+                        openAssetManager('visuals');
+                    } else {
+                        editor._pendingScoreInsert = null;
+                    }
                 });
                 return;
             }
@@ -696,10 +743,10 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
             if (window.mDialog && typeof window.mDialog.choice === 'function') {
                 window.mDialog.choice({
                     title: (typeof t === 'function') ? t('fmt_insert_score', 'Παρτιτούρα (ABC)') : 'Παρτιτούρα (ABC)',
-                    options: abcList.map(a => ({ label: a.name || a.id, value: a.id }))
+                    options: abcList.map(a => ({ label: a.name || a.id, value: a.asset_id || a.id }))
                 }).then(chosenId => {
                     if (!chosenId) return;
-                    const chosen = abcList.find(a => String(a.id) === String(chosenId));
+                    const chosen = abcList.find(a => String(a.asset_id || a.id) === String(chosenId) || String(a.id) === String(chosenId));
                     if (chosen) insertScoreTag(chosen);
                 });
             } else {
@@ -748,29 +795,81 @@ window.mNotes.ui.editor = window.mNotes.ui.editor || {};
         window.updateEditorFormatButtonState();
     };
 
-    window.syncScoreTagsOnAssetRename = function(assetId, newName) {
-        if (!assetId || !newName) return 0;
-        const cleanName = String(newName).replace(/\.abc$/i, '').trim() || String(newName).trim();
-        const escapedId = String(assetId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const rx = new RegExp(`!score\\s+[^\\n!]*?\\s+@${escapedId}\\s*!\\/`, 'gi');
-        const replacement = `!score ${cleanName} @${assetId} !/`;
-        let updatedCount = 0;
-
-        if (typeof library !== 'undefined' && Array.isArray(library)) {
-            library.forEach(song => {
-                if (song && typeof song.body === 'string' && rx.test(song.body)) {
-                    rx.lastIndex = 0;
-                    song.body = song.body.replace(rx, replacement);
-                    updatedCount++;
-                }
-            });
+    editor.onScoreAttachmentAdded = function(songId, att) {
+        const pending = editor._pendingScoreInsert;
+        if (!pending || String(pending.songId) !== String(songId)) return false;
+        const isAbc = (typeof isAbcAttachment === 'function')
+            ? isAbcAttachment(att)
+            : Boolean(att && att.category === 'score');
+        if (!isAbc) return false;
+        const viewEditor = document.getElementById('view-editor');
+        if (!viewEditor || !viewEditor.classList.contains('active-view')) {
+            editor._pendingScoreInsert = null;
+            return false;
         }
         const inpBody = document.getElementById('inpBody');
-        if (inpBody && typeof inpBody.value === 'string' && rx.test(inpBody.value)) {
-            rx.lastIndex = 0;
-            inpBody.value = inpBody.value.replace(rx, replacement);
-            if (typeof window.updateHighlights === 'function') window.updateHighlights();
+        if (!inpBody) return false;
+        editor._pendingScoreInsert = null;
+
+        const curVal = inpBody.value;
+        const sPos = Math.max(0, Math.min(pending.start || 0, curVal.length));
+        const ePos = Math.max(sPos, Math.min(pending.end || sPos, curVal.length));
+        const name = String(att.name || 'Score').replace(/\.abc$/i, '').trim() || 'Score';
+        const stableId = att.asset_id || att.id;
+        const idPart = stableId ? ` @${stableId}` : '';
+        const tag = `!score ${name}${idPart} !/`;
+        const prefix = (sPos > 0 && curVal[sPos - 1] !== '\n') ? '\n' : '';
+        const suffix = (ePos < curVal.length && curVal[ePos] !== '\n') ? '\n' : '';
+        const rep = `${prefix}${tag}${suffix}`;
+        inpBody.value = curVal.substring(0, sPos) + rep + curVal.substring(ePos);
+        const pos = sPos + rep.length;
+        inpBody.focus();
+        inpBody.setSelectionRange(pos, pos);
+        inpBody.dispatchEvent(new Event('input'));
+        if (typeof window.updateHighlights === 'function') window.updateHighlights();
+        if (typeof window.updateEditorFormatButtonState === 'function') window.updateEditorFormatButtonState();
+        return true;
+    };
+    window.onScoreAttachmentAdded = editor.onScoreAttachmentAdded;
+
+    window.syncScoreTagsOnAssetRename = function(assetId, newName) {
+        if (!assetId || !newName) return 0;
+        const targetStr = String(assetId);
+        const cleanName = String(newName).replace(/\.abc$/i, '').trim() || String(newName).trim();
+        const idSet = new Set([targetStr]);
+        if (typeof library !== 'undefined' && Array.isArray(library)) {
+            library.forEach(song => {
+                (Array.isArray(song?.attachments) ? song.attachments : []).forEach(att => {
+                    if (!att) return;
+                    if (String(att.id || '') === targetStr || String(att.asset_id || '') === targetStr) {
+                        if (att.id) idSet.add(String(att.id));
+                        if (att.asset_id) idSet.add(String(att.asset_id));
+                    }
+                });
+            });
         }
+        let updatedCount = 0;
+
+        idSet.forEach(idVal => {
+            const escapedId = idVal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const rx = new RegExp(`!score\\s+[^\\n!]*?\\s+@${escapedId}\\s*!\\/`, 'gi');
+            const replacement = `!score ${cleanName} @${idVal} !/`;
+            if (typeof library !== 'undefined' && Array.isArray(library)) {
+                library.forEach(song => {
+                    if (song && typeof song.body === 'string' && rx.test(song.body)) {
+                        rx.lastIndex = 0;
+                        song.body = song.body.replace(rx, replacement);
+                        updatedCount++;
+                    }
+                });
+            }
+            const inpBody = document.getElementById('inpBody');
+            if (inpBody && typeof inpBody.value === 'string' && rx.test(inpBody.value)) {
+                rx.lastIndex = 0;
+                inpBody.value = inpBody.value.replace(rx, replacement);
+                if (typeof window.updateHighlights === 'function') window.updateHighlights();
+            }
+        });
         if (updatedCount > 0 && typeof saveData === 'function') saveData();
         return updatedCount;
     };

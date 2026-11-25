@@ -365,7 +365,24 @@ window.mNotes.ui = window.mNotes.ui || {};
         }
     };
 
+    /**
+     * Unified check for ABC score attachments / user_assets rows.
+     */
+    utils.isAbcAttachment = function(att) {
+        if (!att || typeof att !== 'object') return false;
+        var cat = String(att.category || '').toLowerCase().trim();
+        var fType = String(att.file_type || att.type || '').toLowerCase().trim();
+        if (cat === 'score' || fType === 'score') return true;
+        var rawUrl = String(att.url || att.file_url || '');
+        var cleanUrl = rawUrl.split('?')[0].split('#')[0].toLowerCase().trim();
+        if (cleanUrl.endsWith('.abc')) return true;
+        var name = String(att.name || att.custom_name || '').toLowerCase().trim();
+        if (name.endsWith('.abc')) return true;
+        return false;
+    };
+
     // --- Create Global Aliases for backward compatibility ---
+    window.isAbcAttachment = utils.isAbcAttachment;
     window.getEffectiveKey = utils.getEffectiveKey;
     window.showToast = utils.showToast;
     window.mConfirm = utils.mConfirm;

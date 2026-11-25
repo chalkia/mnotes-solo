@@ -195,17 +195,23 @@ window.mNotes.ui.visuals = window.mNotes.ui.visuals || {};
         });
     };
 
-    visualsMod.showScore = function(url, name) {
+    visualsMod.showScore = function(url, name, attObj) {
         if (typeof window.beforeOpenAttachmentUrl === 'function' && !window.beforeOpenAttachmentUrl(url, name)) {
             return;
         }
-        const isABC = (url.toLowerCase().includes('.abc?') || url.toLowerCase().endsWith('.abc'));
+        const probe = (attObj && typeof attObj === 'object') ? attObj : { url, name };
+        const isABC = (typeof isAbcAttachment === 'function')
+            ? isAbcAttachment(probe)
+            : (String(url || '').toLowerCase().includes('.abc?') || String(url || '').toLowerCase().endsWith('.abc'));
         
         if (isABC) {
             visualsMod.openLayer(`<div id="stage-abc-paper" style="background:#fff; color:#000; padding:20px; border-radius:8px; width:95%; max-height:90%; overflow-y:auto;"></div>`);
             visualsMod.setActiveDocUrl(url);
             
-            fetch(url).then(r => r.text()).then(abcText => {
+            const loadAbc = (url && String(url).startsWith('local://') && typeof window.soloGetLocalAssetText === 'function')
+                ? window.soloGetLocalAssetText(url)
+                : fetch(url).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); });
+            loadAbc.then(abcText => {
                 if (typeof ABCJS !== 'undefined') {
                     const vt = (typeof state !== 'undefined' && state) ? ((state.t || 0) - (state.c || 0)) : 0;
                     ABCJS.renderAbc("stage-abc-paper", abcText, { 

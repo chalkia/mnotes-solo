@@ -287,6 +287,20 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             return;
         }
 
+        const activeGroupId = (typeof currentGroupId !== 'undefined' && currentGroupId) ? currentGroupId : 'personal';
+        if (activeGroupId === 'personal') {
+            showToast(t('msg_share_requires_band', 'Η κοινοποίηση γίνεται από λίστα μπάντας — στείλε πρώτα τη λίστα στη μπάντα με ✈.'), 'warning');
+            return;
+        }
+
+        const canShareBand = (typeof roleCan === 'function')
+            ? (roleCan('EDIT_BAND_SETLIST') && roleCan('SHARE_SETLIST'))
+            : false;
+        if (!canShareBand) {
+            showToast(t('msg_err_share_only_admins', 'Μόνο owner, maestro ή admin μπορεί να κοινοποιήσει λίστα της μπάντας.'), 'error');
+            return;
+        }
+
         if (!navigator.onLine) {
             showToast(t('msg_req_internet', 'Απαιτείται σύνδεση στο Internet'), 'error');
             return;
@@ -308,7 +322,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         try {
             const inviteData = {
                 setlist_name: currentSetlistName,
-                group_id: currentGroupId === 'personal' ? null : currentGroupId,
+                group_id: activeGroupId,
                 created_by: currentUser.id,
                 expires_at: expiresAt.toISOString()
             };
@@ -331,7 +345,14 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             document.getElementById('setlistInviteModal').style.display = 'flex';
         } catch (err) {
             console.error('Error generating invite:', err);
-            showToast(t('msg_err_invite_create', 'Σφάλμα κατά τη δημιουργία πρόσκλησης'), 'error');
+            const errMsg = String(err?.message || '');
+            const isPermOrRls = err?.status === 403
+                || String(err?.code || '') === '42501'
+                || /row-level security|permission|forbidden|not authorized/i.test(errMsg);
+            const msg = isPermOrRls
+                ? t('msg_err_share_only_admins', 'Μόνο owner, maestro ή admin μπορεί να κοινοποιήσει λίστα της μπάντας.')
+                : (t('msg_err_invite_create', 'Σφάλμα κατά τη δημιουργία πρόσκλησης') + (errMsg ? `: ${errMsg}` : ''));
+            showToast(msg, 'error');
         } finally {
             if (btn) btn.classList.remove('pulse-anim');
         }
@@ -396,7 +417,9 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             : window.MNOTES_EDITION === 'solo');
         const canCreate = !isBand || (typeof roleCan === 'function' && roleCan('CREATE_BAND_SETLIST'));
         const canEdit = !isBand || (typeof roleCan === 'function' && roleCan('EDIT_BAND_SETLIST'));
-        const canShare = typeof roleCan === 'function' ? roleCan('SHARE_SETLIST') : true;
+        const canShare = isBand && (typeof roleCan === 'function'
+            ? (roleCan('EDIT_BAND_SETLIST') && roleCan('SHARE_SETLIST'))
+            : false);
 
         const items = [
             {
@@ -428,9 +451,9 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
                 id: 'share',
                 icon: 'fas fa-share-alt',
                 label: t('menu_setlist_share', 'Κοινοποίηση'),
-                hidden: isSolo || isTrash,
+                hidden: isSolo || isTrash || !isBand || !canShare,
                 disabled: !canShare,
-                reason: !canShare ? t('menu_setlist_no_perm', 'Δεν επιτρέπεται για τον τρέχοντα ρόλο σας') : '',
+                reason: !canShare ? t('msg_err_share_only_admins', 'Μόνο owner, maestro ή admin μπορεί να κοινοποιήσει λίστα της μπάντας.') : '',
                 action: () => { if (typeof window.generateSetlistInvite === 'function') window.generateSetlistInvite(); }
             },
             {
@@ -703,10 +726,12 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         try {
             let targetSetlists = {};
             if (targetGroupId === 'personal') {
-                const { data: pData } = await supabaseClient.from('profiles').select('setlists').eq('id', currentUser.id).single();
+                const { data: pData, error: pErr } = await supabaseClient.from('profiles').select('setlists').eq('id', currentUser.id).single();
+                if (pErr) throw pErr;
                 if (pData && pData.setlists) targetSetlists = pData.setlists;
             } else {
-                const { data: gData } = await supabaseClient.from('groups').select('setlists').eq('id', targetGroupId).single();
+                const { data: gData, error: gErr } = await supabaseClient.from('groups').select('setlists').eq('id', targetGroupId).single();
+                if (gErr) throw gErr;
                 if (gData && gData.setlists) targetSetlists = gData.setlists;
             }
 
@@ -717,9 +742,11 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             };
 
             if (targetGroupId === 'personal') {
-                await supabaseClient.from('profiles').update({ setlists: targetSetlists }).eq('id', currentUser.id);
+                const { error: updErr } = await supabaseClient.from('profiles').update({ setlists: targetSetlists }).eq('id', currentUser.id);
+                if (updErr) throw updErr;
             } else {
-                await supabaseClient.from('groups').update({ setlists: targetSetlists }).eq('id', targetGroupId);
+                const { error: updErr } = await supabaseClient.from('groups').update({ setlists: targetSetlists }).eq('id', targetGroupId);
+                if (updErr) throw updErr;
             }
             
             // Notify Main Library to reload

@@ -612,7 +612,7 @@ function formatHighlightsHTML(rawText, includeSections = true) {
         });
 
         // 3d-score. Inline ABC score tags: !score Name @id !/
-        text = text.replace(/(!score\s+[\s\S]*?\s*!\/)/gi, (match) => {
+        text = text.replace(/(!score\s+[^\n]*?\s*!\/)/gi, (match) => {
             const id = `__SCORE_${counter++}__`;
             const inner = match.replace(/(@[^\s@!]+)/g, '<span class="score-id-dim">$1</span>');
             placeholders[id] = `<span class="score-tag-highlight">${inner}</span>`;

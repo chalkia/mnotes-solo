@@ -30,9 +30,12 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         window.currentLang = _lang || 'el';
     }
 
+    settingsMod._pendingLibTextSize = null;
+
     settingsMod.open = function() {
         const modal = document.getElementById('settingsModal');
         if (!modal) return;
+        settingsMod._pendingLibTextSize = null;
 
         if (typeof userSettings === 'undefined' || !userSettings) {
             userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-slate', lang: 'el' };
@@ -158,6 +161,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
     };
 
     settingsMod.close = function() {
+        settingsMod._pendingLibTextSize = null;
         const modal = document.getElementById('settingsModal');
         if (modal) modal.style.display = 'none';
         settingsMod.applyTheme();
@@ -206,6 +210,11 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
 
         const themeSel = document.getElementById('setTheme');
         if (themeSel) userSettings.theme = themeSel.value;
+
+        if (settingsMod._pendingLibTextSize) {
+            userSettings.libTextSize = settingsMod._pendingLibTextSize;
+            settingsMod._pendingLibTextSize = null;
+        }
 
 
 
@@ -460,8 +469,15 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         }
     };
 
+    settingsMod.previewLibraryTextSize = function(size) {
+        const valid = (size === 'sm' || size === 'md' || size === 'lg') ? size : 'md';
+        settingsMod._pendingLibTextSize = valid;
+        settingsMod.applyLibraryTextSize(valid);
+    };
+
     settingsMod.setLibraryTextSize = function(size) {
         const valid = (size === 'sm' || size === 'md' || size === 'lg') ? size : 'md';
+        settingsMod._pendingLibTextSize = null;
         if (typeof userSettings === 'undefined' || !userSettings) {
             try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {}; }
             catch (e) { userSettings = {}; }
@@ -552,6 +568,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
     window.saveSettings = settingsMod.save;
     window.applyTheme = settingsMod.applyTheme;
     window.applyLibraryTextSize = settingsMod.applyLibraryTextSize;
+    window.previewLibraryTextSize = settingsMod.previewLibraryTextSize;
     window.setLibraryTextSize = settingsMod.setLibraryTextSize;
     window.toggleLanguage = settingsMod.toggleLanguage;
     window.applyTranslations = settingsMod.applyTranslations;
