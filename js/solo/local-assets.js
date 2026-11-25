@@ -518,8 +518,13 @@
 
     function soloOpenAssetManager(type) {
         const targetType = type || 'visuals';
-        if (root.mNotes && root.mNotes.ui && root.mNotes.ui.assets) {
-            root.mNotes.ui.assets.currentType = targetType;
+        const assetsMod = root.mNotes && root.mNotes.ui && root.mNotes.ui.assets;
+        if (assetsMod) {
+            if (typeof assetsMod.resetManagerUiForSolo === 'function') {
+                assetsMod.resetManagerUiForSolo(targetType);
+            } else {
+                assetsMod.currentType = targetType;
+            }
         }
         const typeInp = document.getElementById('assetManagerCurrentType');
         if (typeInp) typeInp.value = targetType;
@@ -544,6 +549,26 @@
             const all = await getDb().getAll();
             all.sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
 
+            const assetsMod = root.mNotes && root.mNotes.ui && root.mNotes.ui.assets;
+            if (assetsMod && typeof assetsMod.renderManagerList === 'function') {
+                const mapped = all.map(asset => {
+                    const isImg = asset.mime && asset.mime.startsWith('image/');
+                    return {
+                        id: asset.id,
+                        custom_name: asset.name,
+                        file_url: `${LOCAL_URI_PREFIX}${asset.id}`,
+                        file_type: isImg ? 'image' : 'document',
+                        mime: asset.mime || '',
+                        ext: asset.ext || '',
+                        size: asset.size || 0,
+                        created_at: asset.created_at || '',
+                        is_local_solo: true
+                    };
+                });
+                assetsMod.renderManagerList(mapped);
+                return;
+            }
+
             if (all.length === 0) {
                 listContainer.innerHTML = `<div class="empty-state">Δεν βρέθηκαν τοπικές παρτιτούρες / No local files found.</div>`;
                 return;
@@ -552,18 +577,16 @@
             listContainer.innerHTML = all.map(asset => {
                 const isImg = asset.mime && asset.mime.startsWith('image/');
                 const iconClass = isImg ? 'fas fa-image' : 'fas fa-file-pdf';
-                const sizeKB = asset.size ? ` (${Math.max(1, Math.round(asset.size / 1024))} KB)` : '';
                 const uri = `${LOCAL_URI_PREFIX}${asset.id}`;
                 const safeNameJs = escapeJsStr(asset.name);
                 const safeUriJs = escapeJsStr(uri);
                 const safeIdJs = escapeJsStr(asset.id);
 
                 return `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--border-color);">
-                        <span style="font-size:0.85rem; word-break:break-all;">
-                            <i class="${iconClass}" style="margin-right:5px; color:var(--accent);"></i> ${escapeHtml(asset.name)}<span style="opacity:0.6; font-size:0.75rem;">${sizeKB}</span>
-                        </span>
-                        <div style="display:flex; gap: 8px;">
+                    <div class="modal-row">
+                        <span class="am-row-icon"><i class="${iconClass}"></i></span>
+                        <span class="am-row-name">${escapeHtml(asset.name)}</span>
+                        <div class="am-row-actions">
                             <button onclick="downloadAssetLocal('${safeUriJs}', '${safeNameJs}')" class="play-mini-btn" title="Λήψη / Download" style="color: #28a745; border-color: #28a745;">
                                 <i class="fas fa-download"></i>
                             </button>

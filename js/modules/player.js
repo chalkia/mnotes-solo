@@ -39,8 +39,33 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         return `<span class="key-badge-dir ${up ? 'is-up' : 'is-down'}" aria-hidden="true">${up ? '▲' : '▼'}</span>`;
     };
 
+    let _lastAutoHeaderSongId = null;
+    let _preserveStageHeaderState = false;
+
+    player.refreshPreserveHeader = function() {
+        _preserveStageHeaderState = true;
+        try {
+            if (typeof refreshPlayerUI === 'function') refreshPlayerUI();
+        } finally {
+            _preserveStageHeaderState = false;
+        }
+    };
+
     player.triggerKeyBadge = function(dir) {
         const up = dir > 0;
+        const isCapoMode = typeof userSettings !== 'undefined' && userSettings && userSettings.keyBadgeAction === 'capo';
+
+        if (isCapoMode) {
+            const curCapo = (typeof state !== 'undefined' && typeof state.c === 'number') ? state.c : 0;
+            const rawMax = (typeof userSettings !== 'undefined' && userSettings.maxCapo !== undefined && userSettings.maxCapo !== '')
+                ? parseInt(userSettings.maxCapo, 10)
+                : 12;
+            const maxCapo = Number.isFinite(rawMax) && rawMax >= 0 ? rawMax : 12;
+            if ((!up && curCapo <= 0) || (up && curCapo >= maxCapo)) {
+                return;
+            }
+        }
+
         clearTimeout(keyBadgeFadeTimer);
         clearTimeout(keyBadgeClearTimer);
         keyBadgeArrow = { dir: up ? 1 : -1, expiresAt: Date.now() + 700 };
@@ -48,8 +73,18 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         if (!up && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
             navigator.vibrate(20);
         }
-        if (up && typeof transUp === 'function') transUp();
-        else if (!up && typeof transDown === 'function') transDown();
+        _preserveStageHeaderState = true;
+        try {
+            if (isCapoMode) {
+                if (up && typeof capoUp === 'function') capoUp();
+                else if (!up && typeof capoDown === 'function') capoDown();
+            } else {
+                if (up && typeof transUp === 'function') transUp();
+                else if (!up && typeof transDown === 'function') transDown();
+            }
+        } finally {
+            _preserveStageHeaderState = false;
+        }
 
         keyBadgeFadeTimer = setTimeout(() => {
             document.querySelectorAll('.player-header .key-badge .key-badge-dir').forEach(el => {
@@ -254,9 +289,18 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         const activeGroup = isBandCtx && typeof myGroups !== 'undefined' && Array.isArray(myGroups)
             ? myGroups.find(g => String(g.id) === String(currentGroupId))
             : null;
-        const bandBadgeHtml = (isBandCtx && activeGroup && activeGroup.name)
-            ? `<span class="stage-band-badge" title="${t('lbl_band_context', 'Βιβλιοθήκη μπάντας')}">👥 ${activeGroup.name}</span>`
-            : '';
+        const _isSoloMode = (typeof isSolo !== 'undefined' && isSolo) || (typeof window.currentEdition === 'function' && window.currentEdition() === 'solo');
+        const _escBadge = (str) => String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        let bandBadgeHtml = '';
+        if (!_isSoloMode) {
+            if (isBandCtx && activeGroup && activeGroup.name) {
+                const fullName = _escBadge(activeGroup.name);
+                bandBadgeHtml = `<span class="stage-band-badge" title="${fullName}"><span class="sbb-ico" aria-hidden="true">👥</span><span class="sbb-name">${fullName}</span></span>`;
+            } else {
+                const persLbl = _escBadge(t('stage_personal_badge', 'Προσωπικό'));
+                bandBadgeHtml = `<span class="stage-band-badge is-personal" title="${persLbl}"><span class="sbb-name">${persLbl}</span></span>`;
+            }
+        }
 
         let versionClusterParts = [];
         if (typeof window.getVersionGroup === 'function') {
@@ -305,6 +349,15 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             const splitInfo = player.getSplitState();
 
             const isPlayed = (window.PlayedSet && window.PlayedSet.has(s.id));
+            const isCapoMode = typeof userSettings !== 'undefined' && userSettings && userSettings.keyBadgeAction === 'capo';
+            const curCapo = (typeof state !== 'undefined' && typeof state.c === 'number') ? state.c : 0;
+            const badgeTitleKey = isCapoMode ? 'ttl_key_badge_capo' : 'title_change_key';
+            const badgeTitleTxt = isCapoMode
+                ? t('ttl_key_badge_capo', 'Πάτημα: +1 Capo · Παρατεταμένο / δεξί κλικ: −1')
+                : t('title_change_key', 'Πάτημα: +1 ημιτόνιο · Παρατεταμένο / δεξί κλικ: −1');
+            const badgeCapoHtml = isCapoMode
+                ? `<span class="key-badge-capo${curCapo > 0 ? '' : ' is-zero'}">Capo ${curCapo}</span>`
+                : '';
 
             headerContainer.innerHTML = `
             <div class="player-header" style="position: relative;">
@@ -326,7 +379,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                      ${tagsHtml}
                      <div class="stage-header-meta-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                          <div class="stage-key-cluster" style="display:flex; align-items:center; gap: 8px; flex-wrap:wrap;">
-                            <button type="button" class="key-badge" data-i18n-title="title_change_key" data-i18n-aria="title_change_key" title="${t('title_change_key', 'Πάτημα: +1 ημιτόνιο · Παρατεταμένο / δεξί κλικ: −1')}" aria-label="${t('title_change_key', 'Πάτημα: +1 ημιτόνιο · Παρατεταμένο / δεξί κλικ: −1')}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}${player.getKeyBadgeArrowHtml()}</button>
+                            <button type="button" class="key-badge" data-i18n-title="${badgeTitleKey}" data-i18n-aria="${badgeTitleKey}" title="${badgeTitleTxt}" aria-label="${badgeTitleTxt}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}${badgeCapoHtml}${player.getKeyBadgeArrowHtml()}</button>
                              <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
                              <button id="btnToggleView" onclick="toggleViewMode()"></button>
                              ${bandBadgeHtml}
@@ -430,15 +483,20 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         if (typeof player.applyAutoFit === 'function') {
             player.applyAutoFit();
         }
-        // Αν το τραγούδι χωράει ολόκληρο στην οθόνη (χωρίς κύλιση), ανοίγουμε την κεφαλίδα· αλλιώς συμπαγής μπάρα
+        // Αν το τραγούδι χωράει ολόκληρο στην οθόνη (χωρίς κύλιση), ανοίγουμε την κεφαλίδα· αλλιώς συμπαγής μπάρα.
+        // Εξαίρεση: όταν γίνεται ανανέωση επί τόπου στο ίδιο τραγούδι (π.χ. πάτημα .key-badge για key/capo),
+        // ΔΕΝ κλείνουμε την κεφαλίδα αν την έχει ανοίξει ο χρήστης.
         if (typeof isMobileView === 'function' && isMobileView() && !document.body.classList.contains('play-mode')) {
-            document.body.classList.add('stage-tools-open');
-            const sc = document.getElementById('scroll-container');
-            const fc = document.getElementById('fixed-container');
-            const scFits = !sc || sc.scrollHeight <= sc.clientHeight + 2;
-            const fcFits = !fc || fc.style.display === 'none' || fc.scrollHeight <= fc.clientHeight + 2;
-            if (!scFits || !fcFits) {
-                document.body.classList.remove('stage-tools-open');
+            if (!_preserveStageHeaderState && s.id !== _lastAutoHeaderSongId) {
+                _lastAutoHeaderSongId = s.id;
+                document.body.classList.add('stage-tools-open');
+                const sc = document.getElementById('scroll-container');
+                const fc = document.getElementById('fixed-container');
+                const scFits = !sc || sc.scrollHeight <= sc.clientHeight + 2;
+                const fcFits = !fc || fc.style.display === 'none' || fc.scrollHeight <= fc.clientHeight + 2;
+                if (!scFits || !fcFits) {
+                    document.body.classList.remove('stage-tools-open');
+                }
             }
             if (typeof window.updateCompactExpandArrow === 'function') window.updateCompactExpandArrow();
         }
@@ -1179,6 +1237,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         const badge = e.target.closest(BADGE_SELECTOR);
         if (!badge) return;
+        e.stopPropagation();
 
         // Νέο πάτημα -> ακυρώνει τυχόν υπόλοιπο suppression από προηγούμενη χειρονομία
         clearTimeout(suppressResetTimer);
@@ -1218,9 +1277,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
     document.addEventListener('click', function (e) {
         const badge = e.target.closest(BADGE_SELECTOR);
         if (!badge) return;
+        e.stopPropagation();
         if (suppressNextClick) {
             e.preventDefault();
-            e.stopPropagation();
             clearTimeout(suppressResetTimer);
             suppressNextClick = false;
             return;
@@ -1236,6 +1295,7 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
         const badge = e.target.closest(BADGE_SELECTOR);
         if (!badge) return;
         e.preventDefault();
+        e.stopPropagation();
         cancelHold();
         suppressNextClick = false;
         if (window.mNotes && window.mNotes.ui && window.mNotes.ui.player && typeof window.mNotes.ui.player.triggerKeyBadge === 'function') {

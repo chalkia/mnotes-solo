@@ -22,7 +22,329 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     let pitchNode = null;
     let activeSemitones = 0;
 
+    let _amCachedAssets = [];
+    let _amFilter = 'all';
+    let _amIsReadOnly = false;
+    let _amVaultBanner = '';
+    const _amSelectedIds = new Set();
+    let _amPreviewAudio = null;
+    let _amPreviewUrl = null;
+
+    function trAsset(key, fallback) {
+        return typeof t === 'function' ? t(key, fallback) : fallback;
+    }
+
+    function cleanAssetUrl(url) {
+        return String(url || '').split('?')[0];
+    }
+
+    function stopAmPreview() {
+        if (_amPreviewAudio) {
+            try { _amPreviewAudio.pause(); } catch (_) {}
+            _amPreviewAudio = null;
+        }
+        _amPreviewUrl = null;
+        document.querySelectorAll('#assetManagerList .am-preview-btn.is-playing').forEach(btn => {
+            btn.classList.remove('is-playing');
+            btn.innerHTML = '<i class="fas fa-play"></i>';
+        });
+    }
+
+    function toggleAmAudioPreview(url, btnEl) {
+        const clean = cleanAssetUrl(url);
+        if (_amPreviewUrl === clean && _amPreviewAudio && !_amPreviewAudio.paused) {
+            stopAmPreview();
+            return;
+        }
+        stopAmPreview();
+        try {
+            _amPreviewAudio = new Audio(url);
+            _amPreviewUrl = clean;
+            if (btnEl) {
+                btnEl.classList.add('is-playing');
+                btnEl.innerHTML = '<i class="fas fa-stop"></i>';
+            }
+            _amPreviewAudio.onended = () => stopAmPreview();
+            _amPreviewAudio.onerror = () => stopAmPreview();
+            const p = _amPreviewAudio.play();
+            if (p && typeof p.catch === 'function') p.catch(() => stopAmPreview());
+        } catch (_) {
+            stopAmPreview();
+        }
+    }
+
+    function getSongAttachedUrlsForManager() {
+        const set = new Set();
+        const song = (typeof library !== 'undefined' && Array.isArray(library) && typeof currentSongId !== 'undefined')
+            ? library.find(x => x.id === currentSongId)
+            : null;
+        if (!song) return set;
+        ['recordings', 'rhythms', 'attachments'].forEach(field => {
+            const arr = Array.isArray(song[field]) ? song[field] : [];
+            arr.forEach(item => {
+                const u = typeof item === 'string' ? item : item?.url;
+                if (u) set.add(cleanAssetUrl(u));
+            });
+        });
+        return set;
+    }
+
+    function updateAmFooterCount() {
+        const btn = document.getElementById('btnAmAttachSelected');
+        const countEl = document.getElementById('amSelectedCount');
+        const cnt = _amSelectedIds.size;
+        if (countEl) countEl.textContent = String(cnt);
+        if (btn) btn.disabled = cnt === 0 || _amIsReadOnly;
+    }
+
+    function getAmFilterChipsForType(type) {
+        if (type === 'audio') {
+            return [
+                { id: 'all', label: trAsset('am_chip_all', 'Όλα') },
+                { id: 'recordings', label: trAsset('am_chip_recordings', 'Ηχογραφήσεις') },
+                { id: 'files', label: trAsset('am_chip_audio_files', 'MP3 / WAV') }
+            ];
+        }
+        if (type === 'visuals' || type === 'score' || type === 'document') {
+            const canAbc = (typeof canUserPerform === 'function') ? canUserPerform('CREATE_ABC_SCORE') : true;
+            const chips = [{ id: 'all', label: trAsset('am_chip_all', 'Όλα') }];
+            if (canAbc) chips.push({ id: 'score', label: trAsset('am_chip_abc', 'ABC') });
+            chips.push({ id: 'pdf', label: trAsset('am_chip_pdf', 'PDF') });
+            chips.push({ id: 'image', label: trAsset('am_chip_images', 'Εικόνες') });
+            return chips;
+        }
+        return [{ id: 'all', label: trAsset('am_chip_all', 'Όλα') }];
+    }
+
+    function renderAmFilterChips(type) {
+        const host = document.getElementById('amFilterChips');
+        if (!host) return;
+        host.dataset.amType = type || 'audio';
+        const chips = getAmFilterChipsForType(type);
+        if (!chips.some(c => c.id === _amFilter)) _amFilter = 'all';
+        host.innerHTML = '';
+        if (chips.length <= 1) {
+            host.style.display = 'none';
+            return;
+        }
+        host.style.display = 'flex';
+        chips.forEach(ch => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'f-chip' + (_amFilter === ch.id ? ' active' : '');
+            b.dataset.filter = ch.id;
+            b.textContent = ch.label;
+            b.addEventListener('click', () => {
+                _amFilter = ch.id;
+                host.querySelectorAll('.f-chip').forEach(el => el.classList.toggle('active', el.dataset.filter === ch.id));
+                assets.renderManagerList();
+            });
+            host.appendChild(b);
+        });
+    }
+
+    function matchesAmFilter(asset, type) {
+        const searchTerm = (document.getElementById('amSearch')?.value || '').trim().toLowerCase();
+        if (searchTerm && !(asset.custom_name || '').toLowerCase().includes(searchTerm)) return false;
+
+        if (_amFilter === 'all') return true;
+        const urlClean = cleanAssetUrl(asset.file_url).toLowerCase();
+        const fType = (asset.file_type || '').toLowerCase();
+
+        if (type === 'audio') {
+            const isRec = urlClean.includes('rec_') || urlClean.endsWith('.webm') || (asset.custom_name || '').toLowerCase().includes('rec');
+            if (_amFilter === 'recordings') return isRec;
+            if (_amFilter === 'files') return !isRec;
+            return true;
+        }
+
+        const mimeLow = (asset.mime || '').toLowerCase();
+        const extLow = (asset.ext || '').toLowerCase();
+        const isAbc = fType === 'score' || urlClean.endsWith('.abc');
+        const isPdf = urlClean.endsWith('.pdf') || mimeLow === 'application/pdf' || extLow === 'pdf';
+        if (_amFilter === 'score') return isAbc;
+        if (_amFilter === 'pdf') return isPdf;
+        if (_amFilter === 'image') return !isPdf && !isAbc;
+        return true;
+    }
+
+    assets.renderManagerList = function(items) {
+        if (Array.isArray(items)) _amCachedAssets = items;
+        const listContainer = document.getElementById('assetManagerList');
+        if (!listContainer) return;
+        const chipHost = document.getElementById('amFilterChips');
+        if (chipHost && chipHost.dataset.amType !== assets.currentType) {
+            renderAmFilterChips(assets.currentType);
+        }
+
+        const filtered = _amCachedAssets.filter(a => matchesAmFilter(a, assets.currentType));
+        if (filtered.length === 0) {
+            listContainer.innerHTML = _amVaultBanner + `<div class="empty-state" style="padding:24px; text-align:center;">Δεν βρέθηκαν αρχεία / No files found.</div>`;
+            updateAmFooterCount();
+            return;
+        }
+
+        const attachedUrls = getSongAttachedUrlsForManager();
+        listContainer.innerHTML = _amVaultBanner;
+
+        filtered.forEach(asset => {
+            const row = document.createElement('div');
+            row.className = 'modal-row';
+            row.dataset.assetId = asset.id;
+
+            const isAttached = attachedUrls.has(cleanAssetUrl(asset.file_url));
+
+            if (!_amIsReadOnly) {
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'am-row-check';
+                cb.checked = _amSelectedIds.has(asset.id);
+                cb.setAttribute('aria-label', asset.custom_name || 'Select');
+                cb.addEventListener('change', () => {
+                    if (cb.checked) _amSelectedIds.add(asset.id);
+                    else _amSelectedIds.delete(asset.id);
+                    updateAmFooterCount();
+                });
+                row.appendChild(cb);
+            }
+
+            let itemIcon = 'fas fa-file';
+            const urlLow = cleanAssetUrl(asset.file_url).toLowerCase();
+            const mimeLow = (asset.mime || '').toLowerCase();
+            const extLow = (asset.ext || '').toLowerCase();
+            if (asset.file_type === 'audio') itemIcon = 'fas fa-music';
+            else if (asset.file_type === 'rhythm' || urlLow.endsWith('.mnr')) itemIcon = 'fas fa-drum';
+            else if (asset.file_type === 'score' || urlLow.endsWith('.abc')) itemIcon = 'fas fa-file-code';
+            else if (urlLow.endsWith('.pdf') || mimeLow === 'application/pdf' || extLow === 'pdf') itemIcon = 'fas fa-file-pdf';
+            else if (asset.file_type === 'document' || asset.file_type === 'image') itemIcon = 'fas fa-image';
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'am-row-icon';
+            iconSpan.innerHTML = `<i class="${itemIcon}"></i>`;
+            row.appendChild(iconSpan);
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'am-row-name';
+            nameSpan.textContent = asset.custom_name || 'Untitled';
+            nameSpan.title = asset.custom_name || '';
+            if (!_amIsReadOnly) {
+                nameSpan.style.cursor = 'pointer';
+                nameSpan.addEventListener('click', () => {
+                    const cb = row.querySelector('.am-row-check');
+                    if (cb) {
+                        cb.checked = !cb.checked;
+                        cb.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+            row.appendChild(nameSpan);
+
+            if (isAttached) {
+                const pill = document.createElement('span');
+                pill.className = 'linked-pill';
+                pill.title = trAsset('am_linked_badge', 'Συνδεδεμένο');
+                pill.innerHTML = `✓ <span class="lp-text">${trAsset('am_linked_badge', 'Συνδεδεμένο')}</span>`;
+                row.appendChild(pill);
+            }
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'am-row-actions';
+
+            if (asset.file_type === 'audio') {
+                const playBtn = document.createElement('button');
+                playBtn.type = 'button';
+                playBtn.className = 'play-mini-btn am-preview-btn';
+                playBtn.title = 'Προεπισκόπηση / Preview';
+                playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                playBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleAmAudioPreview(asset.file_url, playBtn);
+                });
+                actionsDiv.appendChild(playBtn);
+            }
+
+            const dlBtn = document.createElement('button');
+            dlBtn.type = 'button';
+            dlBtn.className = 'play-mini-btn am-btn-dl am-btn-outline';
+            dlBtn.title = 'Λήψη / Download';
+            dlBtn.style.cssText = 'color: #28a745; border-color: #28a745;';
+            dlBtn.innerHTML = '<i class="fas fa-download"></i>';
+            dlBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                assets.downloadLocal(asset.file_url, asset.custom_name || 'file');
+            });
+            actionsDiv.appendChild(dlBtn);
+
+            const canDelete = Boolean(asset.is_local_solo) || (typeof currentUser !== 'undefined' && currentUser && asset.user_id === currentUser.id) || (typeof roleCan === 'function' && roleCan('DELETE_LIBRARY_ASSET'));
+            if (canDelete) {
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'play-mini-btn am-btn-outline';
+                delBtn.style.cssText = 'color: #dc3545; border-color: #dc3545;';
+                delBtn.title = 'Οριστική Διαγραφή / Delete';
+                delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    assets.deleteFromLibrary(asset.id, asset.file_url, asset.custom_name || '');
+                });
+                actionsDiv.appendChild(delBtn);
+            }
+
+            row.appendChild(actionsDiv);
+            listContainer.appendChild(row);
+        });
+
+        updateAmFooterCount();
+    };
+
+    assets.attachSelected = async function() {
+        if (!currentSongId) {
+            showToast(trAsset('msg_select_song_first', "Επιλέξτε τραγούδι πρώτα! / Select a song first!"));
+            return;
+        }
+        const selected = _amCachedAssets.filter(a => _amSelectedIds.has(a.id));
+        if (selected.length === 0) return;
+
+        let addedCount = 0;
+        for (const asset of selected) {
+            let assetType = assets.currentType;
+            if (assetType === 'visuals') {
+                const uLow = cleanAssetUrl(asset.file_url).toLowerCase();
+                assetType = (uLow.endsWith('.abc') || asset.file_type === 'score') ? 'score' : 'document';
+            }
+            const ok = await assets.processAttachment(currentSongId, assetType, asset.custom_name, asset.file_url);
+            if (ok !== false) addedCount++;
+        }
+
+        _amSelectedIds.clear();
+        assets.closeManager();
+        if (addedCount > 0) {
+            showToast(addedCount === 1
+                ? `Το αρχείο συνδέθηκε επιτυχώς!`
+                : `Συνδέθηκαν ${addedCount} αρχεία επιτυχώς!`);
+        }
+    };
+
     // --- Core Functions ---
+
+    assets.resetManagerUiForSolo = function(type) {
+        assets.currentType = type || 'visuals';
+        _amFilter = 'all';
+        _amSelectedIds.clear();
+        _amIsReadOnly = false;
+        _amVaultBanner = '';
+        stopAmPreview();
+        const searchEl = document.getElementById('amSearch');
+        if (searchEl) {
+            searchEl.value = '';
+            if (!searchEl.dataset.amBound) {
+                searchEl.addEventListener('input', () => assets.renderManagerList());
+                searchEl.dataset.amBound = '1';
+            }
+        }
+        renderAmFilterChips(assets.currentType);
+        updateAmFooterCount();
+    };
 
     assets.openManager = function(type) {
         if (typeof window.soloOpenAssetManager === 'function') {
@@ -34,6 +356,20 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             return;
         }
         assets.currentType = type;
+        _amFilter = 'all';
+        _amSelectedIds.clear();
+        stopAmPreview();
+        const searchEl = document.getElementById('amSearch');
+        if (searchEl) {
+            searchEl.value = '';
+            if (!searchEl.dataset.amBound) {
+                searchEl.addEventListener('input', () => assets.renderManagerList());
+                searchEl.dataset.amBound = '1';
+            }
+        }
+        renderAmFilterChips(type);
+        updateAmFooterCount();
+
         const typeInp = document.getElementById('assetManagerCurrentType');
         if (typeInp) typeInp.value = type;
         
@@ -44,6 +380,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     };
 
     assets.closeManager = function() {
+        stopAmPreview();
         const modal = document.getElementById('assetManagerModal');
         if (modal) modal.style.display = 'none';
     };
@@ -56,6 +393,10 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             else btn.classList.remove('active');
         });
         assets.currentType = type;
+        _amFilter = 'all';
+        _amSelectedIds.clear();
+        renderAmFilterChips(type);
+        updateAmFooterCount();
         const typeInp = document.getElementById('assetManagerCurrentType');
         if (typeInp) typeInp.value = type;
         assets.loadUserAssets(type);
@@ -67,9 +408,11 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         }
         const listContainer = document.getElementById('assetManagerList');
         if (!listContainer) return;
-        listContainer.innerHTML = `<div class="empty-state">Φόρτωση αρχείων... / Loading...</div>`;
+        listContainer.innerHTML = `<div class="empty-state" style="padding:24px; text-align:center;">Φόρτωση αρχείων... / Loading...</div>`;
 
-        const isReadOnly = (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS'));
+        _amIsReadOnly = (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS'));
+        renderAmFilterChips(type);
+        updateAmFooterCount();
 
         try {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -79,8 +422,6 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             }
             const uid = session.user.id;
 
-            console.log(`[AssetManager] Querying for user: ${uid}`);
-            
             // 1. Φέρνουμε ΟΛΑ τα αρχεία που ανήκουν στον χρήστη (ανεξαρτήτως group_id)
             const { data: userData, error: uError } = await supabaseClient
                 .from('user_assets')
@@ -92,8 +433,6 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 console.error("[AssetManager] DB Error:", uError);
                 throw uError;
             }
-            
-            console.log(`[AssetManager] DB returned ${userData ? userData.length : 0} total assets for this user.`);
 
             // 2. Φιλτράρισμα βάσει τύπου στο frontend για μέγιστη σιγουριά
             let filtered = (userData || []).filter(asset => {
@@ -104,18 +443,15 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 return fType === type.toLowerCase();
             });
 
-            console.log(`[AssetManager] Filtered ${filtered.length} assets for type: ${type}`);
-
             // Ταξινόμηση
             filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            const data = filtered;
 
-            let vaultBanner = '';
+            _amVaultBanner = '';
             const uploadSection = document.getElementById('assetUploadSection'); 
 
-            if (isReadOnly && data && data.length > 0) {
-                vaultBanner = `
-                    <div style="background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffc107; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; text-align: center;">
+            if (_amIsReadOnly && filtered.length > 0) {
+                _amVaultBanner = `
+                    <div style="background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffc107; padding: 10px; border-radius: 6px; margin: 8px; font-size: 0.85rem; text-align: center;">
                         <i class="fas fa-snowflake"></i> <b>Παγωμένος Χώρος:</b> Το πακέτο σας άλλαξε σε Free. 
                         Τα αρχεία σας είναι ασφαλή, μπορείτε να τα κατεβάσετε, αλλά δεν μπορείτε να τα προσθέσετε σε νέα τραγούδια.
                     </div>
@@ -125,57 +461,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 if (uploadSection) uploadSection.style.display = 'block';
             }
 
-            if (!data || data.length === 0) {
-                listContainer.innerHTML = vaultBanner + `<div class="empty-state">Δεν βρέθηκαν αρχεία / No files found.</div>`;
-                return;
-            }
-
-            const listHtml = data.map(asset => {
-                let itemIcon = 'fas fa-file';
-                if (asset.file_type === 'audio') itemIcon = 'fas fa-music';
-                else if (asset.file_type === 'rhythm') itemIcon = 'fas fa-drum';
-                else if (asset.file_type === 'score' || asset.file_url.toLowerCase().includes('.abc?') || asset.file_url.toLowerCase().endsWith('.abc')) itemIcon = 'fas fa-file-musical';
-                else if (asset.file_type === 'document') itemIcon = 'fas fa-image';
-
-                const ownerTag = (currentGroupId !== 'personal' && asset.user_id === currentUser.id) 
-                    ? '<span style="font-size:0.65rem; color:var(--accent); margin-left:5px;">(Εσύ)</span>' : '';
-
-                const attachBtn = isReadOnly ? '' : `
-                    <button onclick="attachExistingAsset('${asset.custom_name.replace(/'/g, "\\'")}', '${asset.file_url}')" class="add-mini-btn" title="Σύνδεση με το τραγούδι / Attach to song">
-                        <i class="fas fa-link"></i>
-                    </button>
-                `;
-
-                const canDelete = asset.user_id === currentUser.id || roleCan('DELETE_LIBRARY_ASSET');
-                const deleteBtn = canDelete ? `
-                    <button onclick="deleteAssetFromLibrary('${asset.id}', '${asset.file_url}', '${asset.custom_name.replace(/'/g, "\\'")}')" class="play-mini-btn" style="color: #dc3545; border-color: #dc3545;" title="Οριστική Διαγραφή / Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                ` : '';
-
-                const playBtn = (asset.file_type === 'audio') ? `
-                    <button onclick="playAudio('${asset.file_url}', '${asset.custom_name.replace(/'/g, "\\'")}')" class="play-mini-btn" title="Προεπισκόπηση / Preview">
-                        <i class="fas fa-play"></i>
-                    </button>
-                ` : '';
-
-                return `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--border-color);">
-                    <span style="font-size:0.85rem; word-break:break-all;">
-                        <i class="${itemIcon}" style="margin-right:5px; color:var(--accent);"></i> ${asset.custom_name} ${ownerTag}
-                    </span>
-                    <div style="display:flex; gap: 8px;">
-                        ${playBtn}
-                        <button onclick="downloadAssetLocal('${asset.file_url}', '${asset.custom_name.replace(/'/g, "\\'")}')" class="play-mini-btn" title="Λήψη / Download" style="color: #28a745; border-color: #28a745;">
-                            <i class="fas fa-download"></i>
-                        </button>
-                        ${attachBtn}
-                        ${deleteBtn}
-                    </div>
-                </div>
-            `}).join('');
-
-            listContainer.innerHTML = vaultBanner + listHtml;
+            assets.renderManagerList(filtered);
 
         } catch (err) {
             console.error("[AssetManager] Σφάλμα φόρτωσης αρχείων:", err);
@@ -320,9 +606,12 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         }
 
         const newAssetObj = { id: Date.now(), name: name, url: url, date: Date.now(), bpm: currentBpm };
+        const cleanU = cleanAssetUrl(url);
+        const alreadyHasUrl = (arr) => Array.isArray(arr) && arr.some(x => cleanAssetUrl(typeof x === 'string' ? x : x?.url) === cleanU);
        
         if (type === 'audio') {
             if (!targetSong.recordings) targetSong.recordings = [];
+            if (alreadyHasUrl(targetSong.recordings)) return false;
             targetSong.recordings.push(newAssetObj);
             
             if (typeof addRecordingToCurrentSong === 'function' && targetSongId === currentSongId) {
@@ -337,6 +626,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
 
         } else if (type === 'rhythm') { 
             if (!targetSong.rhythms) targetSong.rhythms = [];
+            if (alreadyHasUrl(targetSong.rhythms)) return false;
             targetSong.rhythms.push(newAssetObj);
             
             if(typeof saveSong === 'function') saveSong(targetSong);
@@ -349,6 +639,7 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             
         } else { 
             if (!targetSong.attachments) targetSong.attachments = [];
+            if (alreadyHasUrl(targetSong.attachments)) return false;
             if (type === 'score') {
                 newAssetObj.category = 'score';
             }
@@ -360,13 +651,29 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 renderAttachmentsList(targetSong.attachments);
             }
         }
+        return true;
     };
 
     assets.deleteFromLibrary = async function(assetId, fileUrl, assetName) {
         if (typeof window.soloDeleteFromLibrary === 'function') {
             return window.soloDeleteFromLibrary(assetId, fileUrl, assetName);
         }
-        if (!(await window.mConfirm(`Διαγραφή του "${assetName}" (Μεταφορά στον κάδο);`, true))) return;
+        let confirmMsg = `Διαγραφή του "${assetName}" (Μεταφορά στον κάδο);`;
+        if (typeof window.formatLinkedSongsDeleteWarning === 'function') {
+            let allLocalSongs = [];
+            try {
+                if (typeof library !== 'undefined' && Array.isArray(library)) allLocalSongs = allLocalSongs.concat(library);
+                const pRaw = localStorage.getItem('mnotes_data');
+                if (pRaw) allLocalSongs = allLocalSongs.concat(JSON.parse(pRaw) || []);
+                if (typeof currentGroupId !== 'undefined' && currentGroupId && currentGroupId !== 'personal') {
+                    const bRaw = localStorage.getItem(`mnotes_band_${currentGroupId}`);
+                    if (bRaw) allLocalSongs = allLocalSongs.concat(JSON.parse(bRaw) || []);
+                }
+            } catch (_) {}
+            const dedup = Array.from(new Map(allLocalSongs.filter(s => s && s.id).map(s => [s.id, s])).values());
+            confirmMsg = window.formatLinkedSongsDeleteWarning({ id: assetId, file_url: fileUrl, custom_name: assetName }, dedup, []);
+        }
+        if (!(await window.mConfirm(confirmMsg, true))) return;
 
         try {
             // Soft delete
@@ -1149,6 +1456,8 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     window.closeAssetManager = assets.closeManager;
     window.switchAssetManagerTab = assets.switchTab;
     window.loadUserAssets = assets.loadUserAssets;
+    window.renderAssetManagerList = assets.renderManagerList;
+    window.attachSelectedAssets = assets.attachSelected;
     window.handleGlobalUpload = assets.handleUpload;
     window.attachExistingAsset = assets.attachExisting;
     window.deleteAssetFromLibrary = assets.deleteFromLibrary;

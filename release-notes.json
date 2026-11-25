@@ -2,6 +2,74 @@
   "_comment": "Σημειώσεις έκδοσης, ΟΡΑΤΕΣ ΣΤΟΝ ΧΡΗΣΤΗ / User-facing Release Notes. Νεότερη έκδοση πρώτη / Newest first. type: new | fix | improved",
   "releases": [
     {
+      "version": "2.8.0",
+      "date": "2026-11-24",
+      "title": {
+        "el": "mNotes 2.8 — Βιβλιοθήκη, Σκηνή & Βοηθήματα",
+        "en": "mNotes 2.8 — Library, Stage & Tools"
+      },
+      "items": [
+        {
+          "type": "new",
+          "editions": ["pro"],
+          "text": {
+            "el": "Εναλλαγή προσωπικής και ομαδικών βιβλιοθηκών μπάντας από τη νέα πλευρική στήλη και κάψουλα βιβλιοθηκών.",
+            "en": "Switch between your personal and band libraries from the new side rail and library switcher pill."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Νέα Βιβλιοθήκη με ευανάγνωστες σειρές, 3 μεγέθη γραμμάτων και ενοποιημένο μενού λίστας τραγουδιών.",
+            "en": "Refreshed Library with readable rows, 3 text sizes, and a unified setlist menu."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Νέα Σκηνή: στο Play κρύβεται μόνο η κεφαλίδα, νέο κουμπί διαχωρισμού και γρήγορο τρανσπόζο από το σήμα κλίμακας (πάτημα +1, παρατεταμένο −1).",
+            "en": "Refreshed Stage: Play mode hides only the header, quick Split/Single view button, and key transpose right on the key badge (tap +1, long-press −1)."
+          }
+        },
+        {
+          "type": "new",
+          "editions": ["pro"],
+          "text": {
+            "el": "Παρτιτούρες μέσα στο τραγούδι (ABC) απευθείας ανάμεσα στους στίχους και άνοιγμα στη Σκηνή.",
+            "en": "Inline ABC notation embedded directly inside song lyrics with instant Stage view."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Αλλαγή σελίδων σε PDF και παρτιτούρες με πεντάλ Bluetooth.",
+            "en": "Turn pages in PDFs and scores using a Bluetooth foot pedal."
+          }
+        },
+        {
+          "type": "new",
+          "text": {
+            "el": "Βοηθήματα: αλλαγή σειράς ενοτήτων (λαβή ⠿), συμπαγής Ρυθμός & Μετρονόμος με φωτεινούς χτύπους και καθαρή λίστα Παρτιτούρων.",
+            "en": "Tools: reorder sections (⠿ handle), compact Rhythm & Metronome with beat LEDs, and a cleaner Scores & Files list."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Νέο οργανικό κουρδιστήρι με μεγάλη προβολή, χορδές οργάνου και αποθήκευση του επιλεγμένου οργάνου.",
+            "en": "New organic tuner with big display, instrument strings, and automatic memory of your chosen instrument."
+          }
+        },
+        {
+          "type": "improved",
+          "text": {
+            "el": "Νέο παράθυρο Ρυθμίσεων σε 7 καθαρές ενότητες, εύχρηστο σε υπολογιστή και κινητό.",
+            "en": "Redesigned Settings organized into 7 clear groups for desktop and mobile."
+          }
+        }
+      ]
+    },
+    {
       "version": "2.7.8",
       "date": "2026-11-21",
       "title": {

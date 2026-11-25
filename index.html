@@ -787,14 +787,14 @@
             </div>
         </div>
         <div id="assetManagerModal" class="modal" style="display:none;">
-            <div class="modal-content" style="max-width: 500px; width: 95%;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h3 style="margin:0;"><i class="fas fa-photo-video"></i> <span data-i18n="title_media_library">My
+            <div class="modal-content tall-modal-card">
+                <div class="tm-header">
+                    <h3><i class="fas fa-photo-video"></i> <span data-i18n="title_media_library">My
                             Media Library</span></h3>
-                    <button onclick="closeAssetManager()" class="text-btn"><i class="fas fa-times"></i></button>
+                    <button onclick="closeAssetManager()" class="text-btn" aria-label="Κλείσιμο"><i class="fas fa-times"></i></button>
                 </div>
 
-                <div id="assetManagerTabs" class="sidebar-tabs" style="display: none; margin-bottom: 15px;">
+                <div id="assetManagerTabs" class="sidebar-tabs" style="display: none;">
                     <button class="tab-btn active" onclick="switchAssetManagerTab('audio')">
                         <i class="fas fa-music"></i> <span data-i18n="tab_audio">Audio</span>
                     </button>
@@ -811,23 +811,60 @@
 
                 <div id="vaultStatusMessage"></div>
 
-                <div id="assetUploadSection" style="margin-bottom: 15px; text-align: center;">
-                    <input type="file" id="inpGlobalUpload" style="display:none;"
-                        accept=".mp3, .wav, .m4a, .webm, audio/mpeg, audio/wav, audio/mp4, audio/webm, .pdf, application/pdf, .png, .jpg, .jpeg, image/png, image/jpeg, .mnr, .mnrythm, .nmr"
-                        onchange="handleGlobalUpload(this)">
-                    <button onclick="document.getElementById('inpGlobalUpload').click()" class="highlight-btn"
-                        style="width:100%; padding:10px; font-size:1rem;">
-                        <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_new">Upload New File</span>
-                    </button>
+                <div class="tm-controls">
+                    <input type="text" id="amSearch" class="tm-search" data-i18n="am_search_ph" placeholder="Αναζήτηση αρχείων...">
+                    <div id="amFilterChips" class="filter-chips" role="tablist"></div>
                 </div>
 
-                <label class="list-label" data-i18n="lbl_my_files">MY UPLOADED FILES:</label>
-                <div class="asset-list-container"
-                    style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.05);">
+                <div class="asset-list-container tm-list-scroll">
                     <div id="assetManagerList" class="compact-list"></div>
                 </div>
 
+                <div class="tm-footer">
+                    <div id="assetUploadSection" class="tm-footer-upload">
+                        <input type="file" id="inpGlobalUpload" style="display:none;"
+                            accept=".mp3, .wav, .m4a, .webm, audio/mpeg, audio/wav, audio/mp4, audio/webm, .pdf, application/pdf, .png, .jpg, .jpeg, image/png, image/jpeg, .mnr, .mnrythm, .nmr"
+                            onchange="handleGlobalUpload(this)">
+                        <button type="button" onclick="document.getElementById('inpGlobalUpload').click()" class="highlight-btn">
+                            <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="am_btn_upload">+ Ανέβασμα</span>
+                        </button>
+                    </div>
+                    <button type="button" id="btnAmAttachSelected" class="mbtn mbtn-primary" disabled onclick="attachSelectedAssets()">
+                        🔗 <span data-i18n="am_btn_attach">Σύνδεση</span> (<span id="amSelectedCount">0</span>)
+                    </button>
+                </div>
+
                 <input type="hidden" id="assetManagerCurrentType" value="audio">
+            </div>
+        </div>
+
+        <div id="linkFileToSongsModal" class="modal" style="display:none; z-index:4000;">
+            <div class="modal-content tall-modal-card">
+                <div class="tm-header">
+                    <div style="min-width:0; flex:1;">
+                        <h3>🔗 <span data-i18n="rl_title">Σύνδεση με τραγούδια</span></h3>
+                        <p id="reverseLinkSubtitle" class="rl-subtitle"></p>
+                    </div>
+                    <button type="button" onclick="closeReverseLinkModal()" class="text-btn" aria-label="Κλείσιμο"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="tm-controls">
+                    <input type="text" id="reverseLinkSearch" class="tm-search" data-i18n="rl_search_ph" placeholder="Αναζήτηση τραγουδιών...">
+                    <div id="reverseLinkChips" class="filter-chips" role="tablist"></div>
+                    <label class="rl-selectall-row">
+                        <input type="checkbox" id="chkReverseLinkSelectAll" class="am-row-check">
+                        <span data-i18n="rl_select_all">Όλα</span>
+                    </label>
+                </div>
+                <div class="tm-list-scroll">
+                    <div id="reverseLinkList" class="compact-list"></div>
+                </div>
+                <div class="tm-footer">
+                    <span id="reverseLinkDelta" class="rl-delta"></span>
+                    <div class="rl-footer-actions">
+                        <button type="button" class="mbtn mbtn-secondary" onclick="closeReverseLinkModal()" data-i18n="btn_cancel">Ακύρωση</button>
+                        <button type="button" id="btnReverseLinkApply" class="mbtn mbtn-primary" disabled data-i18n="rl_apply">Εφαρμογή</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -942,6 +979,13 @@
                                 <span data-i18n="opt_hide_intro_inter">Απόκρυψη πεδίων Intro / Inter</span>
                                 <input type="checkbox" id="setHideIntroInter" class="settings-check">
                             </label>
+                            <div class="setting-row">
+                                <span data-i18n="lbl_key_badge_action">Πάτημα στο σήμα κλίμακας αλλάζει</span>
+                                <div id="setKeyBadgeAction" class="segmented-control" role="group" aria-label="Key badge action">
+                                    <button type="button" class="seg-btn active" data-val="key" onclick="setKeyBadgeAction('key')" data-i18n="opt_key_badge_key">Τονικότητα</button>
+                                    <button type="button" class="seg-btn" data-val="capo" onclick="setKeyBadgeAction('capo')" data-i18n="opt_key_badge_capo">Capo</button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- 3. Συγχορδίες & Τρανσπόζο -->
@@ -1844,61 +1888,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.8.12T.241126"></script>
-        <script src="js/config.js?v=2.8.12T.241126"></script>
+        <script src="js/edition.js?v=2.8.1T.251126"></script>
+        <script src="js/config.js?v=2.8.1T.251126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.8.12T.241126"></script>
-        <script src="js/translations.js?v=2.8.12T.241126"></script>
-        <script src="js/storage.js?v=2.8.12T.241126"></script>
+        <script src="js/data.js?v=2.8.1T.251126"></script>
+        <script src="js/translations.js?v=2.8.1T.251126"></script>
+        <script src="js/storage.js?v=2.8.1T.251126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.8.12T.241126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.8.12T.241126"></script>
-        <script src="js/custom-kits.js?v=2.8.12T.241126"></script>
-        <script src="js/drum-machine.js?v=2.8.12T.241126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.8.12T.241126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.1T.251126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.1T.251126"></script>
+        <script src="js/custom-kits.js?v=2.8.1T.251126"></script>
+        <script src="js/drum-machine.js?v=2.8.1T.251126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.1T.251126"></script>
 
-        <script src="js/modules/ui-dialogs.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/utils.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/assets.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/played-set.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/player.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/editor.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/library.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/settings.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/ui-utils.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/rhythm.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/theory.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/visuals.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/band.js?v=2.8.12T.241126"></script>
-        <script src="js/modules/export.js?v=2.8.12T.241126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/utils.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/assets.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/played-set.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/player.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/editor.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/library.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/settings.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/theory.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/visuals.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/band.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/export.js?v=2.8.1T.251126"></script>
 
-        <script src="js/auth.js?v=2.8.12T.241126"></script>
-        <script src="js/basicmetronome.js?v=2.8.12T.241126"></script>
-        <script src="js/permissions.js?v=2.8.12T.241126"></script>
-        <script src="libs/fflate.min.js?v=2.8.12T.241126-2043ed3"></script>
-        <script src="js/modules/package.js?v=2.8.12T.241126-2043ed3"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.8.12T.241126-2043ed3"></script>
-        <script src="js/solo/local-assets.js?v=2.8.12T.241126-2043ed3"></script>
-        <script src="js/solo/backup.js?v=2.8.12T.241126-2043ed3"></script>
-        <script src="js/solo/messages.js?v=2.8.12T.241126-2043ed3"></script>
-        <script src="js/solo/account.js?v=2.8.12T.241126-2043ed3"></script>
-        <script src="js/logic.js?v=2.8.12T.241126"></script>
-        <script src="js/floating-tools.js?v=2.8.12T.241126"></script>
-        <script src="js/tuner.js?v=2.8.12T.241126"></script>
-        <script src="js/ui.js?v=2.8.12T.241126"></script>
-        <script src="js/release-notes.js?v=2.8.12T.241126"></script>
-        <script src="js/chord-player.js?v=2.8.12T.241126"></script>
-        <script src="js/chords.js?v=2.8.12T.241126"></script>
+        <script src="js/auth.js?v=2.8.1T.251126"></script>
+        <script src="js/basicmetronome.js?v=2.8.1T.251126"></script>
+        <script src="js/permissions.js?v=2.8.1T.251126"></script>
+        <script src="libs/fflate.min.js?v=2.8.1T.251126-7a2f088"></script>
+        <script src="js/modules/package.js?v=2.8.1T.251126-7a2f088"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.1T.251126-7a2f088"></script>
+        <script src="js/solo/local-assets.js?v=2.8.1T.251126-7a2f088"></script>
+        <script src="js/solo/backup.js?v=2.8.1T.251126-7a2f088"></script>
+        <script src="js/solo/messages.js?v=2.8.1T.251126-7a2f088"></script>
+        <script src="js/solo/account.js?v=2.8.1T.251126-7a2f088"></script>
+        <script src="js/logic.js?v=2.8.1T.251126"></script>
+        <script src="js/floating-tools.js?v=2.8.1T.251126"></script>
+        <script src="js/tuner.js?v=2.8.1T.251126"></script>
+        <script src="js/ui.js?v=2.8.1T.251126"></script>
+        <script src="js/release-notes.js?v=2.8.1T.251126"></script>
+        <script src="js/chord-player.js?v=2.8.1T.251126"></script>
+        <script src="js/chords.js?v=2.8.1T.251126"></script>
 
-        <script src="js/app.js?v=2.8.12T.241126"></script>
+        <script src="js/app.js?v=2.8.1T.251126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.8.12T.241126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.1T.251126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>

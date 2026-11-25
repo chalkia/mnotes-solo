@@ -89,6 +89,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         const vPitch = document.getElementById('valMetronomePitch');
         if (pitchInp && vPitch) vPitch.textContent = pitchInp.value + ' Hz';
         settingsMod.applyLibraryTextSize();
+        settingsMod.syncKeyBadgeActionUI();
 
         /* Ετοιμότητα offline, με μια ματιά. Χωρίς αυτό ο χρήστης μαθαίνει
            ότι δεν είναι έτοιμος τη στιγμή που δεν έχει δίκτυο. (07/09/2026) */
@@ -161,6 +162,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         if (modal) modal.style.display = 'none';
         settingsMod.applyTheme();
         settingsMod.applyLibraryTextSize();
+        settingsMod.syncKeyBadgeActionUI();
     };
 
     settingsMod.saveDeviceLock = function() {
@@ -228,6 +230,7 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
 
         settingsMod.applyTheme();
         settingsMod.applyLibraryTextSize();
+        settingsMod.syncKeyBadgeActionUI();
         if (typeof applyScrollBtnVisibility === 'function') applyScrollBtnVisibility();
         settingsMod.applyMobileForce();
         
@@ -512,7 +515,34 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         settingsMod.syncScoreSettingsUI();
     };
 
+    settingsMod.syncKeyBadgeActionUI = function() {
+        if (typeof userSettings === 'undefined' || !userSettings) {
+            try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {}; }
+            catch (e) { userSettings = {}; }
+        }
+        const action = (userSettings.keyBadgeAction === 'capo') ? 'capo' : 'key';
+        const seg = document.getElementById('setKeyBadgeAction');
+        if (seg) {
+            seg.querySelectorAll('.seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-val') === action);
+            });
+        }
+    };
+
+    settingsMod.setKeyBadgeAction = function(mode) {
+        if (typeof userSettings === 'undefined' || !userSettings) {
+            try { userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {}; }
+            catch (e) { userSettings = {}; }
+        }
+        userSettings.keyBadgeAction = (mode === 'capo') ? 'capo' : 'key';
+        safeSetLocal('mnotes_settings', JSON.stringify(userSettings));
+        settingsMod.syncKeyBadgeActionUI();
+        if (window.mNotes?.ui?.player?.refreshPreserveHeader) window.mNotes.ui.player.refreshPreserveHeader();
+        else if (typeof refreshPlayerUI === 'function') refreshPlayerUI();
+    };
+
     // --- Aliases ---
+    window.setKeyBadgeAction = settingsMod.setKeyBadgeAction;
     window.setAbcInline = settingsMod.setAbcInline;
     window.setScoreOpenMode = settingsMod.setScoreOpenMode;
     window.syncScoreSettingsUI = settingsMod.syncScoreSettingsUI;
@@ -532,11 +562,13 @@ window.mNotes.ui.settings = window.mNotes.ui.settings || {};
         document.addEventListener('DOMContentLoaded', () => {
             settingsMod.applyTheme();
             settingsMod.applyLibraryTextSize();
+        settingsMod.syncKeyBadgeActionUI();
             settingsMod.syncScoreSettingsUI();
         });
     } else {
         settingsMod.applyTheme();
         settingsMod.applyLibraryTextSize();
+        settingsMod.syncKeyBadgeActionUI();
         settingsMod.syncScoreSettingsUI();
     }
 
