@@ -2053,23 +2053,7 @@ body.mobile-layout-active .pricing-card.featured { transform: scale(1); }
    CONTEXT MODES (PERSONAL VS BAND)
    ========================================= */
 
-/* 1. Μια μόνιμη, οπτική ένδειξη στο πάνω μέρος της οθόνης */
-body.band-mode::before {
-    content: "🎸 BAND MODE";
-    position: fixed;
-    top: 5px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #e91e63; /* Έντονο Ροζ/Κόκκινο για να ξεχωρίζει */
-    color: white;
-    padding: 5px 20px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 0.85rem;
-    pointer-events: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    letter-spacing: 1px;
-}
+/* Legacy floating "BAND MODE" pill removed — band context uses sidebar bar & stage header top line */
 
 /* 2. Αλλαγή χρώματος στην πλαϊνή στήλη ή στην κεφαλίδα για τη Μπάντα */
 body.band-mode .sidebar {
@@ -2184,8 +2168,7 @@ body.band-mode .top-nav {
 .floating-window { z-index: 5000; }
 .fw-resizer { z-index: 5001; }
 
-/* ΕΠΙΠΕΔΟ 6: Ειδοποιήσεις & Υπέρτατα Στοιχεία (Band Badge, Toasts, Debug) */
-body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπάντας */
+/* ΕΠΙΠΕΔΟ 6: Ειδοποιήσεις & Υπέρτατα Στοιχεία (Toasts, Debug) */
 #toast { z-index: 9000; }
 .debug-overlay { z-index: 9999; }
 .debug-panel { z-index: 10000 !important; }
@@ -5684,7 +5667,6 @@ body.theme-slate .stage-note-pin-btn {
 }
 
 /* === 2.8 Stage Version Cluster & Band Pills (Commit β2) === */
-.stage-band-badge,
 .bar-band-pill {
     display: inline-flex;
     align-items: center;
@@ -5754,7 +5736,6 @@ body.theme-slate .stage-note-pin-btn {
     background: rgba(224, 168, 46, 0.12);
 }
 body.play-mode #stageVersionCluster,
-body.play-mode .stage-band-badge,
 body.play-mode .bar-band-pill,
 body.play-mode #compactBarTwinWarn {
     display: none;
@@ -7209,80 +7190,37 @@ body.theme-light .tall-modal-card .linked-pill {
 }
 
 /* =========================================================
-   Stage Header Band Indicator — Match .key-badge Tokens (Commit E)
+   Stage Header Top Band Indicator Line (0px layout impact)
    ========================================================= */
-.player-header .stage-band-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: 165px;
-    padding: var(--stage-key-pad, 5px 10px);
-    border-radius: 8px;
-    border: 1px solid var(--border-strong, var(--border-color));
-    background: var(--surface-ctl, rgba(0, 0, 0, 0.2));
-    color: var(--text-ctl, var(--text-main));
-    font-size: 0.8rem;
-    font-weight: 700;
-    line-height: 1.25;
-    white-space: nowrap;
-    overflow: hidden;
+.player-header .stage-band-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--band-context-line);
+    z-index: 2;
+    pointer-events: auto;
 }
-.player-header .stage-band-badge .sbb-ico {
-    flex: 0 0 auto;
-    font-size: 0.82em;
+body:not(.play-mode) #mainZone.is-band-context #view-player:has(#stageBandContextLine) {
+    border-top-width: 0;
 }
-.player-header .stage-band-badge .sbb-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.player-header .stage-band-badge.is-personal {
-    font-weight: 600;
-    color: #9ca3af;
-}
-body.theme-slate .player-header .stage-band-badge {
-    background: var(--surface-ctl);
-    color: var(--text-ctl);
-}
-body.theme-slate .player-header .stage-band-badge.is-personal {
-    color: var(--text-muted);
-}
-body.theme-light .player-header .stage-band-badge {
-    background: var(--surface-ctl);
-    color: var(--text-ctl);
-}
-body.theme-light .player-header .stage-band-badge.is-personal {
-    color: #4a5058;
-}
-body.play-mode .stage-band-badge {
+body.play-mode .stage-band-line {
     display: none !important;
 }
-@media (max-width: 768px) {
-    .player-header .stage-band-badge {
-        max-width: 110px;
-        font-size: 0.72rem;
-        padding: 4px 7px;
+@media (max-width: 1024px) {
+    body:not(.stage-tools-open) #mainZone.is-band-context #view-player {
+        border-top-width: 0;
+    }
+    body:not(.stage-tools-open) .stage-band-line {
+        display: none !important;
     }
 }
-
-.player-header .key-badge {
-    gap: 6px;
+body.mobile-layout-active:not(.stage-tools-open) #mainZone.is-band-context #view-player {
+    border-top-width: 0;
 }
-.key-badge-capo {
-    font-size: 0.56em;
-    font-weight: 700;
-    line-height: 1;
-    padding: 2px 6px;
-    border-radius: 5px;
-    background: var(--surface-ctl-hover, rgba(255, 255, 255, 0.1));
-    color: var(--text-ctl, var(--text-main));
-    letter-spacing: 0.2px;
-}
-.key-badge-capo.is-zero {
-    opacity: 0.65;
+body.mobile-layout-active:not(.stage-tools-open) .stage-band-line {
+    display: none !important;
 }
 
 /* =========================================================

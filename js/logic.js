@@ -2277,7 +2277,7 @@ function syncWorkspaceChrome() {
     sidebar.classList.toggle('is-band-context', isBandCtx);
     const mainZone = document.getElementById('mainZone');
     if (mainZone) mainZone.classList.toggle('is-band-context', isBandCtx);
-    document.documentElement.style.setProperty('--nav-width', hasBands ? '420px' : '300px');
+    document.documentElement.style.setProperty('--nav-width', hasBands ? '404px' : '300px');
 
     const rail = document.getElementById('workspaceRail');
     if (!rail) return;

@@ -291,14 +291,15 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             : null;
         const _isSoloMode = (typeof isSolo !== 'undefined' && isSolo) || (typeof window.currentEdition === 'function' && window.currentEdition() === 'solo');
         const _escBadge = (str) => String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        let bandBadgeHtml = '';
-        if (!_isSoloMode) {
-            if (isBandCtx && activeGroup && activeGroup.name) {
-                const fullName = _escBadge(activeGroup.name);
-                bandBadgeHtml = `<span class="stage-band-badge" title="${fullName}"><span class="sbb-ico" aria-hidden="true">👥</span><span class="sbb-name">${fullName}</span></span>`;
-            } else {
-                const persLbl = _escBadge(t('stage_personal_badge', 'Προσωπικό'));
-                bandBadgeHtml = `<span class="stage-band-badge is-personal" title="${persLbl}"><span class="sbb-name">${persLbl}</span></span>`;
+        let bandLineHtml = '';
+        if (!_isSoloMode && isBandCtx && activeGroup && activeGroup.name) {
+            const bandName = String(activeGroup.name).trim();
+            if (bandName) {
+                const bandPrefix = (typeof t === 'function')
+                    ? t('ttl_stage_band_line_prefix', 'Βιβλιοθήκη μπάντας: ')
+                    : 'Βιβλιοθήκη μπάντας: ';
+                const bandLineTip = _escBadge(`${bandPrefix}${bandName}`);
+                bandLineHtml = `<div id="stageBandContextLine" class="stage-band-line" role="note" title="${bandLineTip}" aria-label="${bandLineTip}"></div>`;
             }
         }
 
@@ -350,17 +351,14 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 
             const isPlayed = (window.PlayedSet && window.PlayedSet.has(s.id));
             const isCapoMode = typeof userSettings !== 'undefined' && userSettings && userSettings.keyBadgeAction === 'capo';
-            const curCapo = (typeof state !== 'undefined' && typeof state.c === 'number') ? state.c : 0;
             const badgeTitleKey = isCapoMode ? 'ttl_key_badge_capo' : 'title_change_key';
             const badgeTitleTxt = isCapoMode
-                ? t('ttl_key_badge_capo', 'Πάτημα: +1 Capo · Παρατεταμένο / δεξί κλικ: −1')
+                ? t('ttl_key_badge_capo', 'Πάτημα: Capo +1 · Παρατεταμένο / δεξί κλικ: Capo −1')
                 : t('title_change_key', 'Πάτημα: +1 ημιτόνιο · Παρατεταμένο / δεξί κλικ: −1');
-            const badgeCapoHtml = isCapoMode
-                ? `<span class="key-badge-capo${curCapo > 0 ? '' : ' is-zero'}">Capo ${curCapo}</span>`
-                : '';
 
             headerContainer.innerHTML = `
             <div class="player-header" style="position: relative;">
+                ${bandLineHtml}
                 <div id="stagePlayedBookmark" class="stage-played-bookmark ${isPlayed ? 'active' : ''}" title="${typeof t === 'function' ? t('lbl_song_highlight', 'Επισήμανση τραγουδιού (Μαρκάρισμα)') : 'Επισήμανση τραγουδιού (Μαρκάρισμα)'}" onclick="if(window.PlayedSet && typeof currentSongId !== 'undefined') { window.PlayedSet.toggle(currentSongId); if(navigator.vibrate) navigator.vibrate(40); }"></div>
                 <div class="header-main-content">
                     <div class="stage-header-top-row" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 3px;">
@@ -379,10 +377,9 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
                      ${tagsHtml}
                      <div class="stage-header-meta-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                          <div class="stage-key-cluster" style="display:flex; align-items:center; gap: 8px; flex-wrap:wrap;">
-                            <button type="button" class="key-badge" data-i18n-title="${badgeTitleKey}" data-i18n-aria="${badgeTitleKey}" title="${badgeTitleTxt}" aria-label="${badgeTitleTxt}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}${badgeCapoHtml}${player.getKeyBadgeArrowHtml()}</button>
+                            <button type="button" class="key-badge" data-i18n-title="${badgeTitleKey}" data-i18n-aria="${badgeTitleKey}" title="${badgeTitleTxt}" aria-label="${badgeTitleTxt}">${typeof getNote === 'function' ? getNote(s.key || "-", state.t, { baseKey: s.key, keyTranspose: state.t }) : s.key}${player.getKeyBadgeArrowHtml()}</button>
                              <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
                              <button id="btnToggleView" onclick="toggleViewMode()"></button>
-                             ${bandBadgeHtml}
                              ${versionClusterHtml}
                          </div>
                          ${noteBtnHtml}
