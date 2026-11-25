@@ -206,15 +206,21 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
            φίλτρο εξακολουθεί να ισχύει. Χωρίς αυτή την ένδειξη ο χρήστης
            βλέπει μερική λίστα και νομίζει ότι έχασε τραγούδια — η ακριβής
            σύγχυση που αναφέρθηκε στις 05/09/2026. */
-        const notice = document.getElementById('setlistFilterNotice');
-        if (notice) {
-            const total = window.setlistTotalCount || 0;
-            const shown = window.visiblePlaylist.length;
-            const hiding = (viewMode === 'setlist' && total > 0 && shown < total);
-            notice.style.display = hiding ? 'flex' : 'none';
-            const txt = document.getElementById('setlistFilterText');
-            if (txt && hiding) txt.innerText = `🔍 ${shown} από ${total}`;
-        }
+            const setlistInp = document.getElementById('setlistSearchInp');
+            if (setlistInp && document.getElementById('searchInp') && setlistInp.value !== rawTxt) {
+                setlistInp.value = rawTxt;
+            }
+            const clearSetBtn = document.getElementById('btnClearSetlistSearch');
+            if (clearSetBtn) clearSetBtn.style.display = rawTxt.length > 0 ? 'inline-flex' : 'none';
+            const notice = document.getElementById('setlistFilterNotice');
+            if (notice) {
+                const total = window.setlistTotalCount || 0;
+                const shown = window.visiblePlaylist.length;
+                const hiding = (viewMode === 'setlist' && (searchTokens.length > 0 || tag !== '' || (total > 0 && shown < total)));
+                notice.style.display = hiding ? 'flex' : 'none';
+                const txt = document.getElementById('setlistFilterText');
+                if (txt && hiding) txt.innerText = `🔍 ${shown} από ${total}`;
+            }
 
         if (window.visiblePlaylist.length === 0 && !library.some(s => s && !s.is_deleted)) {
             const emptyLi = document.createElement('li');
@@ -385,7 +391,7 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
             var displayTitle = s.title;
             let seqNumBadge = "";
             if (viewMode === 'setlist' && s._originalSeq) {
-                seqNumBadge = `<span style="font-size:0.75rem; background:rgba(255,255,255,0.1); color:var(--text-muted); padding:2px 6px; border-radius:4px; margin-right:8px; display:inline-block; min-width:20px; text-align:center;">${s._originalSeq}</span>`;
+                seqNumBadge = `<span class="song-seq-num">${s._originalSeq}</span>`;
             }
 
             if (isActiveMaster && totalVersions > 1) {
@@ -439,9 +445,14 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
                 </span>`;
             }
 
+            const isSetlistFiltered = (viewMode === 'setlist') && (searchTokens.length > 0 || Boolean(tag));
             const playedDot = isPlayed ? '<span class="played-dot" aria-hidden="true">✓</span>' : '';
+            const reorderDisabled = Boolean(isSetlistLocked || isSetlistFiltered);
+            const handleTitle = isSetlistFiltered
+                ? ` title="${t('ttl_clear_search_reorder', 'Καθάρισε την αναζήτηση για αλλαγή σειράς')}"`
+                : '';
             const setlistHandle = viewMode === 'setlist'
-                ? `<span class="song-handle" aria-hidden="true"${isSetlistLocked ? ' style="opacity:0.15; cursor:not-allowed;"' : ''}>⠿</span>`
+                ? `<span class="song-handle${isSetlistFiltered ? ' is-filter-disabled' : ''}"${handleTitle} aria-hidden="${reorderDisabled ? 'true' : 'false'}">⠿</span>`
                 : '';
 
             li.innerHTML = `
@@ -461,6 +472,7 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
         });
 
         if (window.sortableInstance) window.sortableInstance.destroy();
+        const isSetlistFilteredGlobal = (viewMode === 'setlist') && (searchTokens.length > 0 || Boolean(tag));
         if(typeof Sortable !== 'undefined') {
             const isBandViewer = (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal' && !roleCan('REORDER_BAND_SETLIST'));
             window.sortableInstance = new Sortable(list, {
@@ -468,9 +480,12 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
                 handle: '.song-handle', 
                 delay: 200,
                 delayOnTouchOnly: true,
-                disabled: (viewMode !== 'setlist' || isSetlistLocked || isBandViewer), 
+                disabled: (viewMode !== 'setlist' || isSetlistLocked || isBandViewer || isSetlistFilteredGlobal), 
                 onEnd: function (evt) {
-                    if (viewMode !== 'setlist') return;
+                    if (viewMode !== 'setlist' || isSetlistFilteredGlobal) {
+                        libraryMod.renderSidebar();
+                        return;
+                    }
 
                     const items = list.querySelectorAll('.song-item');
                     const newOrder = Array.from(items).map(item => item.getAttribute('data-id'));
@@ -732,13 +747,44 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
     window.toggleClearSearchBtn = function () {
         const inp = document.getElementById('searchInp');
         const btn = document.getElementById('btnClearSearch');
-        if (!btn) return;
-        btn.style.display = (inp && inp.value.length > 0) ? 'inline-flex' : 'none';
+        const sBtn = document.getElementById('btnClearSetlistSearch');
+        const hasVal = !!(inp && inp.value.length > 0);
+        if (btn) btn.style.display = hasVal ? 'inline-flex' : 'none';
+        if (sBtn) sBtn.style.display = hasVal ? 'inline-flex' : 'none';
     };
 
     window.clearSearchInput = function () {
         const inp = document.getElementById('searchInp');
         if (inp) inp.value = '';
+        const sInp = document.getElementById('setlistSearchInp');
+        if (sInp) sInp.value = '';
+        window.toggleClearSearchBtn();
+        if (typeof applyFilters === 'function') applyFilters();
+    };
+
+    window.toggleSetlistSearch = function (forceOpen) {
+        const row = document.getElementById('setlistSearchRow');
+        const btn = document.getElementById('btnToggleSetlistSearch');
+        const sInp = document.getElementById('setlistSearchInp');
+        const lInp = document.getElementById('searchInp');
+        if (!row) return;
+        const willOpen = typeof forceOpen === 'boolean' ? forceOpen : !row.classList.contains('is-open');
+        row.classList.toggle('is-open', willOpen);
+        row.style.display = willOpen ? 'flex' : 'none';
+        if (btn) {
+            btn.classList.toggle('is-open', willOpen);
+            btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        }
+        if (willOpen && sInp) {
+            if (lInp && sInp.value !== lInp.value) sInp.value = lInp.value;
+            window.toggleClearSearchBtn();
+            setTimeout(() => { try { sInp.focus(); } catch (_) {} }, 20);
+        }
+    };
+
+    window.onSetlistSearchInput = function (val) {
+        const lInp = document.getElementById('searchInp');
+        if (lInp && lInp.value !== val) lInp.value = val;
         window.toggleClearSearchBtn();
         if (typeof applyFilters === 'function') applyFilters();
     };
@@ -749,6 +795,8 @@ window.mNotes.ui.library = window.mNotes.ui.library || {};
     window.clearSetlistFilter = function () {
         const inp = document.getElementById('searchInp');
         if (inp) inp.value = '';
+        const sInp = document.getElementById('setlistSearchInp');
+        if (sInp) sInp.value = '';
         window.toggleClearSearchBtn();
         const tag = document.getElementById('tagFilter');
         if (tag) tag.value = '';

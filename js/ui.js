@@ -346,6 +346,12 @@ function loadSong(id, forceMaster = false, preventMobileSwitch = false) {
     if(!s) return;
     
     if (prevId && prevId !== id) {
+        if (window.mNotes?.ui?.assets?.stopActiveRecordingAndTeardown) {
+            window.mNotes.ui.assets.stopActiveRecordingAndTeardown(true);
+        }
+        if (window.mNotes?.ui?.assets?.closeCustomPlayer) {
+            window.mNotes.ui.assets.closeCustomPlayer();
+        }
         // Κλείνουμε τον editor ΜΟΝΟ αν ο χρήστης αλλάζει τραγούδι χειροκίνητα
         // (ΟΧΙ κατά την αρχική φόρτωση/restore όπου prevId είναι null)
         const isEditorOpen = document.getElementById('view-editor')?.classList.contains('active-view');

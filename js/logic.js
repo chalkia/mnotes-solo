@@ -2277,7 +2277,7 @@ function syncWorkspaceChrome() {
     sidebar.classList.toggle('is-band-context', isBandCtx);
     const mainZone = document.getElementById('mainZone');
     if (mainZone) mainZone.classList.toggle('is-band-context', isBandCtx);
-    document.documentElement.style.setProperty('--nav-width', hasBands ? '404px' : '300px');
+    document.documentElement.style.setProperty('--nav-width', hasBands ? '420px' : '300px');
 
     const rail = document.getElementById('workspaceRail');
     if (!rail) return;
@@ -2294,9 +2294,11 @@ function syncWorkspaceChrome() {
         btn.type = 'button';
         btn.className = 'workspace-rail-btn' + (isActive ? ' is-active' : '');
         btn.dataset.groupId = id;
+        btn.title = roleText ? `${titleText} (${roleText})` : titleText;
         btn.onclick = () => switchContext(id);
         const top = document.createElement('span');
         top.className = 'workspace-rail-name';
+        top.title = titleText;
         top.innerHTML = `<i class="${iconClass}"></i> `;
         top.appendChild(document.createTextNode(titleText));
         btn.appendChild(top);

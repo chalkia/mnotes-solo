@@ -374,6 +374,7 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
             sel.appendChild(opt);
         });
         if (!currentSetlistName) sel.selectedIndex = -1;
+        sel.title = currentSetlistName || '';
         ui.updateButtons();
 
         const btnEmptyTrash = document.getElementById('btnEmptyTrash');
@@ -582,12 +583,12 @@ window.mNotes.ui.setlists = window.mNotes.ui.setlists || {};
         const btnEmptyTrash = document.getElementById('btnEmptyTrash');
 
         if (mode === 'setlist') {
-            // Τα φίλτρα ζουν μόνο στη βιβλιοθήκη. Στη λίστα έπιαναν ~95px στη
-            // σκηνή, και τα dropdowns tag/sort είναι ούτως ή άλλως άχρηστα εκεί
-            // (η λίστα έχει δική της σειρά εκτέλεσης). Ένα ενεργό φίλτρο
-            // ΕΞΑΚΟΛΟΥΘΕΙ να ισχύει — το δηλώνει το #setlistFilterNotice. (05/09/2026)
             if(libCtrl) libCtrl.style.display = 'none';
             if(setCtrl) { setCtrl.style.display = 'flex'; ui.updateDropdown(); }
+            const sInp = document.getElementById('setlistSearchInp');
+            const lInp = document.getElementById('searchInp');
+            if (sInp && lInp && sInp.value !== lInp.value) sInp.value = lInp.value;
+            if (typeof window.toggleClearSearchBtn === 'function') window.toggleClearSearchBtn();
         } else {
             if(libCtrl) libCtrl.style.display = 'flex';
             if(setCtrl) setCtrl.style.display = 'none';

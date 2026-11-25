@@ -536,7 +536,6 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
 
     player.toggleCustomPlayer = function() {
         const audioCore = document.getElementById('masterAudio');
-        const icon = document.getElementById('cpPlayIcon');
         if (!audioCore) return;
         
         if (audioCore.paused) {
@@ -544,21 +543,17 @@ window.mNotes.ui.player = window.mNotes.ui.player || {};
             if (delay > 0 && typeof window.runPlayCountdown === 'function') {
                 window.runPlayCountdown(delay, () => {
                     audioCore.play();
-                    if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-pause'); }
                 }, () => {
                     audioCore.pause();
-                    if (icon) { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
                 });
             } else {
                 audioCore.play();
-                if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-pause'); }
             }
         } else {
             if (window.activePlayCountdown) {
                 window.activePlayCountdown.cancel();
             }
             audioCore.pause();
-            if (icon) { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
         }
     };
 

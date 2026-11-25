@@ -341,7 +341,10 @@ window.mNotes.ui.utils = window.mNotes.ui.utils || {};
         
         if (isOpen) { 
             d.classList.remove('open');
-            document.removeEventListener('click', utilsMod.closeDrawerOutside); 
+            document.removeEventListener('click', utilsMod.closeDrawerOutside);
+            if (window.mNotes?.ui?.assets?.stopActiveRecordingAndTeardown) {
+                window.mNotes.ui.assets.stopActiveRecordingAndTeardown(false);
+            }
         } 
         else { 
             d.classList.add('open'); 

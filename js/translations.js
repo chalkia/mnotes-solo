@@ -1230,7 +1230,25 @@ const TRANSLATIONS = {
         lbl_key_badge_action: "Tapping the key badge changes",
         opt_key_badge_key: "Key",
         opt_key_badge_capo: "Capo",
-        ttl_key_badge_capo: "Tap: +1 Capo · Hold / Right-click: −1"
+        ttl_key_badge_capo: "Tap: +1 Capo · Hold / Right-click: −1",
+        rec_state_idle: "READY",
+        rec_state_recording: "REC",
+        rec_state_ready: "READY",
+        rec_state_uploading: "UPLOADING",
+        ttl_rec_start: "Record",
+        ttl_rec_stop: "Stop recording",
+        ttl_add_web_link: "Add external audio link (e.g. YouTube)",
+        ttl_preview_rec: "Preview recording",
+        btn_link_rec: "✓ Save to song",
+        btn_discard_rec: "✕ Discard",
+        btn_add_recordings: "+ Recordings",
+        btn_rename_rec: "Rename",
+        msg_rename_recording: "Recording name:",
+        ttl_play_rec: "Play",
+        ttl_stop_rec_play: "Stop",
+        setlist_search_ph: "Search in setlist...",
+        ttl_setlist_search: "Search in setlist",
+        ttl_clear_search_reorder: "Clear search to change order"
     },
 
     el: {
@@ -2447,7 +2465,25 @@ const TRANSLATIONS = {
         lbl_key_badge_action: "Πάτημα στο σήμα κλίμακας αλλάζει",
         opt_key_badge_key: "Τονικότητα",
         opt_key_badge_capo: "Capo",
-        ttl_key_badge_capo: "Πάτημα: +1 Capo · Παρατεταμένο / Δεξί κλικ: −1"
+        ttl_key_badge_capo: "Πάτημα: +1 Capo · Παρατεταμένο / Δεξί κλικ: −1",
+        rec_state_idle: "ΑΝΑΜΟΝΗ",
+        rec_state_recording: "ΕΓΓΡΑΦΗ",
+        rec_state_ready: "ΕΤΟΙΜΟ",
+        rec_state_uploading: "ΑΝΕΒΑΣΜΑ",
+        ttl_rec_start: "Εγγραφή",
+        ttl_rec_stop: "Διακοπή εγγραφής",
+        ttl_add_web_link: "Προσθήκη συνδέσμου ήχου (π.χ. YouTube)",
+        ttl_preview_rec: "Ακρόαση εγγραφής",
+        btn_link_rec: "✓ Σύνδεση στο τραγούδι",
+        btn_discard_rec: "✕ Απόρριψη",
+        btn_add_recordings: "+ Ηχογραφήσεις",
+        btn_rename_rec: "Μετονομασία",
+        msg_rename_recording: "Όνομα ηχογράφησης:",
+        ttl_play_rec: "Αναπαραγωγή",
+        ttl_stop_rec_play: "Διακοπή",
+        setlist_search_ph: "Αναζήτηση στη λίστα...",
+        ttl_setlist_search: "Αναζήτηση στη λίστα",
+        ttl_clear_search_reorder: "Καθάρισε την αναζήτηση για αλλαγή σειράς"
     }
 };
 

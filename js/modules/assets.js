@@ -792,63 +792,436 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         return false;
     };
 
-    assets.renderRecordings = function(recs = []) {
-        const listEl = document.getElementById('sideRecList'); 
-        if (!listEl) return;
-        
-        listEl.innerHTML = ''; 
-        let hasItems = false;
-        
-        recs.forEach((rec, index) => {
-            const el = document.createElement('div'); 
-            el.className = 'track-item'; 
-            
-            const isPrivate = (rec.origin === 'private' || !rec.origin);
-            const colorVar = isPrivate ? '#ffb74d' : '#4db6ac'; 
-            const iconClass = isPrivate ? 'fas fa-lock' : 'fas fa-globe';
-            const tooltip = isPrivate ? t('ttl_private_track') : t('ttl_public_track');
-            
-            el.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); padding:8px; margin-bottom:5px; border-radius:4px; border-left: 3px solid ${colorVar};`;
-            
-            const safeObjStr = encodeURIComponent(JSON.stringify(rec));
-            
+    let _playingRecIndex = -1;
+    let _playingRecUrl = '';
+    let _masterAudioBound = false;
+    let _recStream = null;
+    let _recAudioCtx = null;
+    let _recSourceNode = null;
+    let _recAnalyser = null;
+    let _recLevelRaf = null;
+    let _recElapsedSecs = 0;
+    let _recPreviewUrl = '';
+    let _suppressPostRecOnStop = false;
+    let _recLifecycleBound = false;
+    const _recDurationsCache = new Map();
 
+    function formatMMSS(totalSeconds) {
+        const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+        const m = Math.floor(s / 60).toString().padStart(2, '0');
+        const rem = (s % 60).toString().padStart(2, '0');
+        return `${m}:${rem}`;
+    }
 
-            const isOwnerOrAdmin = roleCan('DELETE_BAND_RECORDING');
-            const canDelete = isPrivate || currentGroupId === 'personal' || isOwnerOrAdmin;
+    function setRecStateUi(mode) {
+        const drawer = document.getElementById('drawerAudioHub');
+        const btn = document.getElementById('btnRecord');
+        const tag = document.getElementById('recStateTag');
+        const postBar = document.getElementById('postRecBar');
+        const postDur = document.getElementById('postRecDur');
+        const upBox = document.getElementById('uploadProgressBox');
 
-            let deleteBtnHtml = '';
-            if (canDelete) {
-                deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'recordings', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="${t('btn_delete')}"><i class="fas fa-times"></i></button>`;
-            }
-             
-            let downloadBtnHtml = '';
-            const urlLower = (rec.url || "").toLowerCase();
-            const isWebMedia = urlLower.includes("youtube.com") || urlLower.includes("youtu.be") || 
-                               urlLower.includes("soundcloud.com") || urlLower.includes("spotify.com") || 
-                               urlLower.includes("music.apple.com");
-                               
-            if (isWebMedia) {
-                downloadBtnHtml = `<button onclick="window.open('${rec.url}', '_blank')" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px; font-size:1rem;" title="${t('btn_open_external', 'Άνοιγμα Συνδέσμου / Open Link')}"><i class="fas fa-external-link-alt"></i></button>`;
-            } else {
-                downloadBtnHtml = `<button onclick="downloadAssetLocal('${rec.url}', '${rec.name || rec.label}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="${t('btn_download')}"><i class="fas fa-download"></i></button>`;
-            }
-            
-           el.innerHTML = `
-                <div onclick="playAudio('${rec.url}', '${(rec.name || rec.label || 'Unnamed Track').replace(/'/g, "\\'")}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
-                    <i class="${iconClass}" style="color:${colorVar}; margin-right:8px;"></i>
-                    <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rec.name || rec.label}</span>
-                </div>
-                <div style="display:flex; align-items:center;">
-                    ${downloadBtnHtml}
-                    ${deleteBtnHtml}
-                </div>
-            `;
-            listEl.appendChild(el); 
-            hasItems = true;
+        if (drawer) drawer.classList.toggle('is-recording', mode === 'recording');
+        if (btn) {
+            const lbl = mode === 'recording'
+                ? trAsset('ttl_rec_stop', 'Διακοπή εγγραφής')
+                : trAsset('ttl_rec_start', 'Εγγραφή');
+            btn.setAttribute('title', lbl);
+            btn.setAttribute('aria-label', lbl);
+            btn.classList.toggle('recording-active', mode === 'recording');
+        }
+        if (tag) {
+            if (mode === 'recording') tag.textContent = trAsset('rec_state_recording', 'ΕΓΓΡΑΦΗ');
+            else if (mode === 'postrec') tag.textContent = trAsset('rec_state_ready', 'ΕΤΟΙΜΟ');
+            else if (mode === 'uploading') tag.textContent = trAsset('rec_state_uploading', 'ΑΝΕΒΑΣΜΑ');
+            else tag.textContent = trAsset('rec_state_idle', 'ΑΝΑΜΟΝΗ');
+        }
+        if (postBar) postBar.classList.toggle('is-hidden', mode !== 'postrec');
+        if (mode === 'postrec' && postDur) postDur.textContent = formatMMSS(_recElapsedSecs);
+        if (upBox) {
+            upBox.classList.toggle('is-hidden', mode !== 'uploading');
+            upBox.style.display = '';
+        }
+        if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
+    }
+
+    function resetRecLevelMeter() {
+        document.querySelectorAll('#recLevelMeter .lvl-bar').forEach(bar => {
+            bar.classList.remove('on-green', 'on-amber', 'on-red');
         });
-        
-        if (!hasItems) listEl.innerHTML = `<div class="empty-state">${t('msg_no_recordings')}</div>`;
+    }
+
+    function updateRecLevelBars(level01) {
+        const bars = document.querySelectorAll('#recLevelMeter .lvl-bar');
+        if (!bars.length) return;
+        const lit = Math.round(Math.max(0, Math.min(1, level01)) * bars.length);
+        bars.forEach((bar, i) => {
+            bar.classList.remove('on-green', 'on-amber', 'on-red');
+            if (i < lit) {
+                if (i < 6) bar.classList.add('on-green');
+                else if (i < 8) bar.classList.add('on-amber');
+                else bar.classList.add('on-red');
+            }
+        });
+    }
+
+    function teardownRecordingHardware() {
+        if (_recLevelRaf) {
+            cancelAnimationFrame(_recLevelRaf);
+            _recLevelRaf = null;
+        }
+        if (assets.recTimerInterval) {
+            clearInterval(assets.recTimerInterval);
+            assets.recTimerInterval = null;
+        }
+        if (_recSourceNode) {
+            try { _recSourceNode.disconnect(); } catch (_) {}
+            _recSourceNode = null;
+        }
+        if (_recAnalyser) {
+            try { _recAnalyser.disconnect(); } catch (_) {}
+            _recAnalyser = null;
+        }
+        if (_recAudioCtx) {
+            try {
+                if (typeof _recAudioCtx.close === 'function' && _recAudioCtx.state !== 'closed') {
+                    _recAudioCtx.close().catch(() => {});
+                }
+            } catch (_) {}
+            _recAudioCtx = null;
+        }
+        if (_recStream && typeof _recStream.getTracks === 'function') {
+            _recStream.getTracks().forEach(track => {
+                try { track.stop(); } catch (_) {}
+            });
+        }
+        if (assets.mediaRecorder && assets.mediaRecorder.stream && typeof assets.mediaRecorder.stream.getTracks === 'function') {
+            assets.mediaRecorder.stream.getTracks().forEach(track => {
+                try { track.stop(); } catch (_) {}
+            });
+        }
+        _recStream = null;
+        resetRecLevelMeter();
+    }
+
+    assets.stopActiveRecordingAndTeardown = function(discardDraft = false) {
+        _suppressPostRecOnStop = !!discardDraft;
+        if (assets.mediaRecorder && assets.mediaRecorder.state === 'recording') {
+            try { assets.mediaRecorder.stop(); } catch (_) {}
+        }
+        teardownRecordingHardware();
+        if (discardDraft) {
+            assets.audioChunks = [];
+            assets.currentRecordedBlob = null;
+            if (_recPreviewUrl) {
+                try { URL.revokeObjectURL(_recPreviewUrl); } catch (_) {}
+                _recPreviewUrl = '';
+            }
+            const timer = document.getElementById('recTimer');
+            if (timer) timer.textContent = '00:00';
+            setRecStateUi('idle');
+        }
+    };
+
+    function bindRecLifecycleOnce() {
+        if (_recLifecycleBound) return;
+        _recLifecycleBound = true;
+        const drawer = document.getElementById('drawerAudioHub');
+        if (drawer) {
+            drawer.addEventListener('toggle', () => {
+                if (!drawer.open) assets.stopActiveRecordingAndTeardown(false);
+            });
+        }
+    }
+
+    function syncRecPlayingDom() {
+        const listEl = document.getElementById('sideRecList');
+        if (!listEl) return;
+        const audio = document.getElementById('masterAudio');
+        const isActuallyPlaying = !!(audio && !audio.paused && _playingRecUrl);
+        listEl.querySelectorAll('.track-item').forEach((row, idx) => {
+            const rowUrl = cleanAssetUrl(row.dataset.url || '');
+            const active = isActuallyPlaying && (idx === _playingRecIndex || (rowUrl && rowUrl === _playingRecUrl));
+            row.classList.toggle('is-playing', active);
+            const btn = row.querySelector('.rec-play-btn');
+            if (btn) {
+                const lbl = active ? trAsset('ttl_stop_rec_play', 'Διακοπή') : trAsset('ttl_play_rec', 'Αναπαραγωγή');
+                btn.setAttribute('title', lbl);
+                btn.setAttribute('aria-label', lbl);
+                btn.innerHTML = active
+                    ? '<i class="fas fa-stop" aria-hidden="true"></i>'
+                    : '<i class="fas fa-play" aria-hidden="true"></i>';
+            }
+            if (!active) {
+                const fill = row.querySelector('.rec-progress-fill');
+                if (fill) fill.style.width = '0%';
+            }
+        });
+    }
+
+    function updateRecPreviewBtnUi(playing) {
+        const btn = document.getElementById('btnPreviewRec');
+        if (!btn) return;
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = playing ? 'fas fa-stop' : 'fas fa-play';
+        }
+    }
+
+    function bindMasterAudioEvents() {
+        const audio = document.getElementById('masterAudio');
+        if (!audio || _masterAudioBound) return;
+        _masterAudioBound = true;
+
+        audio.addEventListener('timeupdate', () => {
+            if (!audio.duration || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const pct = Math.max(0, Math.min(100, (audio.currentTime / audio.duration) * 100));
+            const listEl = document.getElementById('sideRecList');
+            if (listEl) {
+                const activeRow = listEl.querySelector('.track-item.is-playing .rec-progress-fill');
+                if (activeRow) activeRow.style.width = `${pct.toFixed(1)}%`;
+            }
+        });
+
+        audio.addEventListener('loadedmetadata', () => {
+            if (!audio.duration || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const formatted = formatMMSS(audio.duration);
+            if (_playingRecUrl) _recDurationsCache.set(_playingRecUrl, formatted);
+            const listEl = document.getElementById('sideRecList');
+            if (listEl) {
+                const durEl = listEl.querySelector('.track-item.is-playing .rec-dur');
+                if (durEl) durEl.textContent = formatted;
+            }
+        });
+
+        const onStopOrPause = () => {
+            updateRecPreviewBtnUi(false);
+            if (audio.ended || audio.paused) {
+                if (audio.ended) {
+                    _playingRecIndex = -1;
+                    _playingRecUrl = '';
+                }
+                syncRecPlayingDom();
+            }
+        };
+        audio.addEventListener('ended', onStopOrPause);
+        audio.addEventListener('pause', onStopOrPause);
+        audio.addEventListener('play', () => {
+            if (_recPreviewUrl && audio.src === _recPreviewUrl) {
+                updateRecPreviewBtnUi(true);
+            }
+            syncRecPlayingDom();
+        });
+    }
+
+    assets.renameRecording = async function(songId, index) {
+        if (!songId || typeof library === 'undefined') return false;
+        const song = library.find(s => s.id === songId);
+        if (!song || !Array.isArray(song.recordings) || !song.recordings[index]) return false;
+
+        const rec = song.recordings[index];
+        const isPrivate = (rec.origin === 'private' || !rec.origin);
+        if (!isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal' && typeof roleCan === 'function' && !roleCan('DELETE_BAND_RECORDING')) {
+            if (typeof showToast === 'function') showToast(t('msg_admins_only_remove_files', "Μόνο οι διαχειριστές μπορούν να τροποποιήσουν αρχεία της μπάντας."), "error");
+            return false;
+        }
+
+        const oldName = rec.name || rec.label || '';
+        const newName = window.mDialog && typeof window.mDialog.prompt === 'function'
+            ? await window.mDialog.prompt({
+                title: trAsset('btn_rename_rec', 'Μετονομασία'),
+                message: trAsset('msg_rename_recording', 'Όνομα ηχογράφησης:'),
+                defaultValue: oldName,
+                selectOnOpen: true
+            })
+            : (typeof window.mPrompt === 'function' ? await window.mPrompt(trAsset('msg_rename_recording', 'Όνομα ηχογράφησης:'), oldName) : prompt(trAsset('msg_rename_recording', 'Όνομα ηχογράφησης:'), oldName));
+
+        if (!newName || !String(newName).trim()) return false;
+        const trimmed = String(newName).trim();
+        rec.name = trimmed;
+        if (rec.label) rec.label = trimmed;
+        if (typeof window.saveSong === 'function') window.saveSong(song);
+        assets.renderRecordings(song.recordings);
+        return true;
+    };
+
+    const BAND_USERS_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>';
+
+    function getRecTypeBadge(rec) {
+        const urlClean = cleanAssetUrl(rec && rec.url).toLowerCase();
+        const isWebMedia = urlClean.includes("youtube.com") || urlClean.includes("youtu.be") ||
+            urlClean.includes("soundcloud.com") || urlClean.includes("spotify.com") ||
+            urlClean.includes("music.apple.com");
+        if (isWebMedia) return 'WEB';
+        if (urlClean.endsWith('.wav')) return 'WAV';
+        if (urlClean.endsWith('.mp3') || urlClean.endsWith('.m4a')) return 'MP3';
+        return 'REC';
+    }
+
+    assets.renderRecordings = function(recs = []) {
+        const listEl = document.getElementById('sideRecList');
+        if (!listEl) return;
+
+        bindRecLifecycleOnce();
+        bindMasterAudioEvents();
+        listEl.innerHTML = '';
+
+        const validRecs = Array.isArray(recs) ? recs : [];
+        if (validRecs.length === 0) {
+            listEl.classList.add('is-hidden');
+            if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
+            return;
+        }
+        listEl.classList.remove('is-hidden');
+
+        const audio = document.getElementById('masterAudio');
+        const isAudioPlaying = !!(audio && !audio.paused && _playingRecUrl);
+
+        validRecs.forEach((rec, index) => {
+            const el = document.createElement('div');
+            const recUrlClean = cleanAssetUrl(rec.url || '');
+            const isPlayingThis = isAudioPlaying && (index === _playingRecIndex || (recUrlClean && recUrlClean === _playingRecUrl));
+            el.className = 'track-item' + (isPlayingThis ? ' is-playing' : '');
+            el.dataset.url = rec.url || '';
+            el.dataset.index = String(index);
+
+            const isPrivate = (rec.origin === 'private' || !rec.origin);
+            const tooltip = isPrivate ? t('ttl_private_track') : t('ttl_public_track');
+            const nameText = rec.name || rec.label || 'Unnamed Track';
+            const badgeText = getRecTypeBadge(rec);
+            const durText = rec.duration || _recDurationsCache.get(recUrlClean) || '';
+
+            const isOwnerOrAdmin = typeof roleCan === 'function' ? roleCan('DELETE_BAND_RECORDING') : true;
+            const canModify = isPrivate || currentGroupId === 'personal' || isOwnerOrAdmin;
+
+            const urlLower = (rec.url || '').toLowerCase();
+            const isWebMedia = urlLower.includes("youtube.com") || urlLower.includes("youtu.be") ||
+                urlLower.includes("soundcloud.com") || urlLower.includes("spotify.com") ||
+                urlLower.includes("music.apple.com");
+
+            const topRow = document.createElement('div');
+            topRow.className = 'rec-row-top';
+
+            const playBtn = document.createElement('button');
+            playBtn.type = 'button';
+            playBtn.className = 'rec-play-btn';
+            const playLbl = isPlayingThis ? trAsset('ttl_stop_rec_play', 'Διακοπή') : trAsset('ttl_play_rec', 'Αναπαραγωγή');
+            playBtn.setAttribute('title', playLbl);
+            playBtn.setAttribute('aria-label', playLbl);
+            playBtn.innerHTML = isPlayingThis
+                ? '<i class="fas fa-stop" aria-hidden="true"></i>'
+                : '<i class="fas fa-play" aria-hidden="true"></i>';
+            playBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                assets.playAudio(rec.url, nameText, index);
+            });
+
+            const badgeSpan = document.createElement('span');
+            badgeSpan.className = 'rec-type-badge';
+            badgeSpan.textContent = badgeText;
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'rec-main-info';
+            infoDiv.setAttribute('title', `${nameText}${tooltip ? ' — ' + tooltip : ''}`);
+            infoDiv.innerHTML = `
+                <span class="rec-name">${escHtml(nameText)}</span>
+                ${!isPrivate ? `<span class="vis-band-ico" title="${escHtml(t('ttl_public_track', 'Public (Band common)'))}" aria-label="${escHtml(t('ttl_public_track', 'Public (Band common)'))}">${BAND_USERS_SVG}</span>` : ''}
+                ${durText ? `<span class="rec-dur">${escHtml(durText)}</span>` : '<span class="rec-dur"></span>'}
+            `;
+            infoDiv.addEventListener('click', () => {
+                assets.playAudio(rec.url, nameText, index);
+            });
+
+            const moreBtn = document.createElement('button');
+            moreBtn.type = 'button';
+            moreBtn.className = 'rec-more-btn';
+            const moreLbl = t('ttl_file_actions', 'Ενέργειες αρχείου');
+            moreBtn.setAttribute('aria-expanded', 'false');
+            moreBtn.setAttribute('title', moreLbl);
+            moreBtn.setAttribute('aria-label', moreLbl);
+            moreBtn.textContent = '⋯';
+
+            const progTrack = document.createElement('div');
+            progTrack.className = 'rec-progress-track';
+            progTrack.innerHTML = '<div class="rec-progress-fill"></div>';
+
+            topRow.appendChild(playBtn);
+            topRow.appendChild(badgeSpan);
+            topRow.appendChild(infoDiv);
+            topRow.appendChild(moreBtn);
+            topRow.appendChild(progTrack);
+
+            const strip = document.createElement('div');
+            strip.className = 'rec-action-strip';
+            strip.hidden = true;
+
+            if (canModify) {
+                const renBtn = document.createElement('button');
+                renBtn.type = 'button';
+                renBtn.className = 'rec-act-btn rec-act-rename';
+                renBtn.innerHTML = `<i class="fas fa-pen" aria-hidden="true"></i> <span>${escHtml(trAsset('btn_rename_rec', 'Μετονομασία'))}</span>`;
+                renBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    strip.hidden = true;
+                    moreBtn.setAttribute('aria-expanded', 'false');
+                    assets.renameRecording(currentSongId, index);
+                });
+                strip.appendChild(renBtn);
+            }
+
+            const dlBtn = document.createElement('button');
+            dlBtn.type = 'button';
+            dlBtn.className = 'rec-act-btn rec-act-download';
+            if (isWebMedia) {
+                dlBtn.innerHTML = `<i class="fas fa-external-link-alt" aria-hidden="true"></i> <span>${escHtml(t('btn_open_external', 'Άνοιγμα'))}</span>`;
+                dlBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    strip.hidden = true;
+                    moreBtn.setAttribute('aria-expanded', 'false');
+                    window.open(rec.url, '_blank');
+                });
+            } else {
+                dlBtn.innerHTML = `<i class="fas fa-download" aria-hidden="true"></i> <span>${escHtml(t('btn_download', 'Λήψη'))}</span>`;
+                dlBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    strip.hidden = true;
+                    moreBtn.setAttribute('aria-expanded', 'false');
+                    assets.downloadLocal(rec.url, nameText);
+                });
+            }
+            strip.appendChild(dlBtn);
+
+            if (canModify) {
+                const rmBtn = document.createElement('button');
+                rmBtn.type = 'button';
+                rmBtn.className = 'rec-act-btn danger rec-act-delete';
+                rmBtn.innerHTML = `<i class="fas fa-times" aria-hidden="true"></i> <span>${escHtml(t('btn_remove', 'Αφαίρεση'))}</span>`;
+                rmBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    assets.detachFromSong(currentSongId, 'recordings', index);
+                });
+                strip.appendChild(rmBtn);
+            }
+
+            moreBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const willOpen = strip.hidden;
+                listEl.querySelectorAll('.track-item').forEach(other => {
+                    if (other === el) return;
+                    const s2 = other.querySelector('.rec-action-strip');
+                    const b2 = other.querySelector('.rec-more-btn');
+                    if (s2) s2.hidden = true;
+                    if (b2) b2.setAttribute('aria-expanded', 'false');
+                });
+                strip.hidden = !willOpen;
+                moreBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+
+            el.appendChild(topRow);
+            el.appendChild(strip);
+            listEl.appendChild(el);
+        });
+
         if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
     };
 
@@ -963,33 +1336,31 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         if (typeof window.fitToolsSections === 'function') window.fitToolsSections();
     };
 
-    assets.playAudio = function(url, title = "Playing Audio...") { 
-        const audio = document.getElementById('masterAudio'); 
-        
+    assets.playAudio = async function(url, title = "Playing Audio...", index = -1) {
+        const audio = document.getElementById('masterAudio');
+        bindMasterAudioEvents();
+
         const urlLower = (url || "").toLowerCase();
-        const isWebMedia = urlLower.includes("youtube.com") || urlLower.includes("youtu.be") || 
-                           urlLower.includes("soundcloud.com") || urlLower.includes("spotify.com") || 
+        const isWebMedia = urlLower.includes("youtube.com") || urlLower.includes("youtu.be") ||
+                           urlLower.includes("soundcloud.com") || urlLower.includes("spotify.com") ||
                            urlLower.includes("music.apple.com");
-                           
+
         if (isWebMedia) {
             if (audio) {
                 audio.pause();
                 audio.src = "";
             }
-            
-            const customUI = document.getElementById('customPlayerUI');
-            if (customUI) customUI.style.display = 'none';
-            
-            const tools = document.getElementById('audio-tools-panel');
-            if (tools) tools.style.display = 'none';
-            
+            _playingRecIndex = -1;
+            _playingRecUrl = '';
+            syncRecPlayingDom();
+
             const vidBox = document.getElementById('video-sidebar-container');
             const embedBox = document.getElementById('video-embed-box');
             const drawerVideo = document.getElementById('drawerVideo');
-            
+
             if (vidBox && embedBox) {
                 if (drawerVideo) drawerVideo.open = true;
-                
+
                 const ytId = (typeof getYoutubeId === 'function') ? getYoutubeId(url) : null;
                 if (ytId && window.mNotes && window.mNotes.ui && window.mNotes.ui.player && typeof window.mNotes.ui.player.loadYoutubeVideo === 'function') {
                     window.mNotes.ui.player.loadYoutubeVideo(ytId);
@@ -998,9 +1369,9 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
                 } else {
                     embedBox.innerHTML = `<iframe src="${url}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:absolute; top:0; left:0; border-radius: 8px;"></iframe>`;
                 }
-                
+
                 vidBox.style.display = 'block';
-                
+
                 const isEn = (typeof currentLang !== 'undefined' && currentLang === 'en');
                 if (typeof showToast === 'function') {
                     showToast(isEn ? `Playing link: ${title}` : `Αναπαραγωγή συνδέσμου: ${title}`, "info");
@@ -1009,42 +1380,63 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             return;
         }
 
-        if(audio) { 
-            audio.src = url; 
-            
-            const customUI = document.getElementById('customPlayerUI');
-            if (customUI) customUI.style.display = 'flex';
-            
-            const titleEl = document.getElementById('cpTitle');
-            if (titleEl) titleEl.innerText = title;
+        if (!audio) return;
 
-            const icon = document.getElementById('cpPlayIcon');
-            if (icon) { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
-            
-            const tools = document.getElementById('audio-tools-panel');
-            if (tools) tools.style.display = 'block';
+        const cleanTarget = cleanAssetUrl(url);
+        const sameTrack = (_playingRecIndex >= 0 && index >= 0 && _playingRecIndex === index) ||
+                          (_playingRecUrl && cleanTarget && _playingRecUrl === cleanTarget);
+        if (sameTrack && !audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+            _playingRecIndex = -1;
+            _playingRecUrl = '';
+            syncRecPlayingDom();
+            return;
+        }
 
-            const delay = (typeof userSettings !== 'undefined' && typeof userSettings.playDelay !== 'undefined') ? parseInt(userSettings.playDelay) : 0;
-            if (delay > 0 && typeof window.runPlayCountdown === 'function') {
-                window.runPlayCountdown(delay, () => {
-                    assets.initAudioTools();
-                    audio.play(); 
-                    if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-pause'); }
-                }, () => {
-                    audio.pause();
-                    if (icon) { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
-                });
-            } else {
-                assets.initAudioTools();
-                audio.play(); 
-                if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-pause'); }
+        let resolvedUrl = url;
+        if (String(url || '').startsWith('local://') && typeof window.resolveAttachmentUrl === 'function') {
+            try {
+                const res = await window.resolveAttachmentUrl(url, title);
+                if (!res) return;
+                resolvedUrl = res;
+            } catch (_) { return; }
+        }
+
+        _playingRecIndex = index;
+        _playingRecUrl = cleanTarget;
+        if (String(resolvedUrl || '').startsWith('http') && !String(resolvedUrl || '').startsWith(window.location.origin)) {
+            audio.crossOrigin = "anonymous";
+        } else {
+            audio.removeAttribute('crossorigin');
+        }
+        audio.src = resolvedUrl;
+        syncRecPlayingDom();
+
+        const startPlay = () => {
+            assets.initAudioTools();
+            if (audioCtx && audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
+                audioCtx.resume().catch(() => {});
             }
-        } 
+            const p = audio.play();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+            syncRecPlayingDom();
+        };
+
+        const delay = (typeof userSettings !== 'undefined' && typeof userSettings.playDelay !== 'undefined') ? parseInt(userSettings.playDelay, 10) : 0;
+        if (delay > 0 && typeof window.runPlayCountdown === 'function') {
+            window.runPlayCountdown(delay, startPlay, () => {
+                audio.pause();
+                syncRecPlayingDom();
+            });
+        } else {
+            startPlay();
+        }
     };
 
     assets.skipAudio = function(seconds) {
         const audio = document.getElementById('masterAudio');
-        if (!audio) return;
+        if (!audio || !audio.duration) return;
         audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + seconds));
     };
 
@@ -1054,20 +1446,15 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
             audio.pause();
             audio.src = "";
         }
-        const customUI = document.getElementById('customPlayerUI');
-        if (customUI) customUI.style.display = 'none';
-        
-        const tools = document.getElementById('audio-tools-panel');
-        if (tools) tools.style.display = 'none';
+        _playingRecIndex = -1;
+        _playingRecUrl = '';
+        updateRecPreviewBtnUi(false);
+        syncRecPlayingDom();
 
-        // Reset audio tools values
         activeSemitones = 0;
-        const disp = document.getElementById('audioPitchDisplay');
-        if (disp) disp.innerText = "0";
         if (pitchNode && typeof pitchNode.setPitch === 'function') {
             pitchNode.setPitch(0);
         }
-        
     };
     assets.promptAddWebLink = async function() {
         if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
@@ -1123,154 +1510,267 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     };
 
     assets.toggleRecording = async function() {
-        if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
+        const isSolo = (typeof window.currentEdition === 'function' && window.currentEdition() === 'solo');
+        if (!isSolo && typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
             if (typeof promptUpgrade === 'function') promptUpgrade(t('msg_record_save_audio', 'Εγγραφή & Αποθήκευση Ήχου'));
-            return; 
-        }
-
-        const btn = document.getElementById('btnRecord');
-        const timer = document.getElementById('recTimer');
-        const btnLink = document.getElementById('btnLinkRec');
-
-        if (assets.mediaRecorder && assets.mediaRecorder.state === 'recording') {
-            assets.mediaRecorder.stop();
-            btn.innerHTML = '<i class="fas fa-microphone"></i>';
-            btn.classList.remove('recording-active');
-            timer.style.color = "var(--text-muted)";
-            clearInterval(assets.recTimerInterval);
             return;
         }
-        
+
+        bindRecLifecycleOnce();
+        bindMasterAudioEvents();
+        const timer = document.getElementById('recTimer');
+
+        if (assets.mediaRecorder && assets.mediaRecorder.state === 'recording') {
+            _suppressPostRecOnStop = false;
+            try { assets.mediaRecorder.stop(); } catch (_) {}
+            teardownRecordingHardware();
+            return;
+        }
+
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
+            if (_recPreviewUrl) {
+                try { URL.revokeObjectURL(_recPreviewUrl); } catch (_) {}
+                _recPreviewUrl = '';
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: false,
                     noiseSuppression: false,
                     autoGainControl: false
-                    } 
+                }
             });
-            assets.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            assets.audioChunks = []; assets.currentRecordedBlob = null;
-            if(btnLink) btnLink.style.display = 'none';
+            _recStream = stream;
 
-            assets.mediaRecorder.ondataavailable = event => { assets.audioChunks.push(event.data); };
+            const recOpts = (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function' && !MediaRecorder.isTypeSupported('audio/webm'))
+                ? undefined
+                : { mimeType: 'audio/webm' };
+            assets.mediaRecorder = recOpts ? new MediaRecorder(stream, recOpts) : new MediaRecorder(stream);
+            assets.audioChunks = [];
+            assets.currentRecordedBlob = null;
+            _recElapsedSecs = 0;
+            _suppressPostRecOnStop = false;
+
+            // Χρήση του ΙΔΙΟΥ stream για AnalyserNode (καμία 2η κλήση getUserMedia)
+            try {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (Ctx) {
+                    _recAudioCtx = new Ctx();
+                    _recSourceNode = _recAudioCtx.createMediaStreamSource(stream);
+                    _recAnalyser = _recAudioCtx.createAnalyser();
+                    _recAnalyser.fftSize = 256;
+                    _recSourceNode.connect(_recAnalyser);
+                    const buf = new Uint8Array(_recAnalyser.fftSize);
+                    const tickMeter = () => {
+                        if (!_recAnalyser) return;
+                        _recAnalyser.getByteTimeDomainData(buf);
+                        let sumSq = 0;
+                        for (let i = 0; i < buf.length; i++) {
+                            const v = (buf[i] - 128) / 128;
+                            sumSq += v * v;
+                        }
+                        const rms = Math.sqrt(sumSq / buf.length);
+                        updateRecLevelBars(Math.min(1, rms * 3.2));
+                        _recLevelRaf = requestAnimationFrame(tickMeter);
+                    };
+                    _recLevelRaf = requestAnimationFrame(tickMeter);
+                }
+            } catch (_) {}
+
+            assets.mediaRecorder.ondataavailable = event => {
+                if (event && event.data && event.data.size > 0) assets.audioChunks.push(event.data);
+            };
             assets.mediaRecorder.onstop = () => {
+                teardownRecordingHardware();
+                if (_suppressPostRecOnStop) {
+                    _suppressPostRecOnStop = false;
+                    assets.audioChunks = [];
+                    assets.currentRecordedBlob = null;
+                    setRecStateUi('idle');
+                    return;
+                }
                 assets.currentRecordedBlob = new Blob(assets.audioChunks, { type: 'audio/webm' });
-                
                 const audioUrl = URL.createObjectURL(assets.currentRecordedBlob);
+                _recPreviewUrl = audioUrl;
                 const masterPlayer = document.getElementById('masterAudio');
                 if (masterPlayer) {
+                    masterPlayer.pause();
                     masterPlayer.src = audioUrl;
-                    const customUI = document.getElementById('customPlayerUI');
-                    if (customUI) customUI.style.display = 'flex'; 
-                    const titleEl = document.getElementById('cpTitle');
-                    if (titleEl) titleEl.innerText = t('msg_new_recording', "Νέα Εγγραφή...");
                 }
-
-                const btnLink = document.getElementById('btnLinkRec');
-                const btnDiscard = document.getElementById('btnDiscardRec');
-                
-                if (currentSongId && typeof currentUser !== 'undefined' && currentUser) { 
-                    if (btnLink) btnLink.style.display = 'flex'; 
-                }
-                
-                if (btnDiscard) btnDiscard.style.display = 'flex';
+                setRecStateUi('postrec');
             };
+
             assets.mediaRecorder.start();
-            btn.classList.add('recording-active'); btn.innerHTML = '<i class="fas fa-stop"></i>'; timer.style.color = "var(--danger)"; 
-            assets.recStartTime = Date.now(); 
-            assets.recTimerInterval = setInterval(() => { 
-                const diff = Math.floor((Date.now() - assets.recStartTime) / 1000); 
-                const m = Math.floor(diff / 60).toString().padStart(2,'0'); 
-                const s = (diff % 60).toString().padStart(2,'0'); 
-                timer.innerText = `${m}:${s}`; 
-            }, 1000);
-        } catch (err) { alert(t('msg_mic_error', "Microphone Error: ") + err.message); }
+            if (timer) timer.textContent = '00:00';
+            setRecStateUi('recording');
+            assets.recStartTime = Date.now();
+            assets.recTimerInterval = setInterval(() => {
+                const diff = Math.floor((Date.now() - assets.recStartTime) / 1000);
+                _recElapsedSecs = diff;
+                if (timer) timer.textContent = formatMMSS(diff);
+            }, 250);
+        } catch (err) {
+            teardownRecordingHardware();
+            setRecStateUi('idle');
+            const msg = t('msg_mic_error', "Microphone Error: ") + (err && err.message ? err.message : '');
+            if (window.mDialog && typeof window.mDialog.alert === 'function') window.mDialog.alert({ message: msg, tone: 'error' });
+            else if (typeof showToast === 'function') showToast(msg, 'error');
+        }
+    };
+
+    assets.togglePreviewRecording = function() {
+        const masterPlayer = document.getElementById('masterAudio');
+        if (!masterPlayer || !_recPreviewUrl) return;
+        bindMasterAudioEvents();
+        if (masterPlayer.src !== _recPreviewUrl) masterPlayer.src = _recPreviewUrl;
+        if (!masterPlayer.paused) {
+            masterPlayer.pause();
+            masterPlayer.currentTime = 0;
+            updateRecPreviewBtnUi(false);
+        } else {
+            _playingRecIndex = -1;
+            _playingRecUrl = '';
+            syncRecPlayingDom();
+            const p = masterPlayer.play();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+            updateRecPreviewBtnUi(true);
+        }
     };
 
     assets.discardRecording = function() {
+        _suppressPostRecOnStop = true;
+        if (assets.mediaRecorder && assets.mediaRecorder.state === 'recording') {
+            try { assets.mediaRecorder.stop(); } catch (_) {}
+        }
+        teardownRecordingHardware();
+
         const masterPlayer = document.getElementById('masterAudio');
         if (masterPlayer) {
+            masterPlayer.pause();
             masterPlayer.src = "";
         }
-        const customUI = document.getElementById('customPlayerUI');
-        if (customUI) customUI.style.display = 'none';
-        
-        const btnLink = document.getElementById('btnLinkRec');
-        const btnDiscard = document.getElementById('btnDiscardRec');
-        if (btnLink) btnLink.style.display = 'none';
-        if (btnDiscard) btnDiscard.style.display = 'none';
-        
+        updateRecPreviewBtnUi(false);
+        if (_recPreviewUrl) {
+            try { URL.revokeObjectURL(_recPreviewUrl); } catch (_) {}
+            _recPreviewUrl = '';
+        }
+
         const recTimer = document.getElementById('recTimer');
-        if (recTimer) recTimer.innerText = "00:00";
-        
+        if (recTimer) recTimer.textContent = "00:00";
+
         assets.audioChunks = [];
         assets.currentRecordedBlob = null;
-        
+        _recElapsedSecs = 0;
+        setRecStateUi('idle');
+
         if (typeof showToast === 'function') showToast(t('msg_record_cancelled', "Η εγγραφή ακυρώθηκε. Δεν ανέβηκε τίποτα."));
     };
 
     assets.uploadRecording = async function() {
         if (!assets.currentRecordedBlob) { showToast(t('msg_no_recording', "No recording!")); return; }
         if (!currentSongId) { showToast(t('msg_select_song_first', "Select song first!")); return; }
-        if (typeof currentUser === 'undefined' || !currentUser) { document.getElementById('authModal').style.display='flex'; return; }
-        
+        const isSolo = (typeof window.currentEdition === 'function' && window.currentEdition() === 'solo');
+        if (!isSolo && (typeof currentUser === 'undefined' || !currentUser)) {
+            const authModal = document.getElementById('authModal');
+            if (authModal) authModal.style.display = 'flex';
+            return;
+        }
+
         const targetSongId = currentSongId;
         const s = library.find(x => x.id === targetSongId);
         if (!s) return;
 
-        if (!confirm(t('msg_save_rec_cloud', 'Save to "{title}" in Cloud?').replace('{title}', s.title))) return;
-        
-        const btnLink = document.getElementById('btnLinkRec');
-        btnLink.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
-        btnLink.style.opacity = '0.7';
-        
+        const msgConfirm = isSolo
+            ? t('msg_save_rec_local', 'Αποθήκευση ηχογράφησης στο "{title}" στη συσκευή;').replace('{title}', s.title)
+            : t('msg_save_rec_cloud', 'Save to "{title}" in Cloud?').replace('{title}', s.title);
+        const okSave = window.mDialog && typeof window.mDialog.confirm === 'function'
+            ? await window.mDialog.confirm({ title: trAsset('btn_link_rec', 'Σύνδεση στο τραγούδι'), message: msgConfirm })
+            : confirm(msgConfirm);
+        if (!okSave) return;
+
+        const barEl = document.getElementById('uploadBar');
+        const pctEl = document.getElementById('uploadPct');
+        const setUploadPct = (pct) => {
+            if (barEl) barEl.style.width = `${pct}%`;
+            if (pctEl) pctEl.textContent = `${pct}%`;
+        };
+
+        setRecStateUi('uploading');
+        setUploadPct(25);
+
         if (!s.recordings) s.recordings = [];
         const takeNum = s.recordings.length + 1;
-        
+        const durStr = formatMMSS(_recElapsedSecs);
+
         const assetLibraryName = `Mic Take ${takeNum} - ${s.title}`;
         const filename = `Mic_${targetSongId}_Take${takeNum}_${Date.now()}.webm`;
 
         try {
-            const { error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, assets.currentRecordedBlob);
-            if (error) throw error; 
+            let publicUrl = '';
+            if (isSolo && window.SoloLocalAssets && typeof window.SoloLocalAssets.getDbAdapter === 'function') {
+                const db = window.SoloLocalAssets.getDbAdapter();
+                const assetId = `rec_${targetSongId}_${Date.now()}`;
+                await db.put({
+                    id: assetId,
+                    name: `${assetLibraryName}.webm`,
+                    mime: 'audio/webm',
+                    ext: 'webm',
+                    size: assets.currentRecordedBlob.size || 0,
+                    created_at: new Date().toISOString(),
+                    blob: assets.currentRecordedBlob
+                });
+                publicUrl = `local://asset/${assetId}`;
+                setUploadPct(85);
+            } else {
+                const { error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, assets.currentRecordedBlob);
+                if (error) throw error;
+                setUploadPct(65);
 
-            const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
-            
-            const { error: dbErr } = await supabaseClient
-                .from('user_assets')
-                .insert([{
-                    user_id: currentUser.id,
-                    custom_name: assetLibraryName,
-                    file_url: publicUrl,
-                    file_type: 'audio'
-                }]);
-            if (dbErr) console.warn("Asset Library Warning:", dbErr); 
+                const { data: { publicUrl: pUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
+                publicUrl = pUrl;
 
-            const newRec = { id: Date.now(), name: `Take ${takeNum}`, url: publicUrl, date: Date.now() };
-            
-            await assets.processAttachment(targetSongId, 'audio', newRec.name, newRec.url);
-            
+                const { error: dbErr } = await supabaseClient
+                    .from('user_assets')
+                    .insert([{
+                        user_id: currentUser.id,
+                        custom_name: assetLibraryName,
+                        file_url: publicUrl,
+                        file_type: 'audio'
+                    }]);
+                if (dbErr) console.warn("Asset Library Warning:", dbErr);
+                setUploadPct(90);
+            }
+
+            await assets.processAttachment(targetSongId, 'audio', `Take ${takeNum}`, publicUrl);
+            const curSong = library.find(x => x.id === targetSongId);
+            if (curSong && Array.isArray(curSong.recordings) && durStr !== '00:00') {
+                const added = curSong.recordings.find(r => r && r.url === publicUrl);
+                if (added && !added.duration) {
+                    added.duration = durStr;
+                    if (typeof saveSong === 'function') saveSong(curSong);
+                    assets.renderRecordings(curSong.recordings);
+                }
+            }
+            setUploadPct(100);
             showToast(t('msg_take_saved', "Take {num} Saved! ☁️").replace('{num}', takeNum));
-            btnLink.style.display = 'none'; 
-            
-        } catch(e) {
-             console.error("Upload Error:", e);
-             showToast(t('msg_upload_error', "Upload Error: ") + e.message, "error");
+        } catch (e) {
+            console.error("Upload Error:", e);
+            showToast(t('msg_upload_error', "Upload Error: ") + (e && e.message ? e.message : e), "error");
         } finally {
             assets.currentRecordedBlob = null;
-            btnLink.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
-            btnLink.style.opacity = '1';
-            
-            const btnDiscard = document.getElementById('btnDiscardRec');
-            if (btnDiscard) btnDiscard.style.display = 'none';
-            
+            _recElapsedSecs = 0;
             const masterPlayer = document.getElementById('masterAudio');
             if (masterPlayer) {
+                masterPlayer.pause();
                 masterPlayer.src = "";
-                const customUI = document.getElementById('customPlayerUI');
-                if (customUI) customUI.style.display = 'none';
             }
+            if (_recPreviewUrl) {
+                try { URL.revokeObjectURL(_recPreviewUrl); } catch (_) {}
+                _recPreviewUrl = '';
+            }
+            const recTimer = document.getElementById('recTimer');
+            if (recTimer) recTimer.textContent = "00:00";
+            setUploadPct(0);
+            setRecStateUi('idle');
         }
     };
     assets.initAudioTools = function() {
@@ -1280,17 +1780,15 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
         try {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             audioCtx = new Ctx();
-            
-            // Connect audio element
-            audio.crossOrigin = "anonymous"; 
+
             audioSource = audioCtx.createMediaElementSource(audio);
-            
+
             // Create the pitch shifter
             pitchNode = createJunglePitchShifter(audioCtx);
-            
+
             audioSource.connect(pitchNode.input);
             pitchNode.output.connect(audioCtx.destination);
-            
+
             console.log("🔊 [AUDIO TOOLS] Web Audio Pitch Shifter initialized.");
         } catch(e) {
             console.warn("⚠️ Web Audio Context not allowed or blocked:", e);
@@ -1379,47 +1877,8 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     }
 
     assets.setupAudioToolsListeners = function() {
-        const btnDown = document.getElementById('btnAudioPitchDown');
-        const btnUp = document.getElementById('btnAudioPitchUp');
-        const btnReset = document.getElementById('btnAudioPitchReset');
-        const disp = document.getElementById('audioPitchDisplay');
-        
-        if (btnDown) {
-            btnDown.onclick = function() {
-                assets.initAudioTools();
-                if (activeSemitones > -6) {
-                    activeSemitones--;
-                    if (disp) disp.innerText = (activeSemitones > 0 ? "+" : "") + activeSemitones;
-                    if (pitchNode && typeof pitchNode.setPitch === 'function') {
-                        pitchNode.setPitch(activeSemitones);
-                    }
-                }
-            };
-        }
-        
-        if (btnUp) {
-            btnUp.onclick = function() {
-                assets.initAudioTools();
-                if (activeSemitones < 6) {
-                    activeSemitones++;
-                    if (disp) disp.innerText = (activeSemitones > 0 ? "+" : "") + activeSemitones;
-                    if (pitchNode && typeof pitchNode.setPitch === 'function') {
-                        pitchNode.setPitch(activeSemitones);
-                    }
-                }
-            };
-        }
-        
-        if (btnReset) {
-            btnReset.onclick = function() {
-                assets.initAudioTools();
-                activeSemitones = 0;
-                if (disp) disp.innerText = "0";
-                if (pitchNode && typeof pitchNode.setPitch === 'function') {
-                    pitchNode.setPitch(0);
-                }
-            };
-        }
+        bindRecLifecycleOnce();
+        bindMasterAudioEvents();
     };
 
     // Initialize listeners when DOM is ready
@@ -1472,6 +1931,8 @@ window.mNotes.ui.assets = window.mNotes.ui.assets || {};
     window.discardCurrentRecording = assets.discardRecording;
     window.uploadAndLinkCurrent = assets.uploadRecording;
     window.promptAddWebLink = assets.promptAddWebLink;
+    window.togglePreviewRecording = assets.togglePreviewRecording;
+    window.renameRecordingItem = assets.renameRecording;
 
 })(window.mNotes.ui.assets);
 

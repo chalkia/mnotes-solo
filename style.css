@@ -7285,6 +7285,938 @@ body.play-mode .stage-band-badge {
     opacity: 0.65;
 }
 
+/* =========================================================
+   LIBRARY 3-TIER PALETTE, BREATHING DENSITY & SETLIST SEARCH (Commit 6 Ζ)
+   ========================================================= */
+:root,
+body.theme-dark {
+    --lib-rail-bg: #07080a;
+    --lib-rail-border: #2b303b;
+    --lib-rail-card-bg: #161920;
+    --lib-rail-card-border: #2a2f3a;
+    --lib-rail-card-text: #c4ccd8;
+    --lib-rail-card-muted: #a7b1c2;
+    --lib-rail-active-bg: #242936;
+    --lib-rail-active-border: #6b778d;
+    --lib-rail-active-text: #f5f7fa;
+
+    --lib-chrome-bg: #111318;
+    --lib-chrome-border: #262b36;
+    --lib-input-bg: #1c2028;
+    --lib-input-border: #383f4d;
+    --lib-tabs-bg: #181c23;
+    --lib-tab-active-bg: #262c38;
+    --lib-tab-active-border: #4a5568;
+
+    --lib-card-bg: #1b1f27;
+    --lib-card-border: #2d3340;
+    --lib-card-hover-bg: #212631;
+    --lib-card-active-bg: #242c38;
+    --lib-card-active-border: #3d5a6c;
+    --lib-card-active-title: #ffffff;
+    --lib-card-active-artist: #bcc9d8;
+    --lib-key-bg: #16222c;
+    --lib-key-border: #355063;
+    --lib-key-text: #7ee8dd;
+}
+
+body.theme-light {
+    --lib-rail-bg: #d9dfe8;
+    --lib-rail-border: #bec6d2;
+    --lib-rail-card-bg: #eef1f6;
+    --lib-rail-card-border: #c3cbd6;
+    --lib-rail-card-text: #2c3540;
+    --lib-rail-card-muted: #4b5563;
+    --lib-rail-active-bg: #ffffff;
+    --lib-rail-active-border: #2980b9;
+    --lib-rail-active-text: #111827;
+
+    --lib-chrome-bg: #edf0f5;
+    --lib-chrome-border: #cfd6e0;
+    --lib-input-bg: #ffffff;
+    --lib-input-border: #bac3d0;
+    --lib-tabs-bg: #dfe4ec;
+    --lib-tab-active-bg: #ffffff;
+    --lib-tab-active-border: #bac3d0;
+
+    --lib-card-bg: #ffffff;
+    --lib-card-border: #d2d8e2;
+    --lib-card-hover-bg: #f7f9fc;
+    --lib-card-active-bg: #e6f0fb;
+    --lib-card-active-border: #7aaee0;
+    --lib-card-active-title: #0c2340;
+    --lib-card-active-artist: #2c4460;
+    --lib-key-bg: #eef5fc;
+    --lib-key-border: #a8c7e8;
+    --lib-key-text: #0b5cad;
+}
+body.theme-light #sidebar {
+    --text-main: #18202c;
+    --text-muted: #4b5563;
+}
+
+body.theme-slate {
+    --lib-rail-bg: #1b2836;
+    --lib-rail-border: #3c5368;
+    --lib-rail-card-bg: #243445;
+    --lib-rail-card-border: #3b5166;
+    --lib-rail-card-text: #d3dce3;
+    --lib-rail-card-muted: #c8d4de;
+    --lib-rail-active-bg: #34495e;
+    --lib-rail-active-border: #8cb2d9;
+    --lib-rail-active-text: #ffffff;
+
+    --lib-chrome-bg: #263646;
+    --lib-chrome-border: #3e556b;
+    --lib-input-bg: #314459;
+    --lib-input-border: #4c667e;
+    --lib-tabs-bg: #1f2e3d;
+    --lib-tab-active-bg: #34495e;
+    --lib-tab-active-border: #55718c;
+
+    --lib-card-bg: #314458;
+    --lib-card-border: #455e75;
+    --lib-card-hover-bg: #384d63;
+    --lib-card-active-bg: #3a5168;
+    --lib-card-active-border: #7c96b0;
+    --lib-card-active-title: #ffffff;
+    --lib-card-active-artist: #d5dfe6;
+    --lib-key-bg: #243445;
+    --lib-key-border: #56738e;
+    --lib-key-text: #f7dc6f;
+}
+body.theme-slate #sidebar {
+    --text-main: #f2f6f9;
+    --text-muted: #c8d4de;
+}
+
+/* Tier 1: .workspace-rail + 2-line wrap without single-line truncation */
+#sidebar .workspace-rail {
+    background: var(--lib-rail-bg);
+    border-right: 1px solid var(--lib-rail-border);
+    padding: 8px 6px;
+    gap: 6px;
+}
+#sidebar .workspace-rail-btn {
+    min-height: 46px;
+    padding: 8px 8px;
+    border-radius: 9px;
+    background: var(--lib-rail-card-bg);
+    border-color: var(--lib-rail-card-border);
+    color: var(--lib-rail-card-text);
+}
+#sidebar .workspace-rail-btn.is-active {
+    background: var(--lib-rail-active-bg);
+    border-color: var(--lib-rail-active-border);
+    color: var(--lib-rail-active-text);
+    border-left: 4px solid var(--band-context-line, var(--accent));
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+#sidebar .workspace-rail-name {
+    font-size: 0.77rem;
+    line-height: 1.18;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    word-break: break-word;
+    overflow: hidden;
+}
+#sidebar .workspace-rail-role {
+    font-size: 0.70rem;
+    color: var(--lib-rail-card-muted);
+}
+
+/* Tier 2: Chrome / Header / Controls / List canvas / Footer across all sizes */
+#sidebar,
+#sidebar .sidebar-main,
+#sidebar .sidebar-header,
+#sidebar #library-controls,
+#sidebar #setlist-controls,
+#sidebar .sidebar-footer {
+    background: var(--lib-chrome-bg);
+    border-color: var(--lib-chrome-border);
+}
+#sidebar #songList.song-list {
+    background: var(--lib-chrome-bg);
+    display: flex;
+    flex-direction: column;
+}
+#sidebar .sidebar-tabs {
+    background: var(--lib-tabs-bg);
+    border-color: var(--lib-chrome-border);
+}
+#sidebar .sidebar-tabs .tab-btn.active {
+    background: var(--lib-tab-active-bg);
+    border-color: var(--lib-tab-active-border);
+    color: var(--text-main);
+}
+#sidebar #library-controls input,
+#sidebar #library-controls select,
+#sidebar #setlist-controls input,
+#sidebar #setlist-controls select {
+    background-color: var(--lib-input-bg);
+    border-color: var(--lib-input-border);
+    color: var(--text-main);
+}
+
+/* Tier 3: .song-item surface + active contrast */
+#sidebar #songList .song-item {
+    background: var(--lib-card-bg);
+    border-color: var(--lib-card-border);
+    color: var(--text-main);
+}
+#sidebar #songList .song-item:hover {
+    background: var(--lib-card-hover-bg);
+}
+#sidebar #songList .song-item.active {
+    background: var(--lib-card-active-bg) !important;
+    border-color: var(--lib-card-active-border);
+    border-left: 4px solid var(--band-context-line, var(--accent));
+}
+#sidebar #songList .song-item.active .song-title {
+    color: var(--lib-card-active-title);
+}
+#sidebar #songList .song-item.active .song-artist {
+    color: var(--lib-card-active-artist);
+}
+#sidebar #songList .song-key-badge {
+    background: var(--lib-key-bg);
+    border-color: var(--lib-key-border);
+    color: var(--lib-key-text);
+}
+
+/* Mικρά (lib-text-sm): κρατά την πυκνή διάταξη (12 / 13 γραμμές) + 3-tier χρώματα */
+body.lib-text-sm #sidebar .sidebar-header {
+    height: 78px;
+    max-height: 78px;
+    min-height: 78px;
+    padding: 4px 10px;
+    gap: 3px;
+}
+body.lib-text-sm #sidebar #library-controls.library-controls-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+}
+body.lib-text-sm #sidebar .filter-selects-row {
+    display: contents;
+}
+body.lib-text-sm #sidebar #songList.song-list {
+    padding: 0;
+    gap: 0;
+}
+body.lib-text-sm #sidebar #songList .song-item {
+    height: 48px;
+    min-height: 48px;
+    max-height: 48px;
+    padding: 4px 8px;
+    border-radius: 0;
+    border-left-width: 3px;
+    border-right: none;
+    border-top: none;
+    border-bottom: 1px solid var(--lib-chrome-border);
+}
+
+/* Κανονικά (md — προεπιλογή) & Μεγάλα (lg): νέα άνετη μορφή (11-library-breathing-contrast) */
+body:not(.lib-text-sm) #sidebar .sidebar-header {
+    height: auto;
+    min-height: 112px;
+    max-height: none;
+    padding: 12px 12px 10px;
+    gap: 10px;
+}
+body:not(.lib-text-sm) #sidebar .sidebar-header-top {
+    min-height: 40px;
+    height: 40px;
+    gap: 8px;
+}
+body:not(.lib-text-sm) #sidebar .sidebar-tabs {
+    padding: 3px;
+    border-radius: 9px;
+}
+body:not(.lib-text-sm) #sidebar .sidebar-tabs .tab-btn {
+    height: 34px;
+}
+body:not(.lib-text-sm) #sidebar .sidebar-tabs .tab-btn::before {
+    inset: -5px 0;
+}
+body:not(.lib-text-sm) #sidebar #library-controls.library-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+}
+body:not(.lib-text-sm) #sidebar #library-controls .search-input-wrap {
+    flex: none;
+    width: 100%;
+}
+body:not(.lib-text-sm) #sidebar #library-controls #searchInp {
+    height: 40px;
+    padding: 0 36px 0 14px;
+    border-radius: 10px;
+}
+body:not(.lib-text-sm) #sidebar .filter-selects-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+body:not(.lib-text-sm) #sidebar #library-controls #tagFilter,
+body:not(.lib-text-sm) #sidebar #library-controls #sortFilter {
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    padding: 0 20px 0 8px;
+    border-radius: 9px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    appearance: none;
+    background-image: var(--select-arrow);
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    text-overflow: ellipsis;
+}
+body:not(.lib-text-sm) #sidebar #songList.song-list {
+    padding: 10px 10px 12px;
+    gap: 6px;
+}
+body:not(.lib-text-sm) #sidebar #songList .song-item {
+    min-height: 60px;
+    height: auto;
+    max-height: none;
+    padding: 9px 11px;
+    gap: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--lib-card-border);
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+body.lib-text-lg #sidebar #songList .song-item {
+    min-height: 66px;
+    padding: 10px 12px;
+}
+body:not(.lib-text-sm) #sidebar #songList .song-item.active {
+    border-left: 4px solid var(--band-context-line, var(--accent));
+    padding-left: 8px;
+}
+@media (max-width: 1023px) {
+    body:not(.lib-text-sm) #sidebar #songList.song-list {
+        padding: 10px 12px 12px;
+        gap: 7px;
+    }
+    body:not(.lib-text-sm) #sidebar #songList .song-item {
+        min-height: 62px;
+        padding: 9px 12px;
+    }
+    body.lib-text-lg #sidebar #songList .song-item {
+        min-height: 68px;
+        padding: 10px 12px;
+    }
+}
+
+/* Καρτέλα Λίστες + Ενσωματωμένη Αναζήτηση 🔍 (#btnToggleSetlistSearch) */
+#sidebar #setlist-controls {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--lib-chrome-border);
+}
+#sidebar #setlist-controls #setlistFilterNotice {
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: var(--lib-card-active-bg);
+    border: 1px solid var(--lib-card-active-border);
+    color: var(--lib-card-active-title);
+    font-size: 0.80rem;
+    font-weight: 700;
+}
+#btnClearSetlistFilter {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: var(--lib-tabs-bg);
+    color: var(--text-main);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+#btnClearSetlistFilter::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+}
+.setlist-selector-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+#selSetlistName {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 38px;
+    padding: 0 26px 0 10px;
+    border-radius: 9px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.setlist-icon-btn,
+#btnSetlistMenu.setlist-menu-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 9px;
+    border: 1px solid var(--lib-input-border);
+    background: var(--lib-input-bg);
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    padding: 0;
+}
+.setlist-icon-btn::before,
+#btnSetlistMenu.setlist-menu-btn::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+}
+.setlist-icon-btn.is-open {
+    background: var(--lib-card-active-bg);
+    border-color: var(--band-context-line, var(--accent));
+    color: var(--lib-card-active-title);
+}
+#setlistSearchRow {
+    margin-top: 8px;
+    width: 100%;
+    position: relative;
+    align-items: center;
+}
+#setlistSearchInp {
+    width: 100%;
+    height: 40px;
+    padding: 0 36px 0 14px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-family: var(--font-ui);
+    outline: none;
+}
+.song-seq-num {
+    min-width: 24px;
+    height: 22px;
+    padding: 0 5px;
+    margin-right: 6px;
+    border-radius: 6px;
+    background: var(--surface-ctl);
+    border: 1px solid var(--border-color);
+    color: var(--text-ctl, var(--text-main));
+    font-size: 0.76rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+#songList .song-item .song-handle.is-filter-disabled {
+    opacity: 0.22;
+    cursor: not-allowed;
+}
+#sidebar #songList .song-item.band-cloud .song-title::before {
+    content: none !important;
+    display: none !important;
+}
+
+/* =========================================================
+   COMPACT AUDIO HUB (#drawerAudioHub — 10-recordings-compact)
+   ========================================================= */
+#drawerAudioHub > .group-content.rec-compact-content {
+    padding: 0 6px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.rec-compact-content .is-hidden {
+    display: none !important;
+}
+.rec-organ-plate {
+    box-sizing: border-box;
+    height: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 2px;
+    border-radius: 9px;
+    background: var(--surface-ctl);
+    border: 1px solid var(--border-color);
+    transition: background 0.16s, border-color 0.16s;
+}
+#drawerAudioHub.is-recording .rec-organ-plate {
+    --org-plate: #0a0e14;
+    --org-dial: #06090e;
+    --org-rec: #ff5252;
+    background: var(--org-plate);
+    border-color: var(--org-rec);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(255, 82, 82, 0.28);
+}
+#btnRecord {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--danger);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.rec-btn-ring {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid var(--danger);
+    background: var(--bg-panel);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.rec-shape {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--danger);
+}
+#drawerAudioHub.is-recording .rec-btn-ring {
+    border-color: var(--org-rec, #ff5252);
+    background: rgba(255, 82, 82, 0.22);
+}
+#drawerAudioHub.is-recording .rec-shape {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    background: #ff6b6b;
+}
+.rec-dial {
+    flex: 1;
+    min-width: 0;
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 7px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#drawerAudioHub.is-recording .rec-dial {
+    background: var(--org-dial, #06090e);
+    border-color: #3a2329;
+}
+.rec-compact-content #recTimer {
+    flex: 0 0 auto;
+    font-size: 0.88rem;
+    font-weight: 700;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-main);
+    white-space: nowrap;
+}
+#drawerAudioHub.is-recording #recTimer {
+    color: #ff7b7b;
+}
+.rec-level-meter {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 2.5px;
+    height: 12px;
+}
+.rec-level-meter .lvl-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-strong, var(--border-color));
+    opacity: 0.45;
+}
+#drawerAudioHub.is-recording .rec-level-meter .lvl-bar {
+    background: #273244;
+    opacity: 1;
+}
+#drawerAudioHub.is-recording .rec-level-meter .lvl-bar.on-green {
+    height: 10px;
+    background: #00e676;
+}
+#drawerAudioHub.is-recording .rec-level-meter .lvl-bar.on-amber {
+    height: 11px;
+    background: #ffb74d;
+}
+#drawerAudioHub.is-recording .rec-level-meter .lvl-bar.on-red {
+    height: 12px;
+    background: #ff5252;
+}
+.rec-state-tag {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+#drawerAudioHub.is-recording .rec-state-tag {
+    color: #ff7b7b;
+}
+#btnAddWebLink {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    border-left: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-ctl, var(--text-main));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+#drawerAudioHub.is-recording #btnAddWebLink {
+    border-left-color: #2f3b4d;
+    color: #cbd5e1;
+}
+
+.post-rec-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 5px;
+    border-radius: 9px;
+    background: var(--surface-ctl);
+    border: 1px solid var(--border-strong, var(--border-color));
+}
+.post-rec-preview-btn {
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong, var(--border-color));
+    background: var(--bg-panel);
+    color: var(--text-ctl, var(--text-main));
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+#btnLinkRec {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: #1b6e35;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+body.theme-light #btnLinkRec {
+    background: #2e7d32;
+}
+#btnDiscardRec {
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--danger-btn, var(--danger));
+    background: transparent;
+    color: var(--danger);
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.rec-compact-content #uploadProgressBox {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 7px 9px;
+    border-radius: 9px;
+    background: var(--surface-ctl);
+    border: 1px solid var(--border-strong, var(--border-color));
+}
+.rec-compact-content .upload-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-ctl, var(--text-main));
+}
+.rec-compact-content .prog-bg {
+    width: 100%;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+.rec-compact-content #uploadBar.prog-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--info, #2196f3);
+    border-radius: 999px;
+    transition: width 0.2s ease;
+}
+
+#sideRecList {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: none;
+    overflow: visible;
+}
+#sideRecList .track-item {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    min-height: 44px;
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--surface-ctl);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
+}
+#sideRecList .track-item:first-child {
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+}
+#sideRecList .track-item:last-child {
+    border-bottom: none;
+    border-bottom-left-radius: 9px;
+    border-bottom-right-radius: 9px;
+}
+#sideRecList .track-item.is-playing {
+    background: var(--surface-ctl-active, var(--bg-elevated));
+    box-shadow: inset 0 0 0 1px var(--ring-armed-outer, var(--accent));
+}
+.rec-row-top {
+    position: relative;
+    height: 44px;
+    min-height: 44px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+.rec-play-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-ctl, var(--text-main));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+#sideRecList .track-item.is-playing .rec-play-btn {
+    color: var(--org-perf, #00e676);
+}
+.rec-type-badge {
+    height: 22px;
+    min-width: 34px;
+    padding: 0 5px;
+    border-radius: 6px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    color: var(--text-ctl, var(--text-main));
+    font-size: 0.69rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+#sideRecList .track-item.is-playing .rec-type-badge {
+    border-color: var(--ring-armed-outer, var(--accent));
+    color: var(--text-main);
+}
+.rec-main-info {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+    cursor: pointer;
+}
+.rec-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: var(--text-ctl, var(--text-main));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#sideRecList .track-item.is-playing .rec-name {
+    color: var(--text-main);
+}
+.rec-dur {
+    font-size: 0.73rem;
+    font-weight: 700;
+    color: var(--text-ctl, var(--text-main));
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+.rec-more-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    border-left: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-ctl, var(--text-main));
+    font-family: inherit;
+    font-size: 1.02rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.rec-more-btn[aria-expanded="true"] {
+    background: var(--surface-ctl-active, var(--bg-elevated));
+    color: var(--text-main);
+}
+.rec-progress-track {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.10);
+    pointer-events: none;
+}
+body.theme-light .rec-progress-track {
+    background: rgba(0, 0, 0, 0.10);
+}
+#sideRecList .track-item.is-playing .rec-progress-track {
+    display: block;
+}
+.rec-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--org-perf, #00e676);
+}
+.rec-action-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+    background: var(--bg-sidebar);
+    border-top: 1px solid var(--border-color);
+}
+.rec-action-strip[hidden] {
+    display: none !important;
+}
+.rec-act-btn {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 7px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong, var(--border-color));
+    background: var(--surface-ctl);
+    color: var(--text-ctl, var(--text-main));
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rec-act-btn.danger {
+    color: var(--danger);
+}
+#drawerAudioHub #btnAddAudio.add-wide-btn {
+    height: 44px;
+    min-height: 44px;
+    font-size: 0.80rem;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
 
 
 

@@ -77,22 +77,23 @@
                         onclick="window.clearSearchInput && window.clearSearchInput()"
                         data-i18n-title="btn_clear_search" title="Καθαρισμός αναζήτησης" style="display:none;">✕</button>
                 </div>
-                <select id="tagFilter" onchange="applyFilters()">
-                    <option value="" data-i18n="opt_all_tags">All Tags</option>
-                </select>
-                <select id="sortFilter" onchange="applySortAndRender()" class="sort-select-v2">
-                    <option value="alpha" data-i18n="sort_alpha"><span data-i18n="idx_auto_134">🔤 Αλφαβητικά</span></option>
-                    <option value="created" data-i18n="sort_newest"><span data-i18n="idx_auto_133">✨ Νεότερα</span></option>
-                    <option value="modified" data-i18n="sort_modified"><span data-i18n="idx_auto_132">✏️ Πρόσφατα Επεξεργασμένα</span></option>
-                    <option value="viewed" data-i18n="sort_viewed"><span data-i18n="idx_auto_131">🕒 Πρόσφατα Προβληθέντα</span></option>
-                </select>
+                <div class="filter-selects-row">
+                    <select id="tagFilter" onchange="applyFilters()">
+                        <option value="" data-i18n="opt_all_tags">All Tags</option>
+                    </select>
+                    <select id="sortFilter" onchange="applySortAndRender()" class="sort-select-v2">
+                        <option value="alpha" data-i18n="sort_alpha"><span data-i18n="idx_auto_134">🔤 Αλφαβητικά</span></option>
+                        <option value="created" data-i18n="sort_newest"><span data-i18n="idx_auto_133">✨ Νεότερα</span></option>
+                        <option value="modified" data-i18n="sort_modified"><span data-i18n="idx_auto_132">✏️ Πρόσφατα Επεξεργασμένα</span></option>
+                        <option value="viewed" data-i18n="sort_viewed"><span data-i18n="idx_auto_131">🕒 Πρόσφατα Προβληθέντα</span></option>
+                    </select>
+                </div>
             </div>
 
-            <div id="setlist-controls" class="sidebar-search"
-                style="display:none; flex-direction:column; gap:10px; border-bottom: 2px solid var(--accent);">
+            <div id="setlist-controls" class="sidebar-search" style="display:none;">
                 <div id="setlistFilterNotice" style="display:none;">
                     <span id="setlistFilterText"></span>
-                    <button type="button" onclick="clearSetlistFilter()" title="Καθαρισμός φίλτρου">✕</button>
+                    <button id="btnClearSetlistFilter" type="button" onclick="clearSetlistFilter()" title="Καθαρισμός φίλτρου" aria-label="Καθαρισμός φίλτρου">✕</button>
                 </div>
                 <div id="setlist-area">
                     <label class="small-label-v2" style="display:flex; justify-content:space-between; align-items:center;">
@@ -104,13 +105,26 @@
                         <select id="selSetlistName" onchange="switchSetlist(this.value)" class="setlist-select-v2">
                             <option value="Default" data-i18n="lbl_default_setlist">Default Setlist</option>
                         </select>
+                        <button id="btnToggleSetlistSearch" type="button" class="setlist-icon-btn"
+                            onclick="window.toggleSetlistSearch && window.toggleSetlistSearch()"
+                            aria-expanded="false" data-i18n-title="ttl_setlist_search" data-i18n-aria="ttl_setlist_search"
+                            title="Αναζήτηση στη λίστα" aria-label="Αναζήτηση στη λίστα">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </button>
                         <div class="setlist-menu-wrap">
-                            <button id="btnSetlistMenu" type="button" onclick="toggleSetlistMenu(event)" class="setlist-menu-btn"
+                            <button id="btnSetlistMenu" type="button" onclick="toggleSetlistMenu(event)" class="setlist-menu-btn setlist-icon-btn"
                                 aria-haspopup="menu" aria-expanded="false" title="Ενέργειες λίστας" data-i18n-title="btn_setlist_menu_title">
                                 <i class="fas fa-ellipsis-v"></i>
                             </button>
                             <div id="setlistMenuDropdown" class="setlist-menu-dropdown" role="menu" hidden></div>
                         </div>
+                    </div>
+                    <div id="setlistSearchRow" class="search-input-wrap" style="display:none;">
+                        <input id="setlistSearchInp" type="text" data-i18n="setlist_search_ph" placeholder="Αναζήτηση στη λίστα..."
+                            oninput="window.onSetlistSearchInput && window.onSetlistSearchInput(this.value)" aria-label="Αναζήτηση στη λίστα">
+                        <button id="btnClearSetlistSearch" type="button" class="clear-search-btn"
+                            onclick="clearSetlistFilter()" data-i18n-title="btn_clear_search"
+                            title="Καθαρισμός αναζήτησης" aria-label="Καθαρισμός αναζήτησης" style="display:none;">✕</button>
                     </div>
                 </div>
             </div>
@@ -437,138 +451,58 @@
                                 data-i18n="title_audio_hub">AUDIO HUB</span></span>
                         <span class="drawer-header-actions"><span class="drawer-count-badge" data-badge-for="drawerAudioHub">0</span><span class="tool-drag-handle" data-i18n-title="tools_drag_handle" data-i18n-aria="tools_drag_handle" title="Μετακίνηση ενότητας" aria-label="Μετακίνηση ενότητας" onclick="event.preventDefault(); event.stopPropagation();">⠿</span><i class="fas fa-chevron-down toggle-icon"></i></span>
                     </summary>
-                    <div class="group-content drawer-content">
+                    <div class="group-content drawer-content rec-compact-content">
+                        <div class="rec-organ-plate">
+                            <button id="btnRecord" type="button" onclick="toggleRecording()" title="Εγγραφή" aria-label="Εγγραφή">
+                                <span class="rec-btn-ring"><span class="rec-shape"></span></span>
+                            </button>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                            <div
-                                style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;">
-                                <span id="recTimer" data-pro-only class="rec-timer"
-                                    style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted); font-family: monospace;">00:00</span>
-                                <div style="display: flex; gap: 8px;">
-                                    <button id="btnRecord" data-pro-only onclick="toggleRecording()" class="action-btn-circle"
-                                        title="Record"
-                                        style="background: var(--bg-main); color: #ff4757; border: 1px solid #ff4757; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                                        <i class="fas fa-circle"></i>
-                                    </button>
-                                    <button id="btnAddWebLink" onclick="window.promptAddWebLink()" class="action-btn-circle"
-                                        title="Προσθήκη Συνδέσμου Web / Add Web Link" data-i18n-title="idx_auto_115"
-                                        style="background: var(--bg-main); color: var(--accent); border: 1px solid var(--accent); width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                                        <i class="fas fa-link"></i>
-                                    </button>
-                                    <button id="btnDiscardRec" data-pro-only onclick="discardCurrentRecording()"
-                                        class="action-btn-circle"
-                                        style="display:none; background: #dc3545; color: #fff; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;"
-                                        title="Ακύρωση Εγγραφής" data-i18n-title="idx_auto_114">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                    <button id="btnLinkRec" data-pro-only onclick="uploadAndLinkCurrent()" class="action-btn-circle"
-                                        style="display:none; background: #4db6ac; color: #000; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;"
-                                        title="Save to Song">
-                                        <i class="fas fa-cloud-upload-alt"></i>
-                                    </button>
+                            <div class="rec-dial">
+                                <span id="recTimer" class="rec-timer">00:00</span>
+                                <div id="recLevelMeter" class="rec-level-meter" aria-label="Στάθμη μικροφώνου">
+                                    <span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span><span class="lvl-bar"></span>
                                 </div>
+                                <span id="recStateTag" class="rec-state-tag" data-i18n="rec_state_idle">ΑΝΑΜΟΝΗ</span>
                             </div>
 
-                            <div data-pro-only onclick="openAssetManager('audio')"
-                                style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;"
-                                onmouseover="this.style.background='rgba(255,255,255,0.08)'"
-                                onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-                                <i class="fas fa-folder-open"
-                                    style="font-size: 1.6rem; color: var(--accent); margin-bottom: 8px;"></i>
-                                <span data-i18n="btn_manage_audio"
-                                    style="font-size: 0.8rem; font-weight: bold; color: var(--text-main);">Audio
-                                    Library</span>
-                            </div>
-                        </div>
-
-                        <div id="uploadProgressBox" style="display:none; margin-bottom: 15px;">
-                            <div class="prog-bg">
-                                <div id="uploadBar" class="prog-fill"></div>
-                            </div>
-                            <span id="uploadText" data-i18n="msg_uploading"
-                                style="font-size:0.7rem; color:#888;">Uploading...</span>
-                        </div>
-
-                        <audio id="masterAudio"></audio>
-
-                        <div id="customPlayerUI"
-                            style="display: none; flex-direction: column; gap: 8px; background: var(--bg-panel, rgba(0,0,0,0.3)); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; width: 100%; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
-                            <div id="cpTitle"
-                                style="font-size: 0.75rem; color: var(--accent); font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; text-align: center;">
-                                Playing Audio...</div>
-
-                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                                <div style="display: flex; gap: 5px;">
-                                    <button onclick="skipAudio(-10)" class="player-mini-btn" title="-10s"
-                                        style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">-10</button>
-                                    <button id="cpPlayBtn" onclick="toggleCustomPlayer()"
-                                        style="background: var(--accent); color: #000; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: 0.2s transform;">
-                                        <i class="fas fa-play" id="cpPlayIcon"></i>
-                                    </button>
-                                    <button onclick="skipAudio(10)" class="player-mini-btn" title="+10s"
-                                        style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">+10</button>
-                                </div>
-
-                                <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
-                                    <input type="range" id="cpSeekbar" value="0" max="100"
-                                        oninput="seekCustomPlayer(this.value)"
-                                        style="width: 100%; accent-color: var(--accent); height: 4px; cursor: pointer; margin: 0;">
-                                    <div style="display: flex; justify-content: space-between; width: 100%;">
-                                        <span id="cpCurrentTime"
-                                            style="font-size: 0.7rem; color: var(--text-main); font-family: monospace;">0:00</span>
-                                        <span id="cpDuration"
-                                            style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">0:00</span>
-                                    </div>
-                                </div>
-
-                                <button onclick="closeCustomPlayer()"
-                                    style="background: transparent; color: var(--text-muted); border: none; cursor: pointer; padding: 5px; font-size: 0.9rem;"
-                                    title="Κλείσιμο" data-i18n-title="idx_auto_113">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="audio-tools-panel"
-                            style="display:none; margin-bottom:15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color);">
-                            <div
-                                style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">
-                                <i class="fas fa-sliders-h"></i> <span data-i18n="lbl_audio_tools">AUDIO TOOLS</span>
-                            </div>
-
-                            <div
-                                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="font-size: 0.85rem;" data-i18n="lbl_pitch">Pitch:</span>
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <button id="btnAudioPitchDown" class="play-mini-btn"
-                                        style="width: 28px; height: 28px; padding: 0;">-</button>
-                                    <span id="audioPitchDisplay"
-                                        style="width: 24px; text-align: center; font-weight: bold; font-size: 0.9rem;">0</span>
-                                    <button id="btnAudioPitchUp" class="play-mini-btn"
-                                        style="width: 28px; height: 28px; padding: 0;">+</button>
-                                </div>
-                                <button id="btnAudioPitchReset" class="add-mini-btn"
-                                    style="padding: 2px 8px; font-size: 0.75rem;" data-i18n="btn_reset">Reset</button>
-                            </div>
-                        </div>
-
-                        <div class="audio-list-container"
-                            style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px;">
-                            <label class="list-label" data-i18n="lbl_tracks"
-                                style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; display: block; letter-spacing: 1px;">TRACKS:</label>
-                            <div id="sideRecList" class="compact-list">
-                                <div class="empty-state" data-i18n="msg_no_recordings"
-                                    style="text-align: center; color: #666; font-size: 0.85rem; padding: 10px 0; font-style: italic;">
-                                    No recordings yet</div>
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px;">
-                            <button class="add-mini-btn" onclick="openAssetManager('audio')"
-                                style="justify-content: center; padding: 8px;">
-                                <i class="fas fa-music"></i> <span data-i18n="tab_audio">Audio Library</span>
+                            <button id="btnAddWebLink" type="button" onclick="window.promptAddWebLink()"
+                                title="Προσθήκη συνδέσμου ήχου (π.χ. YouTube)" aria-label="Προσθήκη συνδέσμου ήχου (π.χ. YouTube)"
+                                data-i18n-title="ttl_add_web_link" data-i18n-aria="ttl_add_web_link">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             </button>
                         </div>
+
+                        <div id="postRecBar" class="post-rec-bar is-hidden">
+                            <button type="button" id="btnPreviewRec" class="post-rec-preview-btn" onclick="togglePreviewRecording()"
+                                title="Ακρόαση εγγραφής" aria-label="Ακρόαση εγγραφής" data-i18n-title="ttl_preview_rec" data-i18n-aria="ttl_preview_rec">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                                <span id="postRecDur">00:00</span>
+                            </button>
+                            <button id="btnLinkRec" type="button" onclick="uploadAndLinkCurrent()"
+                                title="Σύνδεση στο τραγούδι" aria-label="Σύνδεση στο τραγούδι" data-i18n-title="btn_link_rec" data-i18n-aria="btn_link_rec">
+                                <span data-i18n="btn_link_rec">✓ Σύνδεση στο τραγούδι</span>
+                            </button>
+                            <button id="btnDiscardRec" type="button" onclick="discardCurrentRecording()"
+                                title="Απόρριψη" aria-label="Απόρριψη" data-i18n-title="btn_discard_rec" data-i18n-aria="btn_discard_rec">
+                                <span data-i18n="btn_discard_rec">✕ Απόρριψη</span>
+                            </button>
+                        </div>
+
+                        <div id="uploadProgressBox" class="is-hidden">
+                            <div class="upload-head">
+                                <span id="uploadText" data-i18n="msg_uploading">Μεταφόρτωση…</span>
+                                <span id="uploadPct">0%</span>
+                            </div>
+                            <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
+                        </div>
+
+                        <audio id="masterAudio" class="is-hidden"></audio>
+
+                        <div id="sideRecList" class="is-hidden"></div>
+
+                        <button type="button" id="btnAddAudio" data-pro-only class="add-wide-btn" onclick="openAssetManager('audio')">
+                            <span data-i18n="btn_add_recordings">+ Ηχογραφήσεις</span>
+                        </button>
                     </div>
                 </details>
 
@@ -1888,61 +1822,61 @@
 
 
         <script src="js/sortable.min.js"></script>
-        <script src="js/edition.js?v=2.8.1T.251126"></script>
-        <script src="js/config.js?v=2.8.1T.251126"></script>
+        <script src="js/edition.js?v=2.8.2T.251126"></script>
+        <script src="js/config.js?v=2.8.2T.251126"></script>
         <script src="js/supabase.min.js"></script>
         <script src="libs/jspdf.umd.min.js"></script>
         <script src="libs/pdf.min.js"></script>
         <script src="libs/abcjs-basic-min.js"></script>
         <link rel="stylesheet" href="libs/abcjs-audio.css">
-        <script src="js/data.js?v=2.8.1T.251126"></script>
-        <script src="js/translations.js?v=2.8.1T.251126"></script>
-        <script src="js/storage.js?v=2.8.1T.251126"></script>
+        <script src="js/data.js?v=2.8.2T.251126"></script>
+        <script src="js/translations.js?v=2.8.2T.251126"></script>
+        <script src="js/storage.js?v=2.8.2T.251126"></script>
 
 
-        <script src="js/sample-kit-data.js?v=2.8.1T.251126"></script>
-        <script src="js/universal-percussion-engine.js?v=2.8.1T.251126"></script>
-        <script src="js/custom-kits.js?v=2.8.1T.251126"></script>
-        <script src="js/drum-machine.js?v=2.8.1T.251126"></script>
-        <script src="js/mnotes-rhythm-runtime.js?v=2.8.1T.251126"></script>
+        <script src="js/sample-kit-data.js?v=2.8.2T.251126"></script>
+        <script src="js/universal-percussion-engine.js?v=2.8.2T.251126"></script>
+        <script src="js/custom-kits.js?v=2.8.2T.251126"></script>
+        <script src="js/drum-machine.js?v=2.8.2T.251126"></script>
+        <script src="js/mnotes-rhythm-runtime.js?v=2.8.2T.251126"></script>
 
-        <script src="js/modules/ui-dialogs.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/utils.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/setlist-manager.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/assets.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/played-set.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/player.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/editor.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/library.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/settings.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/ui-utils.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/rhythm.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/theory.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/visuals.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/band.js?v=2.8.1T.251126"></script>
-        <script src="js/modules/export.js?v=2.8.1T.251126"></script>
+        <script src="js/modules/ui-dialogs.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/utils.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/setlist-manager.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/assets.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/played-set.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/player.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/editor.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/library.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/settings.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/ui-utils.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/rhythm.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/theory.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/visuals.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/band.js?v=2.8.2T.251126"></script>
+        <script src="js/modules/export.js?v=2.8.2T.251126"></script>
 
-        <script src="js/auth.js?v=2.8.1T.251126"></script>
-        <script src="js/basicmetronome.js?v=2.8.1T.251126"></script>
-        <script src="js/permissions.js?v=2.8.1T.251126"></script>
-        <script src="libs/fflate.min.js?v=2.8.1T.251126-7a2f088"></script>
-        <script src="js/modules/package.js?v=2.8.1T.251126-7a2f088"></script>
-        <script src="js/solo/local-storage-policy.js?v=2.8.1T.251126-7a2f088"></script>
-        <script src="js/solo/local-assets.js?v=2.8.1T.251126-7a2f088"></script>
-        <script src="js/solo/backup.js?v=2.8.1T.251126-7a2f088"></script>
-        <script src="js/solo/messages.js?v=2.8.1T.251126-7a2f088"></script>
-        <script src="js/solo/account.js?v=2.8.1T.251126-7a2f088"></script>
-        <script src="js/logic.js?v=2.8.1T.251126"></script>
-        <script src="js/floating-tools.js?v=2.8.1T.251126"></script>
-        <script src="js/tuner.js?v=2.8.1T.251126"></script>
-        <script src="js/ui.js?v=2.8.1T.251126"></script>
-        <script src="js/release-notes.js?v=2.8.1T.251126"></script>
-        <script src="js/chord-player.js?v=2.8.1T.251126"></script>
-        <script src="js/chords.js?v=2.8.1T.251126"></script>
+        <script src="js/auth.js?v=2.8.2T.251126"></script>
+        <script src="js/basicmetronome.js?v=2.8.2T.251126"></script>
+        <script src="js/permissions.js?v=2.8.2T.251126"></script>
+        <script src="libs/fflate.min.js?v=2.8.2T.251126-4e8e08f"></script>
+        <script src="js/modules/package.js?v=2.8.2T.251126-4e8e08f"></script>
+        <script src="js/solo/local-storage-policy.js?v=2.8.2T.251126-4e8e08f"></script>
+        <script src="js/solo/local-assets.js?v=2.8.2T.251126-4e8e08f"></script>
+        <script src="js/solo/backup.js?v=2.8.2T.251126-4e8e08f"></script>
+        <script src="js/solo/messages.js?v=2.8.2T.251126-4e8e08f"></script>
+        <script src="js/solo/account.js?v=2.8.2T.251126-4e8e08f"></script>
+        <script src="js/logic.js?v=2.8.2T.251126"></script>
+        <script src="js/floating-tools.js?v=2.8.2T.251126"></script>
+        <script src="js/tuner.js?v=2.8.2T.251126"></script>
+        <script src="js/ui.js?v=2.8.2T.251126"></script>
+        <script src="js/release-notes.js?v=2.8.2T.251126"></script>
+        <script src="js/chord-player.js?v=2.8.2T.251126"></script>
+        <script src="js/chords.js?v=2.8.2T.251126"></script>
 
-        <script src="js/app.js?v=2.8.1T.251126"></script>
+        <script src="js/app.js?v=2.8.2T.251126"></script>
 
-<script type="module" src="js/chord-assistant.js?v=2.8.1T.251126"></script>
+<script type="module" src="js/chord-assistant.js?v=2.8.2T.251126"></script>
 
         <div id="swUpdateBar" style="display:none;">
             <span>Νέα έκδοση διαθέσιμη</span>
